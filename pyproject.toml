@@ -1,0 +1,34 @@
+[tool.poetry]
+name = "modelplane"
+version = "0.1.0"
+description = ""
+authors = ["MLCommons AI Safety <ai-safety-engineering@mlcommons.org>"]
+license = "Apache-2.0"
+readme = "README.md"
+packages = [
+    { include = "modelplane", from = "src" },
+]
+
+[tool.poetry.dependencies]
+python = ">=3.10,!=3.12.5,<3.13"
+click = "^8"
+modelbench = {git = "https://github.com/mlcommons/modelbench.git"}
+mlflow = "^2"
+python-dotenv = "^1"
+requests = "^2"
+prometheus-client = "*" # version controlled by dependencies
+jsonlines = "^4"
+numpy = "^2"
+matplotlib = "^3"
+notebook = "^7"
+
+[tool.poetry.group.dev.dependencies]
+ipython = "<9"
+
+[tool.poetry.scripts]
+modelplane = "modelplane.runways.run:cli"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+

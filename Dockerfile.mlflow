@@ -1,0 +1,5 @@
+FROM ghcr.io/mlflow/mlflow:latest
+
+# This isn't available on the base image, even though the 
+# default tracking server uses postgres.
+RUN pip install psycopg2-binary
