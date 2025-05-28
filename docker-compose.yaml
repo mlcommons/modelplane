@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:17 # TODO: ensure compatibility with our GCP PostgreSQL
+    env_file: .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  mlflow:
+    build:
+      dockerfile: Dockerfile.mlflow
+    env_file: .env
+    depends_on:
+      - postgres
+    # grab backend from .env, pass artifact root, if provided, otherwise local storage of artifacts
+    command: >
+      mlflow server
+        --backend-store-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+        --default-artifact-root /mlruns
+        --host 0.0.0.0
+        --port 8080
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./mlruns:/mlruns
+  
+  jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    env_file: .env
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./flightdeck:/app/flightdeck
+      - ./mlruns:/mlruns
+
+volumes:
+  pgdata:
