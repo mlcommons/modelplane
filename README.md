@@ -40,7 +40,14 @@ given docker-compose.yaml file will start up:
 
 ## TODO
 
-- [ ] Support multiple SUTs for getting responses
+- [ ] Scoring against ground truth (measurement runner functionality)
+- [ ] Support ensemble option
+- [ ] Support multiple annotators in single run
 - [ ] Confirm this works with cloud storage
 - [ ] Add test coverage
+- [ ] Support for data via remote DVC repo
+- [ ] Template with annotator that's served elsewhere
+- [ ] Missing safety runner functionality
+- [ ] Automated experiment names
+- [ ] `annotate` should add sut_id tag to its runs
 - [ ] Better handling of jupyter token

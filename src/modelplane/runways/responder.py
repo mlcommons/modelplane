@@ -53,7 +53,7 @@ load_plugins(disable_progress_bar=True)
     help="The number of jobs to run in parallel. Defaults to 1.",
 )
 @load_from_dotenv
-def get_responses(
+def get_sut_responses(
     sut_id: str,
     prompts: str,
     experiment: str,
