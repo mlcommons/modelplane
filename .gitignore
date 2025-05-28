@@ -4,3 +4,5 @@ secrets.toml
 .python-version
 data/
 *.pyc
+.vscode/
+.coverage*
