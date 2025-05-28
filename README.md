@@ -31,10 +31,10 @@ given docker-compose.yaml file will start up:
     ```bash
     docker compose up -d jupyter
     ```
-1. Visit the [Jupyter Server](http://localhost:8888). The token is configured
-   in the .env file. You shouldn't need to enter it more than once (until
-   the server is restarted). You can get started with the template notebook
-   or create a new one.
+1. Visit the [Jupyter Server](http://localhost:8888/?token=changeme). The
+   token is configured in the .env file. You shouldn't need to enter it 
+   more than once (until the server is restarted). You can get started with
+   the template notebook or create a new one.
 1. The runs can be monitored in MLFlow wherever you have that set up. If
    local with the default setup, http://localhost:8080.
 
