@@ -1,0 +1,43 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Start MLflow server
+        run: |
+          docker compose up -d mlflow
+
+      - name: Wait for MLflow server to be ready
+        run: |
+          until curl -f http://localhost:8080/health; do
+            echo "Waiting for MLflow server..."
+            sleep 5
+          done
+
+      - name: Install poetry
+        run: pipx install "poetry == 1.8.5"
+
+      - name: Install dependencies
+        run: poetry install --with test
+
+      - name: Run all tests
+        run: MLFLOW_TRACKING_URI=http://localhost:8080 poetry run pytest
+
+      - name: Stop MLflow server
+        run: docker compose down

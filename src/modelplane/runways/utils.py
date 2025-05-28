@@ -27,8 +27,11 @@ def is_debug_mode() -> bool:
 
 def setup_sut_credentials(uid: str) -> RawSecrets:
     """Load secrets from the config file and check for missing secrets."""
-    secrets = load_secrets_from_config(path=os.getenv(SECRETS_PATH_ENV, SECRETS_PATH))
     missing_secrets = []
+    secrets_path = os.getenv(SECRETS_PATH_ENV, SECRETS_PATH)
+    secrets = {}
+    if os.path.exists(secrets_path):
+        secrets = load_secrets_from_config(path=secrets_path)
     missing_secrets.extend(SUTS.get_missing_dependencies(uid, secrets=secrets))
     raise_if_missing_from_config(missing_secrets)
     return secrets
