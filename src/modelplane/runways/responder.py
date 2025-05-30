@@ -21,7 +21,7 @@ from modelplane.utils.env import load_from_dotenv
 load_plugins(disable_progress_bar=True)
 
 
-@click.command(name="get-responses")
+@click.command(name="get-sut-responses")
 @click.option(
     "--sut_id",
     type=str,
