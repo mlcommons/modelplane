@@ -96,7 +96,7 @@ def annotate(
     overwrite: bool = False,
     cache_dir: str | None = None,
     n_jobs: int = 1,
-) -> None:
+) -> str:
     """
     Run annotations and record measurements.
     """
@@ -148,6 +148,7 @@ def annotate(
                 / pipeline_runner.output_file_name,
                 dir=tmp,
             )
+        return mlflow.active_run().info.run_id  # type: ignore
 
 
 def transform_mlflow_responder_artifact(run_id: str, dir: str) -> str:

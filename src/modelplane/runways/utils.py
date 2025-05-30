@@ -26,24 +26,26 @@ def is_debug_mode() -> bool:
 
 
 def setup_sut_credentials(uid: str) -> RawSecrets:
-    """Load secrets from the config file and check for missing secrets."""
     missing_secrets = []
-    secrets_path = os.getenv(SECRETS_PATH_ENV, SECRETS_PATH)
-    secrets = {}
-    if os.path.exists(secrets_path):
-        secrets = load_secrets_from_config(path=secrets_path)
+    secrets = safe_load_secrets_from_config()
     missing_secrets.extend(SUTS.get_missing_dependencies(uid, secrets=secrets))
     raise_if_missing_from_config(missing_secrets)
     return secrets
 
 
 def setup_annotator_credentials(uid: str) -> RawSecrets:
-    """Load secrets from the config file and check for missing secrets."""
-    secrets = load_secrets_from_config(path=os.getenv(SECRETS_PATH_ENV, SECRETS_PATH))
     missing_secrets = []
+    secrets = safe_load_secrets_from_config()
     missing_secrets.extend(ANNOTATORS.get_missing_dependencies(uid, secrets=secrets))
     raise_if_missing_from_config(missing_secrets)
     return secrets
+
+
+def safe_load_secrets_from_config() -> RawSecrets:
+    path = os.getenv(SECRETS_PATH_ENV, SECRETS_PATH)
+    if os.path.exists(path):
+        return load_secrets_from_config(path=path)
+    return {}
 
 
 def get_experiment_id(experiment_name: str) -> str:
