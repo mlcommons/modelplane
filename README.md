@@ -38,6 +38,25 @@ given docker-compose.yaml file will start up:
 1. The runs can be monitored in MLFlow wherever you have that set up. If
    local with the default setup, http://localhost:8080.
 
+## CLI
+
+You can also interact with modelplane via CLI. Run `poetry run modelplane --help`
+for more details.
+
+*Important:* You must set the `MLFLOW_TRACKING_URI` environmental variable.
+For example, if you've brought up MLFlow using the docker compose process above,
+you could run:
+```
+MLFLOW_TRACKING_URI=http://localhost:8080 poetry run modelplane get-sut-responses --sut_id {sut_id} --prompts tests/data/prompts.csv --experiment expname
+```
+After running the command, you'd see the `run_id` in the output from mlflow, 
+or you can get the `run_id` via the MLFlow UI.
+
+Then you can run annotations with:
+```
+MLFLOW_TRACKING_URI=http://localhost:8080 poetry run modelplane annotate --annotator_id {annotator_id} --experiment expname --response_run_id {run_id}
+```
+
 ## TODO
 
 - [ ] Scoring against ground truth (measurement runner functionality)
