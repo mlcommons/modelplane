@@ -10,7 +10,6 @@ import pathlib
 import tempfile
 from collections import defaultdict
 
-import click
 import jsonlines
 import mlflow
 import mlflow.artifacts
@@ -19,7 +18,6 @@ from matplotlib import pyplot as plt
 
 from modelgauge.annotation_pipeline import ANNOTATOR_CSV_INPUT_COLUMNS
 from modelgauge.annotator_registry import ANNOTATORS
-from modelgauge.load_plugins import load_plugins
 from modelgauge.pipeline_runner import AnnotatorRunner
 
 from modelplane.runways.utils import (
@@ -28,65 +26,6 @@ from modelplane.runways.utils import (
     is_debug_mode,
     setup_annotator_credentials,
 )
-from modelplane.utils.env import load_from_dotenv
-
-load_plugins(disable_progress_bar=True)
-
-
-@click.command(name="annotate")
-@click.option(
-    "--annotator_id",
-    type=str,
-    required=True,
-    help="The SUT UID to use.",
-)
-@click.option(
-    "--experiment",
-    type=str,
-    required=True,
-    help="The experiment name to use. If the experiment does not exist, it will be created.",
-)
-@click.option(
-    "--response_run_id",
-    type=str,
-    required=True,
-    help="The run ID corresponding to the responses to annotate.",
-)
-@click.option(
-    "--overwrite",
-    is_flag=True,
-    default=False,
-    help="Use the response_run_id to save annotation artifact. Any existing annotation artifact will be overwritten. If not set, a new run will be created.",
-)
-@click.option(
-    "--cache_dir",
-    type=str,
-    default=None,
-    help="The cache directory. Defaults to None. Local directory used to cache LLM responses.",
-)
-@click.option(
-    "--n_jobs",
-    type=int,
-    default=1,
-    help="The number of jobs to run in parallel. Defaults to 1.",
-)
-@load_from_dotenv
-def get_annotations(
-    annotator_id: str,
-    experiment: str,
-    response_run_id: str,
-    overwrite: bool = False,
-    cache_dir: str | None = None,
-    n_jobs: int = 1,
-):
-    return annotate(
-        annotator_id=annotator_id,
-        experiment=experiment,
-        response_run_id=response_run_id,
-        overwrite=overwrite,
-        cache_dir=cache_dir,
-        n_jobs=n_jobs,
-    )
 
 
 def annotate(
