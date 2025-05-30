@@ -113,7 +113,4 @@ def respond(
                 local_path=pipeline_runner.output_dir()
                 / pipeline_runner.output_file_name,
             )
-            print(
-                f"Logged prompt responses to {pipeline_runner.output_dir() / pipeline_runner.output_file_name}"
-            )
         return mlflow.active_run().info.run_id  # type: ignore
