@@ -1,6 +1,5 @@
 # Ensures the mlflow tracking server is live.
 
-import mlflow
 from modelplane.mlflow.health import tracking_server_is_live
 
 
