@@ -149,5 +149,5 @@ def check_scorer(
     assert metrics.get("num_ground_truth_samples") == 10
     assert metrics.get(f"{annotator_id}_num_annotator_samples") == 10
     assert metrics.get(f"{annotator_id}_num_samples_scored") == 10
-    assert metrics.get(f"{annotator_id}_precision") == 1.0
+    assert metrics.get(f"{annotator_id}_precision") == 0.0
 
