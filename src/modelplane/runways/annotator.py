@@ -86,13 +86,12 @@ def annotate(
             )
 
             # log summary statistics
-            for annotator_id in annotator_ids:
-                log_safety_summary(
-                    annotator_uids=annotator_ids,
-                    data_path=pipeline_runner.output_dir()
-                    / pipeline_runner.output_file_name,
-                    dir=tmp,
-                )
+            log_safety_summary(
+                annotator_uids=annotator_ids,
+                data_path=pipeline_runner.output_dir()
+                / pipeline_runner.output_file_name,
+                dir=tmp,
+            )
         return mlflow.active_run().info.run_id  # type: ignore
 
 
