@@ -102,7 +102,7 @@ def transform_mlflow_annotator_artifact(
     """
     mlflow.artifacts.download_artifacts(
         run_id=run_id,
-        artifact_path=ANNOTATION_RESPONSE_ARTIFACT_NAME,x
+        artifact_path=ANNOTATION_RESPONSE_ARTIFACT_NAME,
         dst_path=dir,
     )
     path = os.path.join(dir, ANNOTATION_RESPONSE_ARTIFACT_NAME)

@@ -145,7 +145,6 @@ def check_scorer(
     assert params.get("ground_truth") == ground_truth
     assert params.get("annotation_run_id") == annotation_run_id
 
-    # expect 8 safe based on seed
     assert metrics.get("num_ground_truth_samples") == 10
     assert metrics.get(f"{annotator_id}_num_annotator_samples") == 10
     assert metrics.get(f"{annotator_id}_num_samples_scored") == 10
