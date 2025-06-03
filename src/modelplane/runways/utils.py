@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 import mlflow
 
@@ -33,10 +34,13 @@ def setup_sut_credentials(uid: str) -> RawSecrets:
     return secrets
 
 
-def setup_annotator_credentials(uid: str) -> RawSecrets:
+def setup_annotator_credentials(uids: List[str]) -> RawSecrets:
     missing_secrets = []
     secrets = safe_load_secrets_from_config()
-    missing_secrets.extend(ANNOTATORS.get_missing_dependencies(uid, secrets=secrets))
+    for uid in uids:
+        missing_secrets.extend(
+            ANNOTATORS.get_missing_dependencies(uid, secrets=secrets)
+        )
     raise_if_missing_from_config(missing_secrets)
     return secrets
 

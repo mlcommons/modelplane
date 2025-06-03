@@ -1,3 +1,4 @@
+from typing import List
 import click
 
 
@@ -67,8 +68,9 @@ def get_sut_responses(
 @click.option(
     "--annotator_id",
     type=str,
+    multiple=True,
     required=True,
-    help="The SUT UID to use.",
+    help="The annotator UID(s) to use. Multiple annotators can be specified.",
 )
 @click.option(
     "--experiment",
@@ -102,7 +104,7 @@ def get_sut_responses(
 )
 @load_from_dotenv
 def get_annotations(
-    annotator_id: str,
+    annotator_id: List[str],
     experiment: str,
     response_run_id: str,
     overwrite: bool = False,
@@ -110,7 +112,7 @@ def get_annotations(
     n_jobs: int = 1,
 ):
     return annotate(
-        annotator_id=annotator_id,
+        annotator_ids=annotator_id,
         experiment=experiment,
         response_run_id=response_run_id,
         overwrite=overwrite,

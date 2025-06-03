@@ -4,11 +4,12 @@ TODO: PROMPT_CSV_INPUT_COLUMNS / ANNOTATOR_CSV_INPUT_COLUMNS should be aligned
 TODO: log_safety_summary is probably too specific to llamaguard
 """
 
+import collections
 import csv
 import os
 import pathlib
 import tempfile
-from collections import defaultdict
+from typing import List
 
 import jsonlines
 import mlflow
@@ -29,7 +30,7 @@ from modelplane.runways.utils import (
 
 
 def annotate(
-    annotator_id: str,
+    annotator_ids: List[str],
     experiment: str,
     response_run_id: str,
     overwrite: bool = False,
@@ -39,14 +40,18 @@ def annotate(
     """
     Run annotations and record measurements.
     """
-
-    secrets = setup_annotator_credentials(annotator_id)
-    annotator = ANNOTATORS.make_instance(uid=annotator_id, secrets=secrets)
+    secrets = setup_annotator_credentials(annotator_ids)
+    annotators = {}
+    for annotator_id in annotator_ids:
+        annotators[annotator_id] = ANNOTATORS.make_instance(
+            uid=annotator_id, secrets=secrets
+        )
     params = {
         "cache_dir": cache_dir,
         "n_jobs": n_jobs,
     }
-    tags = {"annotator_id": annotator_id}
+    # tag for each annotator id to help make them searchable
+    tags = {f"annotator_{annotator_id}": "true" for annotator_id in annotator_ids}
 
     experiment_id = get_experiment_id(experiment)
     if overwrite:
@@ -63,7 +68,7 @@ def annotate(
                 run_id=response_run_id, dir=tmp
             )
             pipeline_runner = AnnotatorRunner(
-                annotators={annotator_id: annotator},
+                annotators=annotators,
                 num_workers=n_jobs,
                 input_path=pathlib.Path(input_path),
                 output_dir=pathlib.Path(tmp),
@@ -81,12 +86,13 @@ def annotate(
             )
 
             # log summary statistics
-            log_safety_summary(
-                annotator_uid=annotator_id,
-                data_path=pipeline_runner.output_dir()
-                / pipeline_runner.output_file_name,
-                dir=tmp,
-            )
+            for annotator_id in annotator_ids:
+                log_safety_summary(
+                    annotator_uids=annotator_ids,
+                    data_path=pipeline_runner.output_dir()
+                    / pipeline_runner.output_file_name,
+                    dir=tmp,
+                )
         return mlflow.active_run().info.run_id  # type: ignore
 
 
@@ -128,65 +134,49 @@ def transform_mlflow_responder_artifact(run_id: str, dir: str) -> str:
 
 
 def log_safety_summary(
-    annotator_uid: str,
+    annotator_uids: List[str],
     data_path: str,
     dir: str,
 ):
-    log_probs_by_cat = defaultdict(list)
-    safe_counts_by_cat = defaultdict(int)
-    total_counts_by_cat = defaultdict(int)
-
-    all_log_probs = []
-    total_safe = 0
-    total = 0
+    all_log_probs = collections.defaultdict(list)
+    total_safe = collections.Counter()
+    total = collections.Counter()
 
     with open(data_path, "r") as f:
         reader = jsonlines.Reader(f)
         for row in reader:
-            is_safe = row["Annotations"][annotator_uid]["is_safe"]
-            unsafe_categories = row["Annotations"][annotator_uid][
-                "violation_categories"
-            ]
-            log_prob = row["Annotations"][annotator_uid]["is_safe_logprob"]
+            for annotator_uid in annotator_uids:
+                if (
+                    annotator_uid not in row["Annotations"]
+                    or "is_safe" not in row["Annotations"][annotator_uid]
+                ):
+                    continue
+                is_safe = row["Annotations"][annotator_uid]["is_safe"]
+                if "is_safe_logprob" in row["Annotations"][annotator_uid]:
+                    all_log_probs[annotator_uid].append(
+                        row["Annotations"][annotator_uid]["is_safe_logprob"]
+                    )
 
-            for category in unsafe_categories:
-                log_probs_by_cat[category].append(log_prob)
-                total_counts_by_cat[category] += 1
-
+                total[annotator_uid] += 1
                 if is_safe:
-                    safe_counts_by_cat[category] += 1
+                    total_safe[annotator_uid] += 1
 
-            total += 1
-            all_log_probs.append(log_prob)
-            if is_safe:
-                total_safe += 1
-
-        # per-category
-        for category, probs in log_probs_by_cat.items():
-            tag = f"{category}_log_prob_"
-            log_stats(tag, probs)
-
-            mlflow.log_metric(f"{category}_safe_count", safe_counts_by_cat[category])
-            mlflow.log_metric(f"{category}_total_count", total_counts_by_cat[category])
-
-            log_hist(dir, category, probs)
-
-        # Overall stats
-        log_stats(f"overall_log_prob_", all_log_probs)
-        mlflow.log_metric(f"total_safe", total_safe)
-        mlflow.log_metric(f"total_count", total)
-
-        log_hist(dir, "_overall", all_log_probs)
+        for annotator_uid in annotator_uids:
+            mlflow.log_metric(f"{annotator_uid}_total_safe", total_safe[annotator_uid])
+            mlflow.log_metric(f"{annotator_uid}_total_count", total[annotator_uid])
+            log_stats(f"{annotator_uid}_log_prob_", all_log_probs[annotator_uid])
+            log_hist(dir, f"{annotator_uid}", all_log_probs[annotator_uid])
 
 
 def log_stats(tag_prefix, values):
-    if len(values) == 0:
-        return
     values = np.array(values)
-    mlflow.log_metric(f"{tag_prefix}mean", float(np.mean(values)))
-    mlflow.log_metric(f"{tag_prefix}min", float(np.min(values)))
-    mlflow.log_metric(f"{tag_prefix}max", float(np.max(values)))
-    mlflow.log_metric(f"{tag_prefix}std", float(np.std(values)))
+    # count non-NaN values
+    if np.count_nonzero(~np.isnan(values)) == 0:
+        return
+    mlflow.log_metric(f"{tag_prefix}mean", float(np.nanmean(values)))
+    mlflow.log_metric(f"{tag_prefix}min", float(np.nanmin(values)))
+    mlflow.log_metric(f"{tag_prefix}max", float(np.nanmax(values)))
+    mlflow.log_metric(f"{tag_prefix}std", float(np.nanstd(values)))
 
 
 def log_hist(dir, tag, values):

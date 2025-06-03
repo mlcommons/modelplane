@@ -1,5 +1,6 @@
 import csv
 import tempfile
+from typing import List
 
 import mlflow
 import mlflow.artifacts
@@ -29,7 +30,7 @@ def test_e2e():
     )
     run_id = check_annotator(
         response_run_id=run_id,
-        annotator_id=TEST_ANNOTATOR_ID,
+        annotator_ids=[TEST_ANNOTATOR_ID],
         experiment=experiment,
         cache_dir=None,
         n_jobs=n_jobs,
@@ -94,7 +95,7 @@ def check_responder(
 
 def check_annotator(
     response_run_id: str,
-    annotator_id: str,
+    annotator_ids: List[str],
     experiment: str,
     cache_dir: str | None,
     n_jobs: int,
@@ -103,7 +104,7 @@ def check_annotator(
     with tempfile.TemporaryDirectory() as cache_dir:
         run_id = annotate(
             response_run_id=response_run_id,
-            annotator_id=annotator_id,
+            annotator_ids=annotator_ids,
             experiment=experiment,
             cache_dir=cache_dir,
             n_jobs=n_jobs,
@@ -119,11 +120,15 @@ def check_annotator(
     metrics = run.data.metrics
     assert params.get("cache_dir") == cache_dir
     assert params.get("n_jobs") == str(n_jobs)
-    assert tags.get("annotator_id") == annotator_id
+    assert tags.get(f"annotator_{TEST_ANNOTATOR_ID}") == "true"
 
     # expect 8 safe based on seed
-    assert metrics.get("total_count") == 10, "Expected total_count to be 10"
-    assert metrics.get("total_safe") == 8, "Expected total_safe to be 8"
+    assert (
+        metrics.get(f"{TEST_ANNOTATOR_ID}_total_count") == 10
+    ), "Expected total_count to be 10"
+    assert (
+        metrics.get(f"{TEST_ANNOTATOR_ID}_total_safe") == 8
+    ), "Expected total_safe to be 8"
 
     # confirm annotations.jsonl exists
     artifacts = mlflow.artifacts.list_artifacts(run_id=run_id)
