@@ -16,6 +16,7 @@ def test_main_help():
     assert "get-sut-responses" in result.output
     assert "annotate" in result.output
 
+
 @pytest.mark.parametrize("command", ["get-sut-responses", "annotate", "score"])
 def test_command_help(command):
     runner = CliRunner()

@@ -34,7 +34,12 @@ def test_e2e():
         cache_dir=None,
         n_jobs=n_jobs,
     )
-    check_scorer(annotation_run_id=run_id, ground_truth=ground_truth, annotator_id=TEST_ANNOTATOR_ID, experiment=experiment)
+    check_scorer(
+        annotation_run_id=run_id,
+        ground_truth=ground_truth,
+        annotator_id=TEST_ANNOTATOR_ID,
+        experiment=experiment,
+    )
 
 
 def check_responder(
@@ -127,6 +132,7 @@ def check_annotator(
     ), "Expected 'annotations.jsonl' artifact not found in run"
     return run_id
 
+
 def check_scorer(
     annotation_run_id: str,
     ground_truth: str,
@@ -149,4 +155,3 @@ def check_scorer(
     assert metrics.get(f"{annotator_id}_num_annotator_samples") == 10
     assert metrics.get(f"{annotator_id}_num_samples_scored") == 10
     assert metrics.get(f"{annotator_id}_precision") == 0.0
-

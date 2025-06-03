@@ -61,14 +61,18 @@ def score_annotator(
     ]
 
     # TODO: What happens if not all ground truth samples are annotated? Proceed with scoring or no?
-    assert len(matching_ground_truth) > 0, f"No sample overlap found between {annotator} and ground truth."
+    assert (
+        len(matching_ground_truth) > 0
+    ), f"No sample overlap found between {annotator} and ground truth."
 
     # Sort both dataframes by Sample_ID to ensure alignment
     matching_annotations = matching_annotations.sort_values("Sample_ID")
     matching_ground_truth = matching_ground_truth.sort_values("Sample_ID")
 
     # Get predictions and ground truth for unsafe classification.
-    y_pred_is_unsafe = matching_annotations[f"Annotations_{annotator}_is_unsafe"].astype(bool)
+    y_pred_is_unsafe = matching_annotations[
+        f"Annotations_{annotator}_is_unsafe"
+    ].astype(bool)
     y_true_is_unsafe = matching_ground_truth["is_unsafe"].astype(bool)
 
     confusion_matrix = metrics.confusion_matrix(y_true_is_unsafe, y_pred_is_unsafe)
