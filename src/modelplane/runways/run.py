@@ -3,6 +3,7 @@ import click
 
 from modelplane.runways.annotator import annotate
 from modelplane.runways.responder import respond
+from modelplane.runways.scorer import score
 from modelplane.utils.env import load_from_dotenv
 
 
@@ -115,6 +116,37 @@ def get_annotations(
         overwrite=overwrite,
         cache_dir=cache_dir,
         n_jobs=n_jobs,
+    )
+
+
+@cli.command(name="score")
+@click.option(
+    "--experiment",
+    type=str,
+    required=True,
+    help="The experiment name to use. If the experiment does not exist, it will be created.",
+)
+@click.option(
+    "--annotation_run_id",
+    type=str,
+    required=True,
+    help="The run ID corresponding to the annotations to score.",
+)
+@click.option(
+    "--ground_truth",
+    type=str,  # TODO: Pathlib
+    help="Path to the ground truth file.",
+)
+@load_from_dotenv
+def score_annotations(
+    experiment: str,
+    annotation_run_id: str,
+    ground_truth: str,
+):
+    return score(
+        annotation_run_id=annotation_run_id,
+        experiment=experiment,
+        ground_truth=ground_truth,
     )
 
 

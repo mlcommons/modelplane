@@ -21,6 +21,8 @@ jsonlines = "^4"
 numpy = "^2"
 matplotlib = "^3"
 jupyter = "^1"
+scikit-learn = "^1.5.0"
+pandas = "^2.2.2"
 # plugins (would like to figure out a better way to manage these)
 modelgauge_anthropic = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/anthropic", rev = "3bc3cdbc910eaef3a70ec3c2cb3c5d7c8fb098b5" }
 modelgauge-azure = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/azure", rev = "3bc3cdbc910eaef3a70ec3c2cb3c5d7c8fb098b5" }
