@@ -41,7 +41,7 @@ def score(annotation_run_id: str, experiment: str, ground_truth: str):
             score = score_annotator(annotator, annotations_df, ground_truth_df)
             for metric in score:
                 mlflow.log_metric(f"{annotator}_{metric}", score[metric])
-                
+
         return mlflow.active_run().info.run_id  # type: ignore
 
 
@@ -87,7 +87,7 @@ def transform_mlflow_annotator_artifact(
 ) -> tuple[list, pd.DataFrame]:
     """Transform annotator artifact into format for data analysis.
     Returns: list of annotator uids, dataframe
-    TODO: Maybe also save as a CSV for future reference/analysis?
+    TODO: Save CSV as artifact (either here or in annotate step).
     """
     mlflow.artifacts.download_artifacts(
         run_id=run_id,
