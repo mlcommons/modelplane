@@ -30,7 +30,7 @@ def score(annotation_run_id: str, experiment: str, ground_truth: str):
         # Load dataframes
         ground_truth_df = ground_truth_to_df(ground_truth)
         mlflow.log_metric("num_ground_truth_samples", len(ground_truth_df))
-        
+
         with tempfile.TemporaryDirectory() as tmp:
             annotators, annotations_df = transform_mlflow_annotator_artifact(
                 annotation_run_id, tmp
@@ -41,6 +41,8 @@ def score(annotation_run_id: str, experiment: str, ground_truth: str):
             score = score_annotator(annotator, annotations_df, ground_truth_df)
             for metric in score:
                 mlflow.log_metric(f"{annotator}_{metric}", score[metric])
+                
+        return mlflow.active_run().info.run_id  # type: ignore
 
 
 def score_annotator(

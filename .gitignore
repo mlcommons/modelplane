@@ -2,7 +2,7 @@ mlruns/
 secrets.toml
 .ipynb_checkpoints
 .python-version
-data/
+./data/
 *.pyc
 .vscode/
 .coverage*
