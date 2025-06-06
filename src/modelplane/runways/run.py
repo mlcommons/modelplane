@@ -76,19 +76,27 @@ def get_sut_responses(
     "--experiment",
     type=str,
     required=True,
+    default=None,
     help="The experiment name to use. If the experiment does not exist, it will be created.",
+)
+@click.option(
+    "--response_run_file",
+    type=str,
+    required=False,
+    default=None,
+    help="The response file to annotate.",
 )
 @click.option(
     "--response_run_id",
     type=str,
-    required=True,
+    required=False,
     help="The run ID corresponding to the responses to annotate.",
 )
 @click.option(
     "--overwrite",
     is_flag=True,
     default=False,
-    help="Use the response_run_id to save annotation artifact. Any existing annotation artifact will be overwritten. If not set, a new run will be created.",
+    help="Use the response_run_id to save annotation artifact. Any existing annotation artifact will be overwritten. If not set, a new run will be created. Only applies if not using response_run_file.",
 )
 @click.option(
     "--cache_dir",
@@ -106,7 +114,8 @@ def get_sut_responses(
 def get_annotations(
     annotator_id: List[str],
     experiment: str,
-    response_run_id: str,
+    response_run_file: str | None = None,
+    response_run_id: str | None = None,
     overwrite: bool = False,
     cache_dir: str | None = None,
     n_jobs: int = 1,
@@ -114,6 +123,7 @@ def get_annotations(
     return annotate(
         annotator_ids=annotator_id,
         experiment=experiment,
+        response_run_file=response_run_file,
         response_run_id=response_run_id,
         overwrite=overwrite,
         cache_dir=cache_dir,
