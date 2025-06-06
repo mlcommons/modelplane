@@ -1,6 +1,7 @@
 from typing import List
 import click
 
+from modelgauge.ensemble_annotator_set import ENSEMBLE_STRATEGIES
 
 from modelplane.runways.annotator import annotate
 from modelplane.runways.responder import respond
@@ -93,6 +94,13 @@ def get_sut_responses(
     help="The run ID corresponding to the responses to annotate.",
 )
 @click.option(
+    "--ensemble_strategy",
+    type=str,
+    default=None,
+    help="The ensemble strategy to use. If set, individual annotator results will be combined using the given strategy. "
+    "Available strategies: " + ", ".join(list(ENSEMBLE_STRATEGIES.keys())),
+)
+@click.option(
     "--overwrite",
     is_flag=True,
     default=False,
@@ -116,6 +124,7 @@ def get_annotations(
     experiment: str,
     response_file: str | None = None,
     response_run_id: str | None = None,
+    ensemble_strategy: str | None = None,
     overwrite: bool = False,
     cache_dir: str | None = None,
     n_jobs: int = 1,
@@ -125,6 +134,7 @@ def get_annotations(
         experiment=experiment,
         response_file=response_file,
         response_run_id=response_run_id,
+        ensemble_strategy=ensemble_strategy,
         overwrite=overwrite,
         cache_dir=cache_dir,
         n_jobs=n_jobs,
