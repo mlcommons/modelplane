@@ -19,7 +19,8 @@ from matplotlib import pyplot as plt
 
 from modelgauge.annotation_pipeline import ANNOTATOR_CSV_INPUT_COLUMNS
 from modelgauge.annotator_registry import ANNOTATORS
-from modelgauge.pipeline_runner import AnnotatorRunner
+from modelgauge.ensemble_annotator_set import EnsembleAnnotatorSet, ENSEMBLE_STRATEGIES
+from modelgauge.pipeline_runner import AnnotatorRunner, EnsembleRunner
 
 from modelplane.runways.utils import (
     PROMPT_RESPONSE_ARTIFACT_NAME,
@@ -33,6 +34,7 @@ def annotate(
     annotator_ids: List[str],
     experiment: str,
     response_run_id: str,
+    ensemble_strategy: str | None,
     overwrite: bool = False,
     cache_dir: str | None = None,
     n_jobs: int = 1,
@@ -59,6 +61,24 @@ def annotate(
     else:
         run_id = None
 
+    runner = AnnotatorRunner
+    kwargs = {
+        "annotators": annotators,
+        "num_workers": n_jobs,
+        "cache_dir": cache_dir,
+    }
+    if ensemble_strategy is not None:
+        if ensemble_strategy not in ENSEMBLE_STRATEGIES:
+            raise ValueError(
+                f"Unknown ensemble strategy: {ensemble_strategy}. "
+                f"Available strategies: {list(ENSEMBLE_STRATEGIES.keys())}"
+            )
+        runner = EnsembleRunner
+        kwargs["ensemble"] = EnsembleAnnotatorSet(
+            annotators=annotator_ids,
+            strategy=ENSEMBLE_STRATEGIES[ensemble_strategy],
+        )
+
     with mlflow.start_run(run_id=run_id, experiment_id=experiment_id, tags=tags):
         mlflow.log_params(params)
 
@@ -67,13 +87,9 @@ def annotate(
             input_path = transform_mlflow_responder_artifact(
                 run_id=response_run_id, dir=tmp
             )
-            pipeline_runner = AnnotatorRunner(
-                annotators=annotators,
-                num_workers=n_jobs,
-                input_path=pathlib.Path(input_path),
-                output_dir=pathlib.Path(tmp),
-                cache_dir=cache_dir,
-            )
+            kwargs["input_path"] = pathlib.Path(input_path)
+            kwargs["output_dir"] = pathlib.Path(tmp)
+            pipeline_runner = runner(**kwargs)
 
             pipeline_runner.run(
                 progress_callback=mlflow.log_metrics, debug=is_debug_mode()
