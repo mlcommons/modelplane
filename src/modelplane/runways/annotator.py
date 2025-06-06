@@ -32,7 +32,7 @@ from modelplane.runways.utils import (
 def annotate(
     annotator_ids: List[str],
     experiment: str,
-    response_run_file: str | None = None,
+    response_file: str | None = None,
     response_run_id: str | None = None,
     overwrite: bool = False,
     cache_dir: str | None = None,
@@ -41,9 +41,9 @@ def annotate(
     """
     Run annotations and record measurements.
     """
-    if response_run_file is None ^ response_run_id is None:
+    if not ((response_file is None) ^ (response_run_id is None)):
         raise ValueError(
-            "Exactly one of response_run_file or response_run_id must be provided."
+            "Exactly one of response_file or response_run_id must be provided."
         )
 
     secrets = setup_annotator_credentials(annotator_ids)
@@ -72,13 +72,13 @@ def annotate(
             # load/transform the prompt responses from the specified run
             if response_run_id:
                 mlflow.artifacts.download_artifacts(
-                    run_id=run_id,
+                    run_id=response_run_id,
                     artifact_path=PROMPT_RESPONSE_ARTIFACT_NAME,
-                    dst_path=dir,
+                    dst_path=tmp,
                 )
-                raw_path = os.path.join(dir, PROMPT_RESPONSE_ARTIFACT_NAME)
+                raw_path = os.path.join(tmp, PROMPT_RESPONSE_ARTIFACT_NAME)
             else:
-                raw_path = response_run_file
+                raw_path = response_file
             input_path = transform_annotation_file(src=raw_path, dest_dir=tmp)
             pipeline_runner = AnnotatorRunner(
                 annotators=annotators,

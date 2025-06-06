@@ -80,7 +80,7 @@ def get_sut_responses(
     help="The experiment name to use. If the experiment does not exist, it will be created.",
 )
 @click.option(
-    "--response_run_file",
+    "--response_file",
     type=str,
     required=False,
     default=None,
@@ -114,7 +114,7 @@ def get_sut_responses(
 def get_annotations(
     annotator_id: List[str],
     experiment: str,
-    response_run_file: str | None = None,
+    response_file: str | None = None,
     response_run_id: str | None = None,
     overwrite: bool = False,
     cache_dir: str | None = None,
@@ -123,7 +123,7 @@ def get_annotations(
     return annotate(
         annotator_ids=annotator_id,
         experiment=experiment,
-        response_run_file=response_run_file,
+        response_file=response_file,
         response_run_id=response_run_id,
         overwrite=overwrite,
         cache_dir=cache_dir,
