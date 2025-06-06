@@ -32,7 +32,8 @@ from modelplane.runways.utils import (
 def annotate(
     annotator_ids: List[str],
     experiment: str,
-    response_run_id: str,
+    response_file: str | None = None,
+    response_run_id: str | None = None,
     overwrite: bool = False,
     cache_dir: str | None = None,
     n_jobs: int = 1,
@@ -40,6 +41,11 @@ def annotate(
     """
     Run annotations and record measurements.
     """
+    if not ((response_file is None) ^ (response_run_id is None)):
+        raise ValueError(
+            "Exactly one of response_file or response_run_id must be provided."
+        )
+
     secrets = setup_annotator_credentials(annotator_ids)
     annotators = {}
     for annotator_id in annotator_ids:
@@ -54,7 +60,7 @@ def annotate(
     tags = {f"annotator_{annotator_id}": "true" for annotator_id in annotator_ids}
 
     experiment_id = get_experiment_id(experiment)
-    if overwrite:
+    if overwrite and response_run_id:
         run_id = response_run_id
     else:
         run_id = None
@@ -64,9 +70,16 @@ def annotate(
 
         with tempfile.TemporaryDirectory() as tmp:
             # load/transform the prompt responses from the specified run
-            input_path = transform_mlflow_responder_artifact(
-                run_id=response_run_id, dir=tmp
-            )
+            if response_run_id:
+                mlflow.artifacts.download_artifacts(
+                    run_id=response_run_id,
+                    artifact_path=PROMPT_RESPONSE_ARTIFACT_NAME,
+                    dst_path=tmp,
+                )
+                raw_path = os.path.join(tmp, PROMPT_RESPONSE_ARTIFACT_NAME)
+            else:
+                raw_path = response_file
+            input_path = transform_annotation_file(src=raw_path, dest_dir=tmp)
             pipeline_runner = AnnotatorRunner(
                 annotators=annotators,
                 num_workers=n_jobs,
@@ -95,15 +108,10 @@ def annotate(
         return mlflow.active_run().info.run_id  # type: ignore
 
 
-def transform_mlflow_responder_artifact(run_id: str, dir: str) -> str:
+def transform_annotation_file(src: str, dest_dir: str) -> str:
     transformed_suffix = "transformed.csv"
-    mlflow.artifacts.download_artifacts(
-        run_id=run_id,
-        artifact_path=PROMPT_RESPONSE_ARTIFACT_NAME,
-        dst_path=dir,
-    )
     # rename columns
-    with open(os.path.join(dir, PROMPT_RESPONSE_ARTIFACT_NAME), "r") as f:
+    with open(src, "r") as f:
         reader = csv.DictReader(f)
         fieldnames = reader.fieldnames
         if (
@@ -116,7 +124,7 @@ def transform_mlflow_responder_artifact(run_id: str, dir: str) -> str:
                 "Invalid input file. Must have columns: UID, Text, sut_id1, sut_id1."
             )
         suts = fieldnames[2:]
-        with open(os.path.join(dir, transformed_suffix), "w") as f_out:
+        with open(os.path.join(dest_dir, transformed_suffix), "w") as f_out:
             writer = csv.DictWriter(f_out, fieldnames=ANNOTATOR_CSV_INPUT_COLUMNS)
             writer.writeheader()
             for row in reader:
@@ -129,7 +137,7 @@ def transform_mlflow_responder_artifact(run_id: str, dir: str) -> str:
                             "Response": row[sut],
                         }
                     )
-    return os.path.join(dir, transformed_suffix)
+    return os.path.join(dest_dir, transformed_suffix)
 
 
 def log_safety_summary(
