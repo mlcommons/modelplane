@@ -35,7 +35,7 @@ services:
     ports:
       - "8888:8888"
     volumes:
-      - ./flightdeck:/app/flightdeck
+      - ./flightpaths:/app/flightpaths
       # Volume not needed if using cloud storage for artifacts
       - ./mlruns:/mlruns
 
