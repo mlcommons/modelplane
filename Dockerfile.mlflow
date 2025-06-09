@@ -1,4 +1,4 @@
-FROM ghcr.io/mlflow/mlflow:latest
+FROM ghcr.io/mlflow/mlflow:v2.22.1
 
 # This isn't available on the base image, even though the 
 # default tracking server uses postgres.
