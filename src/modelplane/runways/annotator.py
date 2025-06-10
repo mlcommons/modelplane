@@ -20,7 +20,7 @@ from matplotlib import pyplot as plt
 from modelgauge.annotation_pipeline import ANNOTATOR_CSV_INPUT_COLUMNS
 from modelgauge.annotator_registry import ANNOTATORS
 from modelgauge.ensemble_annotator_set import EnsembleAnnotatorSet, ENSEMBLE_STRATEGIES
-from modelgauge.pipeline_runner import AnnotatorRunner, EnsembleRunner
+from modelgauge.pipeline_runner import build_runner
 
 from modelplane.runways.utils import (
     PROMPT_RESPONSE_ARTIFACT_NAME,
@@ -67,7 +67,6 @@ def annotate(
     else:
         run_id = None
 
-    runner = AnnotatorRunner
     kwargs = {
         "annotators": annotators,
         "num_workers": n_jobs,
@@ -79,7 +78,7 @@ def annotate(
                 f"Unknown ensemble strategy: {ensemble_strategy}. "
                 f"Available strategies: {list(ENSEMBLE_STRATEGIES.keys())}"
             )
-        runner = EnsembleRunner
+        tags["ensemble_strategy"] = ensemble_strategy
         kwargs["ensemble"] = EnsembleAnnotatorSet(
             annotators=annotator_ids,
             strategy=ENSEMBLE_STRATEGIES[ensemble_strategy],
@@ -102,7 +101,7 @@ def annotate(
             input_path = transform_annotation_file(src=raw_path, dest_dir=tmp)
             kwargs["input_path"] = pathlib.Path(input_path)
             kwargs["output_dir"] = pathlib.Path(tmp)
-            pipeline_runner = runner(**kwargs)
+            pipeline_runner = build_runner(**kwargs)
 
             pipeline_runner.run(
                 progress_callback=mlflow.log_metrics, debug=is_debug_mode()
@@ -175,9 +174,9 @@ def log_safety_summary(
                 ):
                     continue
                 is_safe = row["Annotations"][annotator_uid]["is_safe"]
-                if "is_safe_logprob" in row["Annotations"][annotator_uid]:
+                if "logprobs" in row["Annotations"][annotator_uid]:
                     all_log_probs[annotator_uid].append(
-                        row["Annotations"][annotator_uid]["is_safe_logprob"]
+                        row["Annotations"][annotator_uid]["logprobs"]
                     )
 
                 total[annotator_uid] += 1
@@ -187,7 +186,7 @@ def log_safety_summary(
         for annotator_uid in annotator_uids:
             mlflow.log_metric(f"{annotator_uid}_total_safe", total_safe[annotator_uid])
             mlflow.log_metric(f"{annotator_uid}_total_count", total[annotator_uid])
-            log_stats(f"{annotator_uid}_log_prob_", all_log_probs[annotator_uid])
+            log_stats(f"{annotator_uid}_logprobs_", all_log_probs[annotator_uid])
             log_hist(dir, f"{annotator_uid}", all_log_probs[annotator_uid])
 
 
@@ -209,7 +208,7 @@ def log_hist(dir, tag, values):
     plt.xlabel("log P(is_safe)")
     plt.ylabel("Frequency")
     plt.tight_layout()
-    filename = os.path.join(dir, f"{tag}_log_prob_hist.png")
+    filename = os.path.join(dir, f"{tag}_logprobs_hist.png")
     plt.savefig(filename)
     plt.close()
     mlflow.log_artifact(filename)
