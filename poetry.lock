@@ -3484,8 +3484,8 @@ vertexai = ["modelgauge_vertexai @ file:///Users/vishal/Library/Caches/pypoetry/
 [package.source]
 type = "git"
 url = "https://github.com/mlcommons/modelbench.git"
-reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
-resolved_reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
+reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
+resolved_reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
 
 [[package]]
 name = "modelgauge-amazon"
@@ -3502,8 +3502,8 @@ boto3 = "^1.36.25"
 [package.source]
 type = "git"
 url = "https://github.com/mlcommons/modelbench.git"
-reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
-resolved_reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
+reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
+resolved_reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
 subdirectory = "plugins/amazon"
 
 [[package]]
@@ -3522,8 +3522,8 @@ modelgauge_openai = "*"
 [package.source]
 type = "git"
 url = "https://github.com/mlcommons/modelbench.git"
-reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
-resolved_reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
+reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
+resolved_reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
 subdirectory = "plugins/anthropic"
 
 [[package]]
@@ -3541,8 +3541,8 @@ azure-ai-ml = "^1.22"
 [package.source]
 type = "git"
 url = "https://github.com/mlcommons/modelbench.git"
-reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
-resolved_reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
+reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
+resolved_reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
 subdirectory = "plugins/azure"
 
 [[package]]
@@ -3557,8 +3557,8 @@ develop = false
 [package.source]
 type = "git"
 url = "https://github.com/mlcommons/modelbench.git"
-reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
-resolved_reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
+reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
+resolved_reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
 subdirectory = "plugins/baseten"
 
 [[package]]
@@ -3573,8 +3573,8 @@ develop = false
 [package.source]
 type = "git"
 url = "https://github.com/mlcommons/modelbench.git"
-reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
-resolved_reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
+reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
+resolved_reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
 subdirectory = "demo_plugin"
 
 [[package]]
@@ -3593,8 +3593,8 @@ google-generativeai = "^0.8.0"
 [package.source]
 type = "git"
 url = "https://github.com/mlcommons/modelbench.git"
-reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
-resolved_reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
+reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
+resolved_reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
 subdirectory = "plugins/google"
 
 [[package]]
@@ -3612,8 +3612,8 @@ huggingface-hub = "^0.29.0"
 [package.source]
 type = "git"
 url = "https://github.com/mlcommons/modelbench.git"
-reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
-resolved_reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
+reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
+resolved_reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
 subdirectory = "plugins/huggingface"
 
 [[package]]
@@ -3632,8 +3632,8 @@ typing-inspect = "^0.9.0"
 [package.source]
 type = "git"
 url = "https://github.com/mlcommons/modelbench.git"
-reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
-resolved_reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
+reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
+resolved_reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
 subdirectory = "plugins/mistral"
 
 [[package]]
@@ -3651,8 +3651,8 @@ openai = "^1.8.0"
 [package.source]
 type = "git"
 url = "https://github.com/mlcommons/modelbench.git"
-reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
-resolved_reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
+reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
+resolved_reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
 subdirectory = "plugins/nvidia"
 
 [[package]]
@@ -3670,8 +3670,8 @@ openai = "^1.8.0"
 [package.source]
 type = "git"
 url = "https://github.com/mlcommons/modelbench.git"
-reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
-resolved_reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
+reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
+resolved_reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
 subdirectory = "plugins/openai"
 
 [[package]]
@@ -3689,8 +3689,8 @@ google-api-python-client = ">=2.64.0,<2.65.0"
 [package.source]
 type = "git"
 url = "https://github.com/mlcommons/modelbench.git"
-reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
-resolved_reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
+reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
+resolved_reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
 subdirectory = "plugins/perspective_api"
 
 [[package]]
@@ -3708,8 +3708,8 @@ google-auth = "^2.36.0"
 [package.source]
 type = "git"
 url = "https://github.com/mlcommons/modelbench.git"
-reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
-resolved_reference = "0549b4b1c3444a6804ada01f006659d59780d6f8"
+reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
+resolved_reference = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668"
 subdirectory = "plugins/vertexai"
 
 [[package]]
@@ -7081,4 +7081,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,!=3.12.5,<3.13"
-content-hash = "73dd91f9907d44497103b96ce4435832765aa67c6587001029356264ab3bb077"
+content-hash = "d7e1693c5741eb3dd6e2b527bf30b6e1a1a6a406b5657a4c28fc3418fbea2ac2"
