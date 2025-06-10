@@ -146,5 +146,5 @@ def format_df(df: pd.DataFrame, label_cols: list[str]) -> pd.DataFrame:
     # Create new columns where unsafe is 1 and safe is 0.
     for col in label_cols:
         unsafe_col = col.replace("is_safe", "is_unsafe")
-        df[unsafe_col] = df[col].map({"unsafe": 1, "safe": 0})
+        df[unsafe_col] = ~df[col].astype(bool)
     return df
