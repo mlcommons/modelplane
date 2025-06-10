@@ -115,7 +115,11 @@ def annotate(
 
             # log summary statistics
             log_safety_summary(
-                annotator_uids=annotator_ids,
+                annotator_uids=(
+                    annotator_ids
+                    if ensemble_strategy is None
+                    else annotator_ids + ["ensemble"]
+                ),
                 data_path=pipeline_runner.output_dir()
                 / pipeline_runner.output_file_name,
                 dir=tmp,
