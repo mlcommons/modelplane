@@ -12,7 +12,7 @@ packages = [
 [tool.poetry.dependencies]
 python = ">=3.10,!=3.12.5,<3.13"
 click = "^8"
-modelbench = {git = "https://github.com/mlcommons/modelbench.git", rev = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668" }
+modelbench = {git = "https://github.com/mlcommons/modelbench.git", rev = "c59bf585f6b98e1cd92e35c73f609a4ada02b9b8" }
 mlflow = "^2.22.1"
 python-dotenv = "^1"
 requests = "^2"
@@ -24,18 +24,18 @@ jupyter = "^1"
 scikit-learn = "^1.5.0"
 pandas = "^2.2.2"
 # plugins (would like to figure out a better way to manage these)
-modelgauge_anthropic = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/anthropic", rev = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668" }
-modelgauge-azure = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/azure", rev = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668" }
-modelgauge_baseten = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/baseten", rev = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668" }
-modelgauge_demo_plugin = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "demo_plugin", rev = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668" }
-modelgauge_nvidia = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/nvidia", rev = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668" }
-modelgauge_openai = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/openai", rev = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668" }
-modelgauge_huggingface = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/huggingface", rev = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668" }
-modelgauge_perspective_api = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/perspective_api", rev = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668" }
-modelgauge_google = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/google", rev = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668" }
-modelgauge_vertexai = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/vertexai", rev = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668" }
-modelgauge_mistral = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/mistral", rev = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668" }
-modelgauge_amazon = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/amazon", rev = "949eb6cf1a96c638fbb9c1d9b9573dc84a0cd668" }
+modelgauge_anthropic = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/anthropic", rev = "c59bf585f6b98e1cd92e35c73f609a4ada02b9b8" }
+modelgauge-azure = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/azure", rev = "c59bf585f6b98e1cd92e35c73f609a4ada02b9b8" }
+modelgauge_baseten = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/baseten", rev = "c59bf585f6b98e1cd92e35c73f609a4ada02b9b8" }
+modelgauge_demo_plugin = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "demo_plugin", rev = "c59bf585f6b98e1cd92e35c73f609a4ada02b9b8" }
+modelgauge_nvidia = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/nvidia", rev = "c59bf585f6b98e1cd92e35c73f609a4ada02b9b8" }
+modelgauge_openai = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/openai", rev = "c59bf585f6b98e1cd92e35c73f609a4ada02b9b8" }
+modelgauge_huggingface = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/huggingface", rev = "c59bf585f6b98e1cd92e35c73f609a4ada02b9b8" }
+modelgauge_perspective_api = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/perspective_api", rev = "c59bf585f6b98e1cd92e35c73f609a4ada02b9b8" }
+modelgauge_google = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/google", rev = "c59bf585f6b98e1cd92e35c73f609a4ada02b9b8" }
+modelgauge_vertexai = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/vertexai", rev = "c59bf585f6b98e1cd92e35c73f609a4ada02b9b8" }
+modelgauge_mistral = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/mistral", rev = "c59bf585f6b98e1cd92e35c73f609a4ada02b9b8" }
+modelgauge_amazon = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/amazon", rev = "c59bf585f6b98e1cd92e35c73f609a4ada02b9b8" }
 
 
 [tool.poetry.group.dev.dependencies]
