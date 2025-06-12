@@ -20,8 +20,8 @@ given docker-compose.yaml file will start up:
     docker-compose.yaml will bring up mlflow, postgres, jupyter, set up
     mlflow to use a local disk for artifact storage.
     1. Set up secrets for accessing SUTs, as needed in 
-    `modelplane/flightdeck/config/secrets.toml`. See [modelbench](https://github.com/mlcommons/modelbench) for more details.
-    1. Stage your input data in `modelplane/flightdeck/data`. You can get a
+    `modelplane/flightpaths/config/secrets.toml`. See [modelbench](https://github.com/mlcommons/modelbench) for more details.
+    1. Stage your input data in `modelplane/flightpaths/data`. You can get a
     sample input file [here](https://github.com/mlcommons/ailuminate/tree/main).
 1. Bring up the services:
     ```bash

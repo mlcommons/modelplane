@@ -1,6 +1,7 @@
 FROM python:3.12-slim
 
 ENV PATH="/root/.local/bin:$PATH"
+ENV MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
 # Used for the notebook server
 WORKDIR /app
 
@@ -13,4 +14,4 @@ RUN echo $(poetry env info --path)
 RUN poetry install --no-interaction --no-ansi
 
 EXPOSE 8888
-CMD ["poetry", "run", "jupyter", "notebook", "--ip", "0.0.0.0", "--allow-root", "--no-browser", "--ServerApp.root_dir=/app/flightdeck"]
+CMD ["poetry", "run", "jupyter", "notebook", "--ip", "0.0.0.0", "--allow-root", "--no-browser", "--ServerApp.root_dir=/app/flightpaths"]

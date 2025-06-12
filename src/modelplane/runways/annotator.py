@@ -19,7 +19,8 @@ from matplotlib import pyplot as plt
 
 from modelgauge.annotation_pipeline import ANNOTATOR_CSV_INPUT_COLUMNS
 from modelgauge.annotator_registry import ANNOTATORS
-from modelgauge.pipeline_runner import AnnotatorRunner
+from modelgauge.ensemble_annotator_set import EnsembleAnnotatorSet, ENSEMBLE_STRATEGIES
+from modelgauge.pipeline_runner import build_runner
 
 from modelplane.runways.utils import (
     PROMPT_RESPONSE_ARTIFACT_NAME,
@@ -34,6 +35,7 @@ def annotate(
     experiment: str,
     response_file: str | None = None,
     response_run_id: str | None = None,
+    ensemble_strategy: str | None = None,
     overwrite: bool = False,
     cache_dir: str | None = None,
     n_jobs: int = 1,
@@ -65,6 +67,23 @@ def annotate(
     else:
         run_id = None
 
+    kwargs = {
+        "annotators": annotators,
+        "num_workers": n_jobs,
+        "cache_dir": cache_dir,
+    }
+    if ensemble_strategy is not None:
+        if ensemble_strategy not in ENSEMBLE_STRATEGIES:
+            raise ValueError(
+                f"Unknown ensemble strategy: {ensemble_strategy}. "
+                f"Available strategies: {list(ENSEMBLE_STRATEGIES.keys())}"
+            )
+        tags["ensemble_strategy"] = ensemble_strategy
+        kwargs["ensemble"] = EnsembleAnnotatorSet(
+            annotators=annotator_ids,
+            strategy=ENSEMBLE_STRATEGIES[ensemble_strategy],
+        )
+
     with mlflow.start_run(run_id=run_id, experiment_id=experiment_id, tags=tags):
         mlflow.log_params(params)
 
@@ -80,13 +99,9 @@ def annotate(
             else:
                 raw_path = response_file
             input_path = transform_annotation_file(src=raw_path, dest_dir=tmp)
-            pipeline_runner = AnnotatorRunner(
-                annotators=annotators,
-                num_workers=n_jobs,
-                input_path=pathlib.Path(input_path),
-                output_dir=pathlib.Path(tmp),
-                cache_dir=cache_dir,
-            )
+            kwargs["input_path"] = pathlib.Path(input_path)
+            kwargs["output_dir"] = pathlib.Path(tmp)
+            pipeline_runner = build_runner(**kwargs)
 
             pipeline_runner.run(
                 progress_callback=mlflow.log_metrics, debug=is_debug_mode()
@@ -100,7 +115,11 @@ def annotate(
 
             # log summary statistics
             log_safety_summary(
-                annotator_uids=annotator_ids,
+                annotator_uids=(
+                    annotator_ids
+                    if ensemble_strategy is None
+                    else annotator_ids + ["ensemble"]
+                ),
                 data_path=pipeline_runner.output_dir()
                 / pipeline_runner.output_file_name,
                 dir=tmp,
@@ -159,9 +178,9 @@ def log_safety_summary(
                 ):
                     continue
                 is_safe = row["Annotations"][annotator_uid]["is_safe"]
-                if "is_safe_logprob" in row["Annotations"][annotator_uid]:
+                if "logprobs" in row["Annotations"][annotator_uid]:
                     all_log_probs[annotator_uid].append(
-                        row["Annotations"][annotator_uid]["is_safe_logprob"]
+                        row["Annotations"][annotator_uid]["logprobs"]
                     )
 
                 total[annotator_uid] += 1
@@ -171,7 +190,7 @@ def log_safety_summary(
         for annotator_uid in annotator_uids:
             mlflow.log_metric(f"{annotator_uid}_total_safe", total_safe[annotator_uid])
             mlflow.log_metric(f"{annotator_uid}_total_count", total[annotator_uid])
-            log_stats(f"{annotator_uid}_log_prob_", all_log_probs[annotator_uid])
+            log_stats(f"{annotator_uid}_logprobs_", all_log_probs[annotator_uid])
             log_hist(dir, f"{annotator_uid}", all_log_probs[annotator_uid])
 
 
@@ -193,7 +212,7 @@ def log_hist(dir, tag, values):
     plt.xlabel("log P(is_safe)")
     plt.ylabel("Frequency")
     plt.tight_layout()
-    filename = os.path.join(dir, f"{tag}_log_prob_hist.png")
+    filename = os.path.join(dir, f"{tag}_logprobs_hist.png")
     plt.savefig(filename)
     plt.close()
     mlflow.log_artifact(filename)
