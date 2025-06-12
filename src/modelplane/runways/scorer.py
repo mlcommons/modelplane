@@ -125,6 +125,9 @@ def ground_truth_to_df(file):
     if not os.path.exists(file):
         raise FileNotFoundError(f"Ground truth file does not exist: {file}")
     df = pd.read_csv(file)
+    # TODO: standardize ground truth schema.
+    # currently, is_safe is a str "safe" or "unsafe"; convert it to boolean.
+    df["is_safe"] = df["is_safe"].apply(lambda x: x.lower() == "safe")
     return format_df(df, ["is_safe"])
 
 
