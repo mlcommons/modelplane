@@ -8,8 +8,10 @@ import mlflow
 from modelgauge.pipeline_runner import PromptRunner
 from modelgauge.sut_registry import SUTS
 
-from modelplane.mlflow.datasets import get_mlflow_dataset
+from modelplane.mlflow.loghelpers import log_input
 from modelplane.runways.utils import (
+    RUN_TYPE_RESPONDER,
+    RUN_TYPE_TAG_NAME,
     get_experiment_id,
     is_debug_mode,
     setup_sut_credentials,
@@ -29,14 +31,13 @@ def respond(
         "cache_dir": cache_dir,
         "n_jobs": n_jobs,
     }
-    tags = {"sut_id": sut_id}
-    dataset = get_mlflow_dataset(prompts)
+    tags = {"sut_id": sut_id, RUN_TYPE_TAG_NAME: RUN_TYPE_RESPONDER}
 
     experiment_id = get_experiment_id(experiment)
 
-    with mlflow.start_run(experiment_id=experiment_id, tags=tags):
+    with mlflow.start_run(experiment_id=experiment_id, tags=tags) as run:
         mlflow.log_params(params)
-        mlflow.log_input(dataset)
+        log_input(path=prompts)
 
         # Use temporary file as mlflow will log this into the artifact store
         with tempfile.TemporaryDirectory() as tmp:
@@ -57,4 +58,4 @@ def respond(
                 local_path=pipeline_runner.output_dir()
                 / pipeline_runner.output_file_name,
             )
-        return mlflow.active_run().info.run_id  # type: ignore
+        return run.info.run_id

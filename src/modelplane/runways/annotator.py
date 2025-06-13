@@ -22,8 +22,11 @@ from modelgauge.annotator_registry import ANNOTATORS
 from modelgauge.ensemble_annotator_set import EnsembleAnnotatorSet, ENSEMBLE_STRATEGIES
 from modelgauge.pipeline_runner import build_runner
 
+from modelplane.mlflow.loghelpers import log_input, log_tags
 from modelplane.runways.utils import (
     PROMPT_RESPONSE_ARTIFACT_NAME,
+    RUN_TYPE_ANNOTATOR,
+    RUN_TYPE_TAG_NAME,
     get_experiment_id,
     is_debug_mode,
     setup_annotator_credentials,
@@ -58,8 +61,9 @@ def annotate(
         "cache_dir": cache_dir,
         "n_jobs": n_jobs,
     }
+    tags = {RUN_TYPE_TAG_NAME: RUN_TYPE_ANNOTATOR}
     # tag for each annotator id to help make them searchable
-    tags = {f"annotator_{annotator_id}": "true" for annotator_id in annotator_ids}
+    tags.update({f"annotator_{annotator_id}": "true" for annotator_id in annotator_ids})
 
     experiment_id = get_experiment_id(experiment)
     if overwrite and response_run_id:
@@ -84,8 +88,11 @@ def annotate(
             strategy=ENSEMBLE_STRATEGIES[ensemble_strategy],
         )
 
-    with mlflow.start_run(run_id=run_id, experiment_id=experiment_id, tags=tags):
+    with mlflow.start_run(run_id=run_id, experiment_id=experiment_id, tags=tags) as run:
         mlflow.log_params(params)
+        log_input(response_run_id, response_file)
+        if response_run_id is not None:
+            log_tags(response_run_id)
 
         with tempfile.TemporaryDirectory() as tmp:
             # load/transform the prompt responses from the specified run
@@ -98,7 +105,7 @@ def annotate(
                 raw_path = os.path.join(tmp, PROMPT_RESPONSE_ARTIFACT_NAME)
             else:
                 raw_path = response_file
-            input_path = transform_annotation_file(src=raw_path, dest_dir=tmp)
+            input_path = transform_annotation_file(src=raw_path, dest_dir=tmp)  # type: ignore
             kwargs["input_path"] = pathlib.Path(input_path)
             kwargs["output_dir"] = pathlib.Path(tmp)
             pipeline_runner = build_runner(**kwargs)
@@ -124,7 +131,7 @@ def annotate(
                 / pipeline_runner.output_file_name,
                 dir=tmp,
             )
-        return mlflow.active_run().info.run_id  # type: ignore
+        return run.info.run_id
 
 
 def transform_annotation_file(src: str, dest_dir: str) -> str:

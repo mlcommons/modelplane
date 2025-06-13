@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any
 
 import mlflow.data.dataset
+import mlflow.data.dataset_source
 import mlflow.data.meta_dataset
 from mlflow.data.filesystem_dataset_source import FileSystemDatasetSource
 from mlflow.utils.uri import is_local_uri
@@ -63,9 +64,23 @@ class LocalDatasetSource(FileSystemDatasetSource):
         return cls(uri=uri)
 
 
-def get_mlflow_dataset(input_file_path: str) -> mlflow.data.dataset.Dataset:
+def get_mlflow_dataset(
+    path: str, source_type: str = "local"
+) -> mlflow.data.dataset.Dataset:
     """Get the MLflow dataset from the input file path."""
-    return mlflow.data.meta_dataset.MetaDataset(
-        source=LocalDatasetSource(uri=input_file_path),
-        name=input_file_path,
-    )
+    if source_type == "local":
+        return mlflow.data.meta_dataset.MetaDataset(
+            source=LocalDatasetSource(uri=path),
+            name=path,
+        )
+    else:
+        raise ValueError(f"Unsupported source type: {source_type}.")
+
+
+def get_dataset_source_cls(
+    source_type: str,
+) -> type[mlflow.data.dataset_source.DatasetSource]:
+    if source_type == "local":
+        return LocalDatasetSource
+    else:
+        raise ValueError(f"Unsupported source type: {source_type}.")

@@ -5,11 +5,15 @@ import os
 import tempfile
 
 import mlflow
+import mlflow.artifacts
 import pandas as pd
 from sklearn import metrics
 
+from modelplane.mlflow.loghelpers import log_input, log_tags
 from modelplane.runways.utils import (
     ANNOTATION_RESPONSE_ARTIFACT_NAME,
+    RUN_TYPE_SCORER,
+    RUN_TYPE_TAG_NAME,
     get_experiment_id,
 )
 
@@ -24,9 +28,14 @@ def score(annotation_run_id: str, experiment: str, ground_truth: str):
         "annotation_run_id": annotation_run_id,
     }
     experiment_id = get_experiment_id(experiment)
+    tags = {RUN_TYPE_TAG_NAME: RUN_TYPE_SCORER}
 
-    with mlflow.start_run(run_id=None, experiment_id=experiment_id):
+    with mlflow.start_run(run_id=None, experiment_id=experiment_id, tags=tags) as run:
         mlflow.log_params(params)
+        log_input(run_id=annotation_run_id)
+        log_input(path=ground_truth)
+        log_tags(run_id=annotation_run_id)
+
         # Load dataframes
         ground_truth_df = ground_truth_to_df(ground_truth)
         mlflow.log_metric("num_ground_truth_samples", len(ground_truth_df))
@@ -42,7 +51,7 @@ def score(annotation_run_id: str, experiment: str, ground_truth: str):
             for metric in score:
                 mlflow.log_metric(f"{annotator}_{metric}", score[metric])
 
-        return mlflow.active_run().info.run_id  # type: ignore
+        return run.info.run_id
 
 
 def score_annotator(
