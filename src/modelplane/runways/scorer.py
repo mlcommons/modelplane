@@ -16,6 +16,7 @@ from modelplane.runways.utils import (
     RUN_TYPE_TAG_NAME,
     get_experiment_id,
 )
+from modelplane.utils.input import LocalInput, MLFlowArtifactInput
 
 
 def score(annotation_run_id: str, experiment: str, ground_truth: str):
@@ -32,19 +33,26 @@ def score(annotation_run_id: str, experiment: str, ground_truth: str):
 
     with mlflow.start_run(run_id=None, experiment_id=experiment_id, tags=tags) as run:
         mlflow.log_params(params)
-        log_input(run_id=annotation_run_id)
         log_input(path=ground_truth)
         log_tags(run_id=annotation_run_id)
 
-        # Load dataframes
-        ground_truth_df = ground_truth_to_df(ground_truth)
-        mlflow.log_metric("num_ground_truth_samples", len(ground_truth_df))
-
+        # Load annotations
         with tempfile.TemporaryDirectory() as tmp:
-            annotators, annotations_df = transform_mlflow_annotator_artifact(
-                annotation_run_id, tmp
+            annotation_dataset = MLFlowArtifactInput(
+                run_id=annotation_run_id,
+                artifact_path=ANNOTATION_RESPONSE_ARTIFACT_NAME,
+                dest_dir=tmp,
             )
-
+            annotation_dataset.log_input()
+            # Maybe this should be handled by the dataset class?
+            annotators, annotations_df = transform_mlflow_annotator_artifact(
+                annotation_dataset.local_path()
+            )
+        # Load ground truth
+        ground_truth_dataset = LocalInput(ground_truth)
+        ground_truth_dataset.log_input()
+        ground_truth_df = ground_truth_to_df(ground_truth_dataset.local_path())
+        mlflow.log_metric("num_ground_truth_samples", len(ground_truth_df))
         # Score each annotator in the annotation dataframe.
         for annotator in annotators:
             score = score_annotator(annotator, annotations_df, ground_truth_df)
@@ -106,19 +114,11 @@ def score_annotator(
     }
 
 
-def transform_mlflow_annotator_artifact(
-    run_id: str, dir: str
-) -> tuple[list, pd.DataFrame]:
+def transform_mlflow_annotator_artifact(path: str) -> tuple[list, pd.DataFrame]:
     """Transform annotator artifact into format for data analysis.
     Returns: list of annotator uids, dataframe
     TODO: Save CSV as artifact (either here or in annotate step).
     """
-    mlflow.artifacts.download_artifacts(
-        run_id=run_id,
-        artifact_path=ANNOTATION_RESPONSE_ARTIFACT_NAME,
-        dst_path=dir,
-    )
-    path = os.path.join(dir, ANNOTATION_RESPONSE_ARTIFACT_NAME)
     with open(path, "r") as f:
         data = [json.loads(line) for line in f]
 
