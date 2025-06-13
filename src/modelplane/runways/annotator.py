@@ -31,6 +31,7 @@ from modelplane.runways.utils import (
     is_debug_mode,
     setup_annotator_credentials,
 )
+from modelplane.utils.input import LocalInput, MLFlowArtifactInput
 
 
 def annotate(
@@ -90,22 +91,22 @@ def annotate(
 
     with mlflow.start_run(run_id=run_id, experiment_id=experiment_id, tags=tags) as run:
         mlflow.log_params(params)
-        log_input(response_run_id, response_file)
         if response_run_id is not None:
             log_tags(response_run_id)
 
         with tempfile.TemporaryDirectory() as tmp:
             # load/transform the prompt responses from the specified run
             if response_run_id:
-                mlflow.artifacts.download_artifacts(
+                input_data = MLFlowArtifactInput(
                     run_id=response_run_id,
                     artifact_path=PROMPT_RESPONSE_ARTIFACT_NAME,
-                    dst_path=tmp,
+                    dest_dir=tmp,
                 )
-                raw_path = os.path.join(tmp, PROMPT_RESPONSE_ARTIFACT_NAME)
             else:
-                raw_path = response_file
-            input_path = transform_annotation_file(src=raw_path, dest_dir=tmp)  # type: ignore
+                input_data = LocalInput(response_file)
+            input_data.log_input()
+            # TODO: maybe the transformation should be handled by the dataset class?
+            input_path = transform_annotation_file(src=input_data.local_path(), dest_dir=tmp)  # type: ignore
             kwargs["input_path"] = pathlib.Path(input_path)
             kwargs["output_dir"] = pathlib.Path(tmp)
             pipeline_runner = build_runner(**kwargs)

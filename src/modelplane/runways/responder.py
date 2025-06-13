@@ -16,6 +16,7 @@ from modelplane.runways.utils import (
     is_debug_mode,
     setup_sut_credentials,
 )
+from modelplane.utils.input import LocalInput
 
 
 def respond(
@@ -37,13 +38,14 @@ def respond(
 
     with mlflow.start_run(experiment_id=experiment_id, tags=tags) as run:
         mlflow.log_params(params)
-        log_input(path=prompts)
+        input_data = LocalInput(prompts)
+        input_data.log_input()
 
         # Use temporary file as mlflow will log this into the artifact store
         with tempfile.TemporaryDirectory() as tmp:
             pipeline_runner = PromptRunner(
                 num_workers=n_jobs,
-                input_path=pathlib.Path(prompts),
+                input_path=input_data.local_path(),
                 output_dir=pathlib.Path(tmp),
                 cache_dir=cache_dir,
                 suts={sut_id: sut},
