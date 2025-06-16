@@ -16,13 +16,14 @@ from modelplane.runways.utils import (
     is_debug_mode,
     setup_sut_credentials,
 )
-from modelplane.utils.input import LocalInput
+from modelplane.utils.input import build_input
 
 
 def respond(
     sut_id: str,
     prompts: str,
     experiment: str,
+    dvc_repo: str | None = None,
     cache_dir: str | None = None,
     n_jobs: int = 1,
 ) -> str:
@@ -38,11 +39,10 @@ def respond(
 
     with mlflow.start_run(experiment_id=experiment_id, tags=tags) as run:
         mlflow.log_params(params)
-        input_data = LocalInput(prompts)
-        input_data.log_input()
-
         # Use temporary file as mlflow will log this into the artifact store
         with tempfile.TemporaryDirectory() as tmp:
+            input_data = build_input(path=prompts, dvc_repo=dvc_repo, dest_dir=tmp)
+            input_data.log_input()
             pipeline_runner = PromptRunner(
                 num_workers=n_jobs,
                 input_path=input_data.local_path(),

@@ -34,6 +34,12 @@ def cli():
     help="The experiment name to use. If the experiment does not exist, it will be created.",
 )
 @click.option(
+    "--dvc_repo",
+    type=str,
+    required=False,
+    help="URL of the DVC repo to get the prompts from.",
+)
+@click.option(
     "--cache_dir",
     type=str,
     default=None,
@@ -50,6 +56,7 @@ def get_sut_responses(
     sut_id: str,
     prompts: str,
     experiment: str,
+    dvc_repo: str | None = None,
     cache_dir: str | None = None,
     n_jobs: int = 1,
 ):
@@ -60,6 +67,7 @@ def get_sut_responses(
         sut_id=sut_id,
         prompts=prompts,
         experiment=experiment,
+        dvc_repo=dvc_repo,
         cache_dir=cache_dir,
         n_jobs=n_jobs,
     )
