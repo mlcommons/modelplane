@@ -42,22 +42,27 @@ class DVCInput(BaseInput):
     """A dataset from a DVC remote."""
 
     def __init__(self, path: str, repo: str, dest_dir: str):
-        print("DVCInput", "path", path, "repo", repo, "dest_dir", dest_dir)
+        self.path = path
+        self.rev = "main"
+        self.url = dvc.api.get_url(path, repo=repo, rev=self.rev)  # For logging.
         self._local_path = self._download_dvc_file(path, repo, dest_dir)
 
     def _download_dvc_file(self, path: str, repo: str, dest_dir: str) -> str:
         local_path = os.path.join(dest_dir, path)
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
 
-        with dvc.api.open(path=path, repo=repo, rev="main", mode="rb") as source_file:
+        with dvc.api.open(path=path, repo=repo, rev=self.rev, mode="rb") as source_file:
             with open(local_path, "wb") as dest_file:
                 shutil.copyfileobj(source_file, dest_file)
 
         return local_path
 
     def log_input(self):
-        # TODO
-        pass
+        dataset = mlflow.data.meta_dataset.MetaDataset(
+            source=mlflow.data.http_dataset_source.HTTPDatasetSource(self.url),
+            name=self.path,
+        )
+        mlflow.log_input(dataset)
 
     def local_path(self) -> Path:
         return Path(self._local_path)
