@@ -37,7 +37,7 @@ def cli():
     "--dvc_repo",
     type=str,
     required=False,
-    help="URL of the DVC repo to get the prompts from.",
+    help="URL of the DVC repo to get the prompts from. E.g. https://github.com/my-org/my-repo.git",
 )
 @click.option(
     "--cache_dir",
@@ -92,7 +92,7 @@ def get_sut_responses(
     "--dvc_repo",
     type=str,
     required=False,
-    help="URL of the DVC repo to get the responses file from.",
+    help="URL of the DVC repo to get the responses file from. E.g. https://github.com/my-org/my-repo.git",
 )
 @click.option(
     "--response_file",
@@ -179,7 +179,7 @@ def get_annotations(
     "--dvc_repo",
     type=str,
     required=False,
-    help="URL of the DVC repo to get the ground truth from.",
+    help="URL of the DVC repo to get the ground truth from. E.g. https://github.com/my-org/my-repo.git",
 )
 @load_from_dotenv
 def score_annotations(
