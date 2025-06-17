@@ -31,12 +31,13 @@ from modelplane.runways.utils import (
     is_debug_mode,
     setup_annotator_credentials,
 )
-from modelplane.utils.input import LocalInput, MLFlowArtifactInput
+from modelplane.utils.input import build_input
 
 
 def annotate(
     annotator_ids: List[str],
     experiment: str,
+    dvc_repo: str | None = None,
     response_file: str | None = None,
     response_run_id: str | None = None,
     ensemble_strategy: str | None = None,
@@ -47,11 +48,6 @@ def annotate(
     """
     Run annotations and record measurements.
     """
-    if not ((response_file is None) ^ (response_run_id is None)):
-        raise ValueError(
-            "Exactly one of response_file or response_run_id must be provided."
-        )
-
     secrets = setup_annotator_credentials(annotator_ids)
     annotators = {}
     for annotator_id in annotator_ids:
@@ -96,14 +92,7 @@ def annotate(
 
         with tempfile.TemporaryDirectory() as tmp:
             # load/transform the prompt responses from the specified run
-            if response_run_id:
-                input_data = MLFlowArtifactInput(
-                    run_id=response_run_id,
-                    artifact_path=PROMPT_RESPONSE_ARTIFACT_NAME,
-                    dest_dir=tmp,
-                )
-            else:
-                input_data = LocalInput(response_file)
+            input_data = build_input(path=response_file, run_id=response_run_id, artifact_path=PROMPT_RESPONSE_ARTIFACT_NAME, dvc_repo=dvc_repo, dest_dir=tmp)
             input_data.log_input()
             # TODO: maybe the transformation should be handled by the dataset class?
             input_path = transform_annotation_file(src=input_data.local_path(), dest_dir=tmp)  # type: ignore

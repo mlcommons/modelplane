@@ -89,6 +89,12 @@ def get_sut_responses(
     help="The experiment name to use. If the experiment does not exist, it will be created.",
 )
 @click.option(
+    "--dvc_repo",
+    type=str,
+    required=False,
+    help="URL of the DVC repo to get the responses file from.",
+)
+@click.option(
     "--response_file",
     type=str,
     required=False,
@@ -130,6 +136,7 @@ def get_sut_responses(
 def get_annotations(
     annotator_id: List[str],
     experiment: str,
+    dvc_repo: str | None = None,
     response_file: str | None = None,
     response_run_id: str | None = None,
     ensemble_strategy: str | None = None,
@@ -140,6 +147,7 @@ def get_annotations(
     return annotate(
         annotator_ids=annotator_id,
         experiment=experiment,
+        dvc_repo=dvc_repo,
         response_file=response_file,
         response_run_id=response_run_id,
         ensemble_strategy=ensemble_strategy,
@@ -167,16 +175,24 @@ def get_annotations(
     type=str,  # TODO: Pathlib
     help="Path to the ground truth file.",
 )
+@click.option(
+    "--dvc_repo",
+    type=str,
+    required=False,
+    help="URL of the DVC repo to get the ground truth from.",
+)
 @load_from_dotenv
 def score_annotations(
     experiment: str,
     annotation_run_id: str,
     ground_truth: str,
+    dvc_repo: str | None = None,
 ):
     return score(
         annotation_run_id=annotation_run_id,
         experiment=experiment,
         ground_truth=ground_truth,
+        dvc_repo=dvc_repo,
     )
 
 

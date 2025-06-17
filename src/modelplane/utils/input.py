@@ -73,7 +73,7 @@ class MLFlowArtifactInput(BaseInput):
 
     def __init__(self, run_id: str, artifact_path: str, dest_dir: str):
         self.run_id = run_id
-        self.local_path = self._download_artifacts(run_id, artifact_path, dest_dir)
+        self._local_path = self._download_artifacts(run_id, artifact_path, dest_dir)
 
     def _download_artifacts(
         self, run_id: str, artifact_path: str, dest_dir: str
@@ -98,12 +98,13 @@ class MLFlowArtifactInput(BaseInput):
             mlflow.log_input(dataset)
 
     def local_path(self) -> Path:
-        return Path(self.local_path)
+        return Path(self._local_path)
 
 
 def build_input(
     path: Optional[str] = None,
     run_id: Optional[str] = None,
+    artifact_path: Optional[str] = None,
     dvc_repo: Optional[str] = None,
     dest_dir: Optional[str] = None,
 ) -> BaseInput:
@@ -112,8 +113,12 @@ def build_input(
             raise ValueError("Path must be provided when dvc_repo is provided.")
         return DVCInput(path=path, repo=dvc_repo, dest_dir=dest_dir)
     elif path is not None:
+        if run_id is not None:
+            raise ValueError("Cannot provide both path and run_id.")
         return LocalInput(path)
     elif run_id is not None:
+        if artifact_path is None:
+            raise ValueError("Artifact path must be provided when run_id is provided.")
         return MLFlowArtifactInput(run_id, artifact_path, dest_dir)
     else:
         raise ValueError("Either path or run_id must be provided to build an input.")

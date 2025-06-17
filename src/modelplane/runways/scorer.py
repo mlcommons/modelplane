@@ -16,10 +16,10 @@ from modelplane.runways.utils import (
     RUN_TYPE_TAG_NAME,
     get_experiment_id,
 )
-from modelplane.utils.input import LocalInput, MLFlowArtifactInput
+from modelplane.utils.input import build_input
 
 
-def score(annotation_run_id: str, experiment: str, ground_truth: str):
+def score(annotation_run_id: str, experiment: str, ground_truth: str, dvc_repo: str | None = None):
     """
     Score annotations against ground truth.
     ground_truth is a path to a CSV file with columns: UID, SUT, is_safe.
@@ -33,26 +33,24 @@ def score(annotation_run_id: str, experiment: str, ground_truth: str):
 
     with mlflow.start_run(run_id=None, experiment_id=experiment_id, tags=tags) as run:
         mlflow.log_params(params)
-        log_input(path=ground_truth)
         log_tags(run_id=annotation_run_id)
 
-        # Load annotations
+        
         with tempfile.TemporaryDirectory() as tmp:
-            annotation_dataset = MLFlowArtifactInput(
-                run_id=annotation_run_id,
-                artifact_path=ANNOTATION_RESPONSE_ARTIFACT_NAME,
-                dest_dir=tmp,
-            )
+            # Load annotations
+            print("annotations")
+            annotation_dataset = build_input(run_id=annotation_run_id, artifact_path=ANNOTATION_RESPONSE_ARTIFACT_NAME, dest_dir=tmp)
             annotation_dataset.log_input()
             # Maybe this should be handled by the dataset class?
             annotators, annotations_df = transform_mlflow_annotator_artifact(
                 annotation_dataset.local_path()
             )
-        # Load ground truth
-        ground_truth_dataset = LocalInput(ground_truth)
-        ground_truth_dataset.log_input()
-        ground_truth_df = ground_truth_to_df(ground_truth_dataset.local_path())
-        mlflow.log_metric("num_ground_truth_samples", len(ground_truth_df))
+            # Load ground truth
+            print("ground truth")
+            ground_truth_dataset = build_input(path=ground_truth, dvc_repo=dvc_repo, dest_dir=tmp)
+            ground_truth_dataset.log_input()
+            ground_truth_df = ground_truth_to_df(ground_truth_dataset.local_path())
+            mlflow.log_metric("num_ground_truth_samples", len(ground_truth_df))
         # Score each annotator in the annotation dataframe.
         for annotator in annotators:
             score = score_annotator(annotator, annotations_df, ground_truth_df)
