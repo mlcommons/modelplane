@@ -1,5 +1,8 @@
 FROM ghcr.io/mlflow/mlflow:v2.22.1
 
-# This isn't available on the base image, even though the 
-# default tracking server uses postgres.
-RUN pip install psycopg2-binary
+# The base image does not include various dependencies that are needed for
+# the MLflow server. We assume a postgres backend, so we need psycopg2.
+# We also need boto3 for S3 support, and google-cloud-storage for GCS support.
+# TODO: better way to install these (maybe using poetry.lock to grab consistent versions?)
+RUN pip install psycopg2-binary==2.9.10 boto3==1.38.31 \
+    google-cloud-storage==3.1.0
