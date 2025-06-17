@@ -38,7 +38,6 @@ def score(annotation_run_id: str, experiment: str, ground_truth: str, dvc_repo: 
         
         with tempfile.TemporaryDirectory() as tmp:
             # Load annotations
-            print("annotations")
             annotation_dataset = build_input(run_id=annotation_run_id, artifact_path=ANNOTATION_RESPONSE_ARTIFACT_NAME, dest_dir=tmp)
             annotation_dataset.log_input()
             # Maybe this should be handled by the dataset class?
@@ -46,7 +45,6 @@ def score(annotation_run_id: str, experiment: str, ground_truth: str, dvc_repo: 
                 annotation_dataset.local_path()
             )
             # Load ground truth
-            print("ground truth")
             ground_truth_dataset = build_input(path=ground_truth, dvc_repo=dvc_repo, dest_dir=tmp)
             ground_truth_dataset.log_input()
             ground_truth_df = ground_truth_to_df(ground_truth_dataset.local_path())
