@@ -8,7 +8,7 @@ from typing import Optional
 import dvc.api
 import mlflow
 
-from modelplane.mlflow.datasets import LocalDatasetSource, get_mlflow_dataset
+from modelplane.mlflow.datasets import LocalDatasetSource
 
 
 class BaseInput(ABC):
@@ -31,7 +31,10 @@ class LocalInput(BaseInput):
         self.path = path
 
     def log_input(self):
-        mlf_dataset = get_mlflow_dataset(self.path, source_type="local")
+        mlf_dataset = mlflow.data.meta_dataset.MetaDataset(
+            source=LocalDatasetSource(uri=self.path),
+            name=self.path,
+        )
         mlflow.log_input(mlf_dataset)
 
     def local_path(self) -> Path:
