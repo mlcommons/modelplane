@@ -16,11 +16,11 @@ class BaseInput(ABC):
 
     @abstractmethod
     def log_input(self):
-        """Log the dataset to MLflow as input."""
+        """Log the dataset to MLflow as input. This method should only be called inside an active MLflow run."""
         pass
 
     @abstractmethod
-    def local_path(self) -> str:
+    def local_path(self) -> Path:
         pass
 
 
