@@ -62,25 +62,3 @@ class LocalDatasetSource(FileSystemDatasetSource):
                 "The 'uri' field must be present and of type str in source_dict."
             )
         return cls(uri=uri)
-
-
-def get_mlflow_dataset(
-    path: str, source_type: str = "local"
-) -> mlflow.data.dataset.Dataset:
-    """Get the MLflow dataset from the input file path."""
-    if source_type == "local":
-        return mlflow.data.meta_dataset.MetaDataset(
-            source=LocalDatasetSource(uri=path),
-            name=path,
-        )
-    else:
-        raise ValueError(f"Unsupported source type: {source_type}.")
-
-
-def get_dataset_source_cls(
-    source_type: str,
-) -> type[mlflow.data.dataset_source.DatasetSource]:
-    if source_type == "local":
-        return LocalDatasetSource
-    else:
-        raise ValueError(f"Unsupported source type: {source_type}.")

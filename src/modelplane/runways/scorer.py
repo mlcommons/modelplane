@@ -9,7 +9,7 @@ import mlflow.artifacts
 import pandas as pd
 from sklearn import metrics
 
-from modelplane.mlflow.loghelpers import log_input, log_tags
+from modelplane.mlflow.loghelpers import log_tags
 from modelplane.runways.utils import (
     ANNOTATION_RESPONSE_ARTIFACT_NAME,
     RUN_TYPE_SCORER,
@@ -19,7 +19,12 @@ from modelplane.runways.utils import (
 from modelplane.utils.input import build_input
 
 
-def score(annotation_run_id: str, experiment: str, ground_truth: str, dvc_repo: str | None = None):
+def score(
+    annotation_run_id: str,
+    experiment: str,
+    ground_truth: str,
+    dvc_repo: str | None = None,
+):
     """
     Score annotations against ground truth.
     ground_truth is a path to a CSV file with columns: UID, SUT, is_safe.
@@ -35,17 +40,22 @@ def score(annotation_run_id: str, experiment: str, ground_truth: str, dvc_repo: 
         mlflow.log_params(params)
         log_tags(run_id=annotation_run_id)
 
-        
         with tempfile.TemporaryDirectory() as tmp:
             # Load annotations
-            annotation_dataset = build_input(run_id=annotation_run_id, artifact_path=ANNOTATION_RESPONSE_ARTIFACT_NAME, dest_dir=tmp)
+            annotation_dataset = build_input(
+                run_id=annotation_run_id,
+                artifact_path=ANNOTATION_RESPONSE_ARTIFACT_NAME,
+                dest_dir=tmp,
+            )
             annotation_dataset.log_input()
             # Maybe this should be handled by the dataset class?
             annotators, annotations_df = transform_mlflow_annotator_artifact(
                 annotation_dataset.local_path()
             )
             # Load ground truth
-            ground_truth_dataset = build_input(path=ground_truth, dvc_repo=dvc_repo, dest_dir=tmp)
+            ground_truth_dataset = build_input(
+                path=ground_truth, dvc_repo=dvc_repo, dest_dir=tmp
+            )
             ground_truth_dataset.log_input()
             ground_truth_df = ground_truth_to_df(ground_truth_dataset.local_path())
             mlflow.log_metric("num_ground_truth_samples", len(ground_truth_df))

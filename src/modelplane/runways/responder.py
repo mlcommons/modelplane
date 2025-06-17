@@ -8,7 +8,6 @@ import mlflow
 from modelgauge.pipeline_runner import PromptRunner
 from modelgauge.sut_registry import SUTS
 
-from modelplane.mlflow.loghelpers import log_input
 from modelplane.runways.utils import (
     RUN_TYPE_RESPONDER,
     RUN_TYPE_TAG_NAME,

@@ -91,7 +91,9 @@ class MLFlowArtifactInput(BaseInput):
             ds = input.dataset
             source_dict = json.loads(ds.source)
             if ds.source_type == "http":
-                source = mlflow.data.http_dataset_source.HTTPDatasetSource(source_dict["url"])
+                source = mlflow.data.http_dataset_source.HTTPDatasetSource(
+                    source_dict["url"]
+                )
             else:
                 source = LocalDatasetSource.from_dict(source_dict)
             dataset = mlflow.data.dataset.Dataset(

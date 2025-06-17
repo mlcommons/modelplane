@@ -22,7 +22,7 @@ from modelgauge.annotator_registry import ANNOTATORS
 from modelgauge.ensemble_annotator_set import EnsembleAnnotatorSet, ENSEMBLE_STRATEGIES
 from modelgauge.pipeline_runner import build_runner
 
-from modelplane.mlflow.loghelpers import log_input, log_tags
+from modelplane.mlflow.loghelpers import log_tags
 from modelplane.runways.utils import (
     PROMPT_RESPONSE_ARTIFACT_NAME,
     RUN_TYPE_ANNOTATOR,
@@ -92,7 +92,13 @@ def annotate(
 
         with tempfile.TemporaryDirectory() as tmp:
             # load/transform the prompt responses from the specified run
-            input_data = build_input(path=response_file, run_id=response_run_id, artifact_path=PROMPT_RESPONSE_ARTIFACT_NAME, dvc_repo=dvc_repo, dest_dir=tmp)
+            input_data = build_input(
+                path=response_file,
+                run_id=response_run_id,
+                artifact_path=PROMPT_RESPONSE_ARTIFACT_NAME,
+                dvc_repo=dvc_repo,
+                dest_dir=tmp,
+            )
             input_data.log_input()
             # TODO: maybe the transformation should be handled by the dataset class?
             input_path = transform_annotation_file(src=input_data.local_path(), dest_dir=tmp)  # type: ignore
