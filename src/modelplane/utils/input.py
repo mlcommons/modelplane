@@ -60,10 +60,19 @@ class DVCInput(BaseInput):
 
         return local_path
 
+    def digest(self) -> str:
+        """Return the md5 hash of the dvc file."""
+        # TODO: Check if this works with other storage options (besides google cloud)
+        segments = self.url.split("/")
+        i = segments.index("md5")
+        digest = "".join(segments[i + 1 :])
+        return digest
+
     def log_input(self):
         dataset = mlflow.data.meta_dataset.MetaDataset(
             source=mlflow.data.http_dataset_source.HTTPDatasetSource(self.url),
             name=self.path,
+            digest=self.digest(),
         )
         mlflow.log_input(dataset)
 
