@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any
 
 import mlflow.data.dataset
+import mlflow.data.dataset_source
 import mlflow.data.meta_dataset
 from mlflow.data.filesystem_dataset_source import FileSystemDatasetSource
 from mlflow.utils.uri import is_local_uri
