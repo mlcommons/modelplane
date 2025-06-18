@@ -1,13 +1,10 @@
-import json
 import os
-import shutil
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch, mock_open, MagicMock
+from unittest.mock import patch
 
 import pytest
 import mlflow
-import dvc.api
 
 from modelplane.utils.input import (
     BaseInput,
@@ -208,5 +205,54 @@ class TestMLFlowArtifactInput:
 
 
 class TestBuildInput:
-    # TODO
-    pass
+    def test_build_local_input(self):
+        """No run_id nor dvc_repo should result in LocalInput."""
+        inp = build_input(path=LOCAL_FILE_PATH)
+        assert isinstance(inp, LocalInput)
+
+    def test_build_local_input_ignores_dest_dir(self):
+        inp = build_input(path=LOCAL_FILE_PATH, dest_dir="fake_dir")
+        assert isinstance(inp, LocalInput)
+
+    @patch("modelplane.utils.input.dvc.api")
+    def test_build_dvc_input(self, mock_dvc):
+        mock_dvc.get_url.return_value = "url"
+        with patch.object(DVCInput, "_download_dvc_file", return_value=LOCAL_FILE_PATH):
+            inp = build_input(
+                path=LOCAL_FILE_PATH, dvc_repo="some-repo", dest_dir="fake_dir"
+            )
+        assert isinstance(inp, DVCInput)
+
+    def test_build_dvc_input_no_path_raises_error(self):
+        with pytest.raises(ValueError, match="Path must be provided"):
+            build_input(dvc_repo="some-repo", dest_dir="fake_dir")
+
+    @patch("modelplane.utils.input.mlflow.artifacts")
+    def test_build_mlf_input(self, run_id_local_input):
+        inp = build_input(
+            run_id=run_id_local_input, artifact_path=ARTIFACT_PATH, dest_dir="fake_dir"
+        )
+        assert isinstance(inp, MLFlowArtifactInput)
+
+    def test_build_mlf_input_no_artifact_path_raises_error(self, run_id_local_input):
+        with pytest.raises(ValueError, match="Artifact path must be provided"):
+            build_input(run_id=run_id_local_input, dest_dir="fake_dir")
+
+    def test_run_id_and_path_error(self, run_id_local_input):
+        with pytest.raises(ValueError, match="Cannot provide both path and run_id"):
+            build_input(
+                run_id=run_id_local_input, path=LOCAL_FILE_PATH, dest_dir="fake_dir"
+            )
+
+    def test_run_id_and_repo_error(self):
+        with pytest.raises(ValueError, match="Cannot provide both run_id and dvc_repo"):
+            build_input(
+                run_id=run_id_local_input,
+                path=LOCAL_FILE_PATH,
+                dvc_repo="some_repo",
+                dest_dir="fake_dir",
+            )
+
+    def test_no_args_error(self):
+        with pytest.raises(ValueError, match="Either path or run_id must be provided"):
+            build_input()

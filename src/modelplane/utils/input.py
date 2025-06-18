@@ -46,7 +46,7 @@ class DVCInput(BaseInput):
 
     def __init__(self, path: str, repo: str, dest_dir: str):
         self.path = path
-        self.rev = "main"
+        self.rev = "barbara-test"
         self.url = dvc.api.get_url(path, repo=repo, rev=self.rev)  # For logging.
         self._local_path = self._download_dvc_file(path, repo, dest_dir)
 
@@ -127,6 +127,10 @@ def build_input(
     if dvc_repo is not None:
         if path is None:
             raise ValueError("Path must be provided when dvc_repo is provided.")
+        if run_id is not None:
+            raise ValueError(
+                "Cannot provide both run_id and dvc_repo to build an input."
+            )
         return DVCInput(path=path, repo=dvc_repo, dest_dir=dest_dir)
     elif path is not None:
         if run_id is not None:
