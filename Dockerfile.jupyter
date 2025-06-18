@@ -1,14 +1,26 @@
 FROM python:3.12-slim
 
+ARG MLFLOW_TRACKING_URI
+ARG USE_PRIVATE_MODELBENCH
+
 ENV PATH="/root/.local/bin:$PATH"
 ENV MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+ENV USE_PRIVATE_MODELBENCH=${USE_PRIVATE_MODELBENCH}
 # Used for the notebook server
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y pipx && \
+RUN apt-get update && apt-get install -y pipx openssh-client && \
     pipx install poetry
 COPY pyproject.toml poetry.lock README.md ./
-RUN poetry install --no-interaction --no-ansi --no-root
+
+# conditionally forward ssh key to install private dependencies
+RUN --mount=type=ssh if [ "$USE_PRIVATE_MODELBENCH" = "true" ]; then \
+        ssh-keyscan github.com > /etc/ssh/ssh_known_hosts; \
+        poetry install --no-interaction --no-ansi --no-root --extras modelbench-private; \
+    else \
+        poetry install --no-interaction --no-ansi --no-root; \
+    fi
+
 COPY src/ ./src/
 RUN echo $(poetry env info --path)
 RUN poetry install --no-interaction --no-ansi

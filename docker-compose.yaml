@@ -40,6 +40,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.jupyter
+      args:
+        MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI}
+        USE_PRIVATE_MODELBENCH: ${USE_PRIVATE_MODELBENCH}
     env_file: .env
     ports:
       - "8888:8888"
