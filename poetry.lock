@@ -4335,7 +4335,7 @@ resolved_reference = "2b19f4f79dfb51fe3db8d9d11af12beccc749844"
 name = "modelbench-private"
 version = "1.0.0"
 description = ""
-optional = false
+optional = true
 python-versions = ">=3.10,!=3.12.5,<3.13"
 files = []
 develop = false
@@ -8356,4 +8356,4 @@ modelbench-private = ["modelbench-private"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,!=3.12.5,<3.13"
-content-hash = "c336d71d19e7c0b48be4cd8d7002ce11adfd9ea4a0d165f33bec71f0b862e7ec"
+content-hash = "0d6c1775f9fdc7ecd19b3e2abfe7314f1c298184186dbadea263ff047c728818"

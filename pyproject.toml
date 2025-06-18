@@ -37,13 +37,10 @@ modelgauge_google = { git = "https://github.com/mlcommons/modelbench.git", subdi
 modelgauge_vertexai = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/vertexai", rev = "2b19f4f79dfb51fe3db8d9d11af12beccc749844" }
 modelgauge_mistral = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/mistral", rev = "2b19f4f79dfb51fe3db8d9d11af12beccc749844" }
 modelgauge_amazon = { git = "https://github.com/mlcommons/modelbench.git", subdirectory = "plugins/amazon", rev = "2b19f4f79dfb51fe3db8d9d11af12beccc749844" }
+modelbench-private = { git = "git@github.com:mlcommons/modelbench-private.git", rev = "86d11ce8a15a813d4134cbfb573ac224fea5fd75", optional = true }
 
 [tool.poetry.extras]
 modelbench-private = ["modelbench-private"]
-
-[tool.poetry.dependencies.modelbench-private]
-git = "git@github.com:mlcommons/modelbench-private.git"
-rev = "86d11ce8a15a813d4134cbfb573ac224fea5fd75"
 
 [tool.poetry.group.dev.dependencies]
 ipython = "<9"
