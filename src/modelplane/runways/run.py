@@ -1,9 +1,9 @@
 from typing import List
-import click
 
+import click
 from modelgauge.ensemble_annotator_set import ENSEMBLE_STRATEGIES
 
-from modelplane.runways.annotator import annotate
+from modelplane.runways.annotator import annotate, KNOWN_ENSEMBLES
 from modelplane.runways.responder import respond
 from modelplane.runways.scorer import score
 from modelplane.utils.env import load_from_dotenv
@@ -75,13 +75,6 @@ def get_sut_responses(
 
 @cli.command(name="annotate")
 @click.option(
-    "--annotator_id",
-    type=str,
-    multiple=True,
-    required=True,
-    help="The annotator UID(s) to use. Multiple annotators can be specified.",
-)
-@click.option(
     "--experiment",
     type=str,
     required=True,
@@ -108,11 +101,25 @@ def get_sut_responses(
     help="The run ID corresponding to the responses to annotate.",
 )
 @click.option(
+    "--annotator_id",
+    type=str,
+    multiple=True,
+    default=None,
+    help="The annotator UID(s) to use. Multiple annotators can be specified.",
+)
+@click.option(
     "--ensemble_strategy",
     type=str,
     default=None,
     help="The ensemble strategy to use. If set, individual annotator results will be combined using the given strategy. "
     "Available strategies: " + ", ".join(list(ENSEMBLE_STRATEGIES.keys())),
+)
+@click.option(
+    "--ensemble_id",
+    type=str,
+    default=None,
+    help="Use a fixed ensemble id to use a predefined ensemble strategy. Options include: "
+    + ", ".join(list(KNOWN_ENSEMBLES.keys())),
 )
 @click.option(
     "--overwrite",
@@ -134,23 +141,25 @@ def get_sut_responses(
 )
 @load_from_dotenv
 def get_annotations(
-    annotator_id: List[str],
     experiment: str,
     dvc_repo: str | None = None,
     response_file: str | None = None,
     response_run_id: str | None = None,
+    annotator_id: List[str] | None = None,
     ensemble_strategy: str | None = None,
+    ensemble_id: str | None = None,
     overwrite: bool = False,
     cache_dir: str | None = None,
     n_jobs: int = 1,
 ):
     return annotate(
-        annotator_ids=annotator_id,
         experiment=experiment,
         dvc_repo=dvc_repo,
         response_file=response_file,
         response_run_id=response_run_id,
+        annotator_ids=annotator_id,
         ensemble_strategy=ensemble_strategy,
+        ensemble_id=ensemble_id,
         overwrite=overwrite,
         cache_dir=cache_dir,
         n_jobs=n_jobs,
