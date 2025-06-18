@@ -12,6 +12,7 @@ packages = [
 [tool.poetry.dependencies]
 python = ">=3.10,!=3.12.5,<3.13"
 click = "^8"
+dvc = {extras = ["gs"], version = "^3.60"} 
 modelbench = {git = "https://github.com/mlcommons/modelbench.git", rev = "c59bf585f6b98e1cd92e35c73f609a4ada02b9b8" }
 mlflow = "^2.22.1"
 python-dotenv = "^1"
