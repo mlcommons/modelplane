@@ -56,17 +56,3 @@ Then you can run annotations with:
 ```
 MLFLOW_TRACKING_URI=http://localhost:8080 poetry run modelplane annotate --annotator_id {annotator_id} --experiment expname --response_run_id {run_id}
 ```
-
-## TODO
-
-- [ ] Scoring against ground truth (measurement runner functionality)
-- [ ] Support ensemble option
-- [ ] Support multiple annotators in single run
-- [ ] Confirm this works with cloud storage
-- [ ] Add test coverage
-- [ ] Support for data via remote DVC repo
-- [ ] Template with annotator that's served elsewhere
-- [ ] Missing safety runner functionality
-- [ ] Automated experiment names
-- [ ] `annotate` should add sut_id tag to its runs
-- [ ] Better handling of jupyter token
