@@ -37,7 +37,7 @@ KNOWN_ENSEMBLES: Dict[str, AnnotatorSet] = {}
 try:
     from modelgauge.private_ensemble_annotator_set import PRIVATE_ANNOTATOR_SET
 
-    KNOWN_ENSEMBLES["official"] = PRIVATE_ANNOTATOR_SET
+    KNOWN_ENSEMBLES["official-1.0"] = PRIVATE_ANNOTATOR_SET
 except NotImplementedError:
     pass
 
@@ -57,10 +57,6 @@ def annotate(
     """
     Run annotations and record measurements.
     """
-    if not ((response_file is None) ^ (response_run_id is None)):
-        raise ValueError(
-            "Exactly one of response_file or response_run_id must be provided."
-        )
     # this will set annotator_ids and optionally ensemble
     pipeline_kwargs = _get_annotator_settings(
         annotator_ids, ensemble_strategy, ensemble_id
