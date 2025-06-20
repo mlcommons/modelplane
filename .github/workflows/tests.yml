@@ -21,7 +21,7 @@ jobs:
 
       - name: Start MLflow server
         run: |
-          MLFLOW_TRACKING_URI=http://localhost:8080 docker compose up -d mlflow
+          docker compose up -d mlflow
 
       - name: Wait for MLflow server to be ready
         run: |
