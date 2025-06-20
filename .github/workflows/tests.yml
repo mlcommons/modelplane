@@ -21,7 +21,7 @@ jobs:
 
       - name: Start MLflow server
         run: |
-          docker compose up -d mlflow
+          docker compose --env-file .env up -d mlflow
 
       - name: Wait for MLflow server to be ready
         run: |
