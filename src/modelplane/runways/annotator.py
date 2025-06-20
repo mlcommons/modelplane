@@ -38,7 +38,7 @@ try:
     from modelgauge.private_ensemble_annotator_set import PRIVATE_ANNOTATOR_SET
 
     KNOWN_ENSEMBLES["official"] = PRIVATE_ANNOTATOR_SET
-except ImportError:
+except NotImplementedError:
     pass
 
 
