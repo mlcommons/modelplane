@@ -1,7 +1,12 @@
 services:
   postgres:
     image: postgres:17 # TODO: ensure compatibility with our GCP PostgreSQL
-    env_file: .env
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+      - POSTGRES_HOST
+      - POSTGRES_PORT
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
@@ -10,8 +15,15 @@ services:
   mlflow:
     build:
       dockerfile: Dockerfile.mlflow
-    env_file: .env
     environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI}
+      # MLFLOW_ARTIFACT_TRACKING_URI: ${MLFLOW_ARTIFACT_TRACKING_URI}
+      MLFLOW_ARTIFACT_DESTINATION: ${MLFLOW_ARTIFACT_DESTINATION}
       # if not provided via volume below, GS will not work as artifact store
       GOOGLE_APPLICATION_CREDENTIALS: /creds/gcp-key.json
       # if not provided via volume below, AWS S3 will not work as artifact store
@@ -43,7 +55,11 @@ services:
       args:
         MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI}
         USE_PRIVATE_MODELBENCH: ${USE_PRIVATE_MODELBENCH}
-    env_file: .env
+    environment:
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI}
+      USE_PRIVATE_MODELBENCH: ${USE_PRIVATE_MODELBENCH}
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN}
+      GIT_PYTHON_REFRESH: ${GIT_PYTHON_REFRESH}
     ports:
       - "8888:8888"
     volumes:
