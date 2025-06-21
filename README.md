@@ -52,21 +52,22 @@ MLFLOW_TRACKING_URI=http://localhost:8080 poetry run modelplane get-sut-response
 After running the command, you'd see the `run_id` in the output from mlflow, 
 or you can get the `run_id` via the MLFlow UI.
 
-Then you can run annotations with:
+### Basic Annotations
 ```
 MLFLOW_TRACKING_URI=http://localhost:8080 poetry run modelplane annotate --annotator_id {annotator_id} --experiment expname --response_run_id {run_id}
 ```
 
-## TODO
+### Custom Ensembles
+```
+MLFLOW_TRACKING_URI=http://localhost:8080 poetry run modelplane annotate --annotator_id {annotator_id1} --annotator_id {annotator_id2} --ensemble_strategy {ensemble_strategy} --experiment expname --response_file path/to/response.csv
+```
 
-- [ ] Scoring against ground truth (measurement runner functionality)
-- [ ] Support ensemble option
-- [ ] Support multiple annotators in single run
-- [ ] Confirm this works with cloud storage
-- [ ] Add test coverage
-- [ ] Support for data via remote DVC repo
-- [ ] Template with annotator that's served elsewhere
-- [ ] Missing safety runner functionality
-- [ ] Automated experiment names
-- [ ] `annotate` should add sut_id tag to its runs
-- [ ] Better handling of jupyter token
+### Private Ensemble
+If you have access to the private ensemble, you can install with the needed extras
+```
+poetry install --extras modelbench-private
+```
+And then run annotations with:
+```
+MLFLOW_TRACKING_URI=http://localhost:8080 poetry run modelplane annotate --ensemble_id official --experiment expname --response_run_id {run_id}
+```

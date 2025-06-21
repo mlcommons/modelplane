@@ -3,9 +3,9 @@
 import json
 import os
 import tempfile
+from pathlib import Path
 
 import mlflow
-import mlflow.artifacts
 import pandas as pd
 from sklearn import metrics
 
@@ -120,7 +120,7 @@ def score_annotator(
     }
 
 
-def transform_mlflow_annotator_artifact(path: str) -> tuple[list, pd.DataFrame]:
+def transform_mlflow_annotator_artifact(path: Path) -> tuple[list, pd.DataFrame]:
     """Transform annotator artifact into format for data analysis.
     Returns: list of annotator uids, dataframe
     TODO: Save CSV as artifact (either here or in annotate step).
