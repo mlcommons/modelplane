@@ -21,7 +21,7 @@ jobs:
 
       - name: Start MLflow server (no jupyter)
         run: |
-          ./start_services.sh no-jupyter
+          ./start_services.sh no-jupyter -d
 
       - name: Install poetry
         run: pipx install "poetry == 1.8.5"
