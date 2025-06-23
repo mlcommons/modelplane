@@ -49,7 +49,7 @@ jobs:
 
       - name: Start MLflow server
         run: |
-          ./start_services.sh
+          ./start_services.sh -d
 
       - name: Copy test script to Jupyter container
         run: |
