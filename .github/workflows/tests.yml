@@ -57,7 +57,7 @@ jobs:
 
       - name: Execute all notebooks
         run: |
-          docker exec jupyter python /app/test_notebooks.py
+          docker exec modelplane-jupyter-1 poetry run python /app/test_notebooks.py
 
           
       - name: Stop MLflow server
