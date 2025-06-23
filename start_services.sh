@@ -31,7 +31,7 @@ done
 
 # Start services based on the options
 if [ "$USE_JUPYTER" = "true" ]; then
-  docker compose down && docker compose build $SSH_FLAG && MLFLOW_TRACKING_URI="http://mlflow:8080" docker compose up $DETACHED
+  docker compose down && docker compose build $SSH_FLAG mlflow && MLFLOW_TRACKING_URI="http://mlflow:8080" docker compose up $DETACHED
 else
   docker compose down && docker compose build $SSH_FLAG && MLFLOW_TRACKING_URI="http://localhost:8080" docker compose up $DETACHED mlflow
 fi

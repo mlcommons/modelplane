@@ -53,7 +53,7 @@ jobs:
 
       - name: Copy test script to Jupyter container
         run: |
-          docker cp tests/notebooks/run.py jupyter:/app/test_notebooks.py
+          docker cp tests/notebooks/run.py modelplane-jupyter-1:/app/test_notebooks.py
 
       - name: Execute all notebooks
         run: |
