@@ -7,7 +7,35 @@ on:
   pull_request:
 
 jobs:
-  integration-test:
+  cli-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Start MLflow server (no jupyter)
+        run: |
+          ./start_services.sh no-jupyter -d
+
+      - name: Install poetry
+        run: pipx install "poetry == 1.8.5"
+
+      - name: Install dependencies
+        run: poetry install --with test --no-cache
+
+      - name: Run all tests
+        run: MLFLOW_TRACKING_URI=http://localhost:8080 poetry run pytest
+
+      - name: Stop MLflow server
+        run: docker compose down
+
+  jupyter-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,23 +49,16 @@ jobs:
 
       - name: Start MLflow server
         run: |
-          MLFLOW_TRACKING_URI=http://localhost:8080 docker compose up -d mlflow
+          ./start_services.sh -d
 
-      - name: Wait for MLflow server to be ready
+      - name: Copy test script to Jupyter container
         run: |
-          until curl -f http://localhost:8080/health; do
-            echo "Waiting for MLflow server..."
-            sleep 5
-          done
+          docker cp tests/notebooks/run.py modelplane-jupyter-1:/app/test_notebooks.py
 
-      - name: Install poetry
-        run: pipx install "poetry == 1.8.5"
+      - name: Execute all notebooks
+        run: |
+          docker exec modelplane-jupyter-1 poetry run python /app/test_notebooks.py
 
-      - name: Install dependencies
-        run: poetry install --with test --no-cache
-
-      - name: Run all tests
-        run: MLFLOW_TRACKING_URI=http://localhost:8080 poetry run pytest
-
+          
       - name: Stop MLflow server
         run: docker compose down
