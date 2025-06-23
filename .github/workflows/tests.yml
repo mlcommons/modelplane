@@ -19,9 +19,9 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Start MLflow server
+      - name: Start MLflow server (no jupyter)
         run: |
-          docker compose up -d mlflow
+          ./start-services.sh no-jupyter
 
       - name: Install poetry
         run: pipx install "poetry == 1.8.5"

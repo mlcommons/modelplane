@@ -5,9 +5,9 @@ set -a
 source .env
 set +a
 
-# if USE_JUPYTER, set MLFLOW_TRACKING_URI appropriately
-if [ "$USE_JUPYTER" = "true" ]; then
-  docker compose down && docker compose build --ssh default && MLFLOW_TRACKING_URI="http://mlflow:8080" docker compose up
+# Default to starting Jupyter unless explicitly disabled
+if [ "$1" = "no-jupyter" ]; then
+  docker compose down && docker compose build --ssh default && MLFLOW_TRACKING_URI="http://localhost:8080" docker compose up -d mlflow
 else
-  docker compose down && docker compose build --ssh default && MLFLOW_TRACKING_URI="http://localhost:8080" docker compose up mlflow
+  docker compose down && docker compose build --ssh default && MLFLOW_TRACKING_URI="http://mlflow:8080" docker compose up -d
 fi
