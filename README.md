@@ -25,11 +25,11 @@ given docker-compose.yaml file will start up:
     sample input file [here](https://github.com/mlcommons/ailuminate/tree/main).
 1. Bring up the services:
     ```bash
-    docker compose up -d
+    ./start_services.sh -d
     ```
-    Or if you are running mlflow somewhere else, you can bring up just jupyter with:
+    Or if you are using the cli only, and not using jupyter:
     ```bash
-    docker compose up -d jupyter
+    ./start_services.sh -d no-jupyter
     ```
 1. Visit the [Jupyter Server](http://localhost:8888/?token=changeme). The
    token is configured in the .env file. You shouldn't need to enter it 
