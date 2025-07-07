@@ -63,8 +63,11 @@ def get_experiment_id(experiment_name: str) -> str:
     # check if the experiment exists
     experiment = mlflow.get_experiment_by_name(experiment_name)
     if experiment is None:
-        experiment_id = mlflow.create_experiment(name=experiment_name)
+        return mlflow.create_experiment(name=experiment_name)
+    elif experiment is not None and experiment.lifecycle_stage != "active":
+        raise ValueError(
+            f"Experiment '{experiment_name}' exists but is not active. "
+            "Please delete it or create a new experiment with a different name."
+        )
     else:
-        experiment_id = experiment.experiment_id
-
-    return experiment_id
+        return experiment.experiment_id

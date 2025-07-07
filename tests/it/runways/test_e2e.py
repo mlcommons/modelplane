@@ -1,5 +1,6 @@
 import csv
 import tempfile
+import time
 from typing import List
 
 import mlflow
@@ -18,7 +19,7 @@ def test_e2e():
     sut_id = "demo_yes_no"
     prompts = "tests/data/prompts.csv"
     ground_truth = "tests/data/ground_truth.csv"
-    experiment = "test_experiment"
+    experiment = "test_experiment_" + time.strftime("%Y%m%d%H%M%S", time.localtime())
     n_jobs = 1
 
     run_id = check_responder(
