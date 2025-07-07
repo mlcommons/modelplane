@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 
 import mlflow
+import numpy as np
 import pandas as pd
 from sklearn import metrics
 
@@ -63,7 +64,12 @@ def score(
         for annotator in annotators:
             score = score_annotator(annotator, annotations_df, ground_truth_df)
             for metric in score:
-                mlflow.log_metric(f"{annotator}_{metric}", score[metric])
+                if np.isnan(score[metric]):
+                    mlflow.log_metric(f"{annotator}_{metric}_is_nan", 1.0)
+                elif np.isinf(score[metric]):
+                    mlflow.log_metric(f"{annotator}_{metric}_is_inf", 1.0)
+                else:
+                    mlflow.log_metric(f"{annotator}_{metric}", score[metric])
 
         return run.info.run_id
 
