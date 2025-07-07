@@ -1,4 +1,4 @@
-FROM ghcr.io/mlflow/mlflow:v2.22.1
+FROM ghcr.io/mlflow/mlflow:v3.1.1
 
 # The base image does not include various dependencies that are needed for
 # the MLflow server. We assume a postgres backend, so we need psycopg2.

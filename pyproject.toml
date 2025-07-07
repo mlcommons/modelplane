@@ -14,7 +14,7 @@ python = ">=3.10,!=3.12.5,<3.13"
 click = "^8"
 dvc = {extras = ["gs"], version = "^3.60"} 
 modelbench = {git = "https://github.com/mlcommons/modelbench.git", rev = "2b19f4f79dfb51fe3db8d9d11af12beccc749844" }
-mlflow = "^2.22.1"
+mlflow = "^3.1.1"
 python-dotenv = "^1"
 requests = "^2"
 prometheus-client = "*" # version controlled by dependencies
