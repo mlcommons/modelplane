@@ -64,6 +64,9 @@ def score(
         for annotator in annotators:
             score = score_annotator(annotator, annotations_df, ground_truth_df)
             for metric in score:
+                # There's a bug in graphql (used by mlflow ui) that crashes
+                # the UI if a metric is NaN or infinity.
+                # https://github.com/mlflow/mlflow/issues/16555
                 if math.isnan(score[metric]):
                     mlflow.log_metric(f"{annotator}_{metric}_is_nan", 1.0)
                 elif math.isinf(score[metric]):
