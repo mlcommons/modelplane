@@ -16,7 +16,7 @@ from modelgauge.sut_registry import SUTS
 SECRETS_PATH_ENV = "MODEL_SECRETS_PATH"
 DEBUG_MODE_ENV = "MODELPLANE_DEBUG_MODE"
 PROMPT_RESPONSE_ARTIFACT_NAME = "prompt-responses.csv"
-ANNOTATION_RESPONSE_ARTIFACT_NAME = "annotations.jsonl"
+ANNOTATION_RESPONSE_ARTIFACT_NAME = "annotations.csv"
 RUN_TYPE_TAG_NAME = "type"
 RUN_TYPE_RESPONDER = "get-sut-responses"
 RUN_TYPE_ANNOTATOR = "annotate"
