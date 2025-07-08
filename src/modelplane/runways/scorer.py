@@ -1,6 +1,7 @@
 """Runway for measuring annotations against ground truth."""
 
 import json
+import math
 import os
 import tempfile
 from pathlib import Path
@@ -65,7 +66,12 @@ def score(
         for annotator in annotators:
             score = score_annotator(annotator, annotations_df, ground_truth_df)
             for metric in score:
-                mlflow.log_metric(f"{annotator}_{metric}", score[metric])
+                if math.isnan(score[metric]):
+                    mlflow.log_metric(f"{annotator}_{metric}_is_nan", 1.0)
+                elif math.isinf(score[metric]):
+                    mlflow.log_metric(f"{annotator}_{metric}_is_inf", 1.0)
+                else:
+                    mlflow.log_metric(f"{annotator}_{metric}", score[metric])
 
         return run.info.run_id
 

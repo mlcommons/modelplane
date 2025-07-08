@@ -18,6 +18,7 @@ from modelgauge.pipeline_runner import build_runner
 
 from modelplane.mlflow.loghelpers import log_tags
 from modelplane.runways.utils import (
+    MODELGAUGE_RUN_TAG_NAME,
     PROMPT_RESPONSE_ARTIFACT_NAME,
     RUN_TYPE_ANNOTATOR,
     RUN_TYPE_TAG_NAME,
@@ -107,6 +108,7 @@ def annotate(
             pipeline_runner.run(
                 progress_callback=mlflow.log_metrics, debug=is_debug_mode()
             )
+            mlflow.set_tag(MODELGAUGE_RUN_TAG_NAME, pipeline_runner.run_id)
 
             # log the output to mlflow's artifact store
             mlflow.log_artifact(

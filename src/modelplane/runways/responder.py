@@ -9,6 +9,7 @@ from modelgauge.pipeline_runner import PromptRunner
 from modelgauge.sut_registry import SUTS
 
 from modelplane.runways.utils import (
+    MODELGAUGE_RUN_TAG_NAME,
     RUN_TYPE_RESPONDER,
     RUN_TYPE_TAG_NAME,
     get_experiment_id,
@@ -53,6 +54,7 @@ def respond(
             pipeline_runner.run(
                 progress_callback=mlflow.log_metrics, debug=is_debug_mode()
             )
+            mlflow.set_tag(MODELGAUGE_RUN_TAG_NAME, pipeline_runner.run_id)
 
             # log the output to mlflow's artifact store
             mlflow.log_artifact(

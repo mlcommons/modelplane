@@ -21,6 +21,7 @@ RUN_TYPE_TAG_NAME = "type"
 RUN_TYPE_RESPONDER = "get-sut-responses"
 RUN_TYPE_ANNOTATOR = "annotate"
 RUN_TYPE_SCORER = "score"
+MODELGAUGE_RUN_TAG_NAME = "modelgauge_run_id"
 
 
 def is_debug_mode() -> bool:

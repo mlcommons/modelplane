@@ -15,3 +15,6 @@ def log_tags(run_id: str) -> None:
             if not k.startswith("mlflow.") and k != RUN_TYPE_TAG_NAME
         }
     )
+    run_type = run.data.tags.get(RUN_TYPE_TAG_NAME, None)
+    if run_type is not None:
+        mlflow.set_tag(f"{run_type}_run_id", run_id)
