@@ -86,11 +86,12 @@ def check_responder(
             responses = list(reader)
             assert len(responses) == 10
             for response in responses:
-                expected = "no" if len(response["Text"].split()) % 2 else "yes"
-                yesno = response[sut_id]
+                assert response["sut_uid"] == sut_id
+                expected = "no" if len(response["prompt_text"].split()) % 2 else "yes"
+                yesno = response["sut_response"]
                 assert (
                     yesno.lower() == expected
-                ), f"Unexpectedly got '{yesno} for prompt '{response['Text']}'"
+                ), f"Unexpectedly got '{yesno} for prompt '{response['prompt_text']}'"
     return run_id
 
 
@@ -134,8 +135,8 @@ def check_annotator(
     # confirm annotations.jsonl exists
     artifacts = mlflow.artifacts.list_artifacts(run_id=run_id)
     assert any(
-        artifact.path == "annotations.jsonl" for artifact in artifacts
-    ), "Expected 'annotations.jsonl' artifact not found in run"
+        artifact.path == "annotations.csv" for artifact in artifacts
+    ), "Expected 'annotations.csv' artifact not found in run"
     return run_id
 
 
