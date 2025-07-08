@@ -124,19 +124,20 @@ def check_annotator(
     assert params.get("n_jobs") == str(n_jobs)
     assert tags.get(f"annotator_{TEST_ANNOTATOR_ID}") == "true"
 
-    # expect 8 safe based on seed
+    # expect 5 safe (every other item)
     assert (
         metrics.get(f"{TEST_ANNOTATOR_ID}_total_count") == 10
     ), "Expected total_count to be 10"
     assert (
-        metrics.get(f"{TEST_ANNOTATOR_ID}_total_safe") == 8
-    ), "Expected total_safe to be 8"
+        metrics.get(f"{TEST_ANNOTATOR_ID}_total_safe") == 5
+    ), "Expected total_safe to be 5"
 
-    # confirm annotations.jsonl exists
+    # confirm annotations.csv exists
     artifacts = mlflow.artifacts.list_artifacts(run_id=run_id)
     assert any(
         artifact.path == "annotations.csv" for artifact in artifacts
     ), "Expected 'annotations.csv' artifact not found in run"
+    # TODO: validate annotations.csv
     return run_id
 
 
