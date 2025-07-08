@@ -27,7 +27,9 @@ jobs:
         run: pipx install "poetry == 1.8.5"
 
       - name: Install dependencies
-        run: poetry install --with test --no-cache
+        run:
+          poetry cache clear --no-interaction --all .
+          poetry install --with test --no-cache
 
       - name: Run all tests
         run: MLFLOW_TRACKING_URI=http://localhost:8080 poetry run pytest
