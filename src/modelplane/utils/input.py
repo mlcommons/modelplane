@@ -46,7 +46,7 @@ class DVCInput(BaseInput):
 
     def __init__(self, path: str, repo: str, dest_dir: str):
         self.path = path
-        self.rev = "barbara-test"
+        self.rev = "main"
         self.url = dvc.api.get_url(path, repo=repo, rev=self.rev)  # For logging.
         self._local_path = self._download_dvc_file(path, repo, dest_dir)
 
