@@ -27,7 +27,7 @@ jobs:
         run: pipx install "poetry == 1.8.5"
 
       - name: Install dependencies
-        run:
+        run: |
           poetry cache clear --no-interaction --all .
           poetry install --with test --no-cache
 
