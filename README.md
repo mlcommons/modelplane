@@ -27,7 +27,7 @@ given docker-compose.yaml file will start up:
     ```bash
     ./start_services.sh -d
     ```
-    Or if you are using the cli only, and not using jupyter:
+   If you are using the cli only, and not using jupyter, you must pass the `no-jupyter` option:
     ```bash
     ./start_services.sh -d no-jupyter
     ```
