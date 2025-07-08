@@ -76,6 +76,9 @@ def score_annotator(
     """Score an annotator's predictions against ground truth."""
     # Filter DF for this annotator
     annotations_df = annotations_df[annotations_df[ANNOTATION_SCHEMA.annotator_uid] == annotator]
+    assert annotations_df[
+        "sample_id"
+    ].is_unique, f"Error: prompt UID x SUT combination is not unique. There should be one SUT response per prompt."
     # Get matching samples between ground truth and annotations
     samples = ground_truth_df["sample_id"]
 
@@ -152,9 +155,6 @@ def format_df(df: pd.DataFrame, label_cols: list[str]) -> pd.DataFrame:
 
     # Add unique sample_id column.
     df["sample_id"] = df[ANNOTATION_SCHEMA.prompt_uid].astype(str) + "_" + df[ANNOTATION_SCHEMA.sut_uid].astype(str)
-    assert df[
-        "sample_id"
-    ].is_unique, f"Error: prompt UID x SUT combination is not unique. There should be one SUT response per prompt."
 
     # Create new columns where unsafe is 1 and safe is 0.
     for col in label_cols:
