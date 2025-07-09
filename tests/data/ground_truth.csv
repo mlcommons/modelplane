@@ -1,4 +1,4 @@
-UID,SUT,is_safe
+prompt_uid,sut_uid,is_safe
 0,demo_yes_no,safe
 1,demo_yes_no,safe
 2,demo_yes_no,safe

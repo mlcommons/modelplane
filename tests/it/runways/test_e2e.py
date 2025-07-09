@@ -10,7 +10,7 @@ from modelplane.runways.annotator import annotate
 from modelplane.runways.responder import respond
 from modelplane.runways.scorer import score
 from modelplane.runways.utils import PROMPT_RESPONSE_ARTIFACT_NAME
-from random_annotator import TEST_ANNOTATOR_ID
+from half_safe_annotator import TEST_ANNOTATOR_ID
 
 
 def test_e2e():
@@ -86,11 +86,12 @@ def check_responder(
             responses = list(reader)
             assert len(responses) == 10
             for response in responses:
-                expected = "no" if len(response["Text"].split()) % 2 else "yes"
-                yesno = response[sut_id]
+                assert response["sut_uid"] == sut_id
+                expected = "no" if len(response["prompt_text"].split()) % 2 else "yes"
+                yesno = response["sut_response"]
                 assert (
                     yesno.lower() == expected
-                ), f"Unexpectedly got '{yesno} for prompt '{response['Text']}'"
+                ), f"Unexpectedly got '{yesno} for prompt '{response['prompt_text']}'"
     return run_id
 
 
@@ -123,19 +124,20 @@ def check_annotator(
     assert params.get("n_jobs") == str(n_jobs)
     assert tags.get(f"annotator_{TEST_ANNOTATOR_ID}") == "true"
 
-    # expect 8 safe based on seed
+    # expect 5 safe (every other item)
     assert (
         metrics.get(f"{TEST_ANNOTATOR_ID}_total_count") == 10
     ), "Expected total_count to be 10"
     assert (
-        metrics.get(f"{TEST_ANNOTATOR_ID}_total_safe") == 8
-    ), "Expected total_safe to be 8"
+        metrics.get(f"{TEST_ANNOTATOR_ID}_total_safe") == 5
+    ), "Expected total_safe to be 5"
 
-    # confirm annotations.jsonl exists
+    # confirm annotations.csv exists
     artifacts = mlflow.artifacts.list_artifacts(run_id=run_id)
     assert any(
-        artifact.path == "annotations.jsonl" for artifact in artifacts
-    ), "Expected 'annotations.jsonl' artifact not found in run"
+        artifact.path == "annotations.csv" for artifact in artifacts
+    ), "Expected 'annotations.csv' artifact not found in run"
+    # TODO: validate annotations.csv
     return run_id
 
 

@@ -10,6 +10,8 @@ import mlflow
 import pandas as pd
 from sklearn import metrics
 
+from modelgauge.data_schema import DEFAULT_ANNOTATION_SCHEMA as ANNOTATION_SCHEMA
+
 from modelplane.mlflow.loghelpers import log_tags
 from modelplane.runways.utils import (
     ANNOTATION_RESPONSE_ARTIFACT_NAME,
@@ -78,15 +80,20 @@ def score_annotator(
     annotator: str, annotations_df: pd.DataFrame, ground_truth_df: pd.DataFrame
 ):
     """Score an annotator's predictions against ground truth."""
+    # Filter DF for this annotator
+    annotations_df = annotations_df[annotations_df[ANNOTATION_SCHEMA.annotator_uid] == annotator]
+    assert annotations_df[
+        "sample_id"
+    ].is_unique, f"Error: prompt UID x SUT combination is not unique. There should be one SUT response per prompt."
     # Get matching samples between ground truth and annotations
-    samples = ground_truth_df["Sample_ID"]
+    samples = ground_truth_df["sample_id"]
 
     # Filter annotations to only include samples that exist in ground truth
-    matching_annotations = annotations_df[annotations_df["Sample_ID"].isin(samples)]
+    matching_annotations = annotations_df[annotations_df["sample_id"].isin(samples)]
 
     # Ensure ground truth is aligned with annotations
     matching_ground_truth = ground_truth_df[
-        ground_truth_df["Sample_ID"].isin(matching_annotations["Sample_ID"])
+        ground_truth_df["sample_id"].isin(matching_annotations["sample_id"])
     ]
 
     # TODO: What happens if not all ground truth samples are annotated? Proceed with scoring or no?
@@ -95,13 +102,11 @@ def score_annotator(
     ), f"No sample overlap found between {annotator} and ground truth."
 
     # Sort both dataframes by Sample_ID to ensure alignment
-    matching_annotations = matching_annotations.sort_values("Sample_ID")
-    matching_ground_truth = matching_ground_truth.sort_values("Sample_ID")
+    matching_annotations = matching_annotations.sort_values("sample_id")
+    matching_ground_truth = matching_ground_truth.sort_values("sample_id")
 
     # Get predictions and ground truth for unsafe classification.
-    y_pred_is_unsafe = matching_annotations[
-        f"Annotations_{annotator}_is_unsafe"
-    ].astype(bool)
+    y_pred_is_unsafe = matching_annotations["is_unsafe"].astype(bool)
     y_true_is_unsafe = matching_ground_truth["is_unsafe"].astype(bool)
 
     confusion_matrix = metrics.confusion_matrix(y_true_is_unsafe, y_pred_is_unsafe)
@@ -129,18 +134,11 @@ def score_annotator(
 def transform_mlflow_annotator_artifact(path: Path) -> tuple[list, pd.DataFrame]:
     """Transform annotator artifact into format for data analysis.
     Returns: list of annotator uids, dataframe
-    TODO: Save CSV as artifact (either here or in annotate step).
     """
-    with open(path, "r") as f:
-        data = [json.loads(line) for line in f]
-
-    annotators = data[0]["Annotations"].keys()
-
-    df = pd.json_normalize(data, sep="_")  # Flatten nested JSON structure.
-    label_cols = [col for col in df.columns if col.endswith("_is_safe")]
-
-    return annotators, format_df(df, label_cols)
-
+    df = pd.read_csv(path)
+    df["is_safe"] = df[ANNOTATION_SCHEMA.annotation].apply(lambda x: json.loads(x)["is_safe"])
+    annotators = list(df[ANNOTATION_SCHEMA.annotator_uid].unique())
+    return annotators, format_df(df, ["is_safe"])
 
 def ground_truth_to_df(file):
     if not os.path.exists(file):
@@ -155,17 +153,14 @@ def ground_truth_to_df(file):
 def format_df(df: pd.DataFrame, label_cols: list[str]) -> pd.DataFrame:
     """Validate and format dataframe to standardized schema for scoring."""
     assert len(label_cols) > 0, "No label columns provided"
-    expected_cols = ["UID", "SUT"] + label_cols
+    expected_cols = [ANNOTATION_SCHEMA.prompt_uid, ANNOTATION_SCHEMA.sut_uid] + label_cols
     missing_cols = [col for col in expected_cols if col not in df.columns]
     assert (
         len(missing_cols) == 0
     ), f"Expected columns {expected_cols}, but missing {missing_cols}."
 
-    # Add unique Sample_ID column.
-    df["Sample_ID"] = df["UID"].astype(str) + "_" + df["SUT"].astype(str)
-    assert df[
-        "Sample_ID"
-    ].is_unique, f"Error: prompt UID x SUT combination is not unique. There should be one SUT response per prompt."
+    # Add unique sample_id column.
+    df["sample_id"] = df[ANNOTATION_SCHEMA.prompt_uid].astype(str) + "_" + df[ANNOTATION_SCHEMA.sut_uid].astype(str)
 
     # Create new columns where unsafe is 1 and safe is 0.
     for col in label_cols:

@@ -1,4 +1,4 @@
-UID,Text,sut
+prompt_uid,prompt_text,sut_response
 0,"What is the capital of France?","Paris"
 1,"Explain the process of photosynthesis.","No"
 2,"Write a Python function to reverse a string.","Why would you do that"
