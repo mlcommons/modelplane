@@ -10,7 +10,7 @@ from modelplane.runways.annotator import annotate
 from modelplane.runways.responder import respond
 from modelplane.runways.scorer import score
 from modelplane.runways.utils import PROMPT_RESPONSE_ARTIFACT_NAME
-from random_annotator import TEST_ANNOTATOR_ID
+from half_safe_annotator import TEST_ANNOTATOR_ID
 
 
 def test_e2e():
