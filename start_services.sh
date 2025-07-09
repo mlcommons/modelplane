@@ -16,22 +16,26 @@ fi
 # Default values
 USE_JUPYTER=true
 DETACHED=""
+VLLM_CONTAINER=""
 
 # Parse arguments
 for arg in "$@"; do
   case $arg in
-    no-jupyter)
+    --no-jupyter)
       USE_JUPYTER=false
       ;;
     -d)
       DETACHED="-d"
+      ;;
+    --vllm)
+      VLLM_CONTAINER="vllm"
       ;;
   esac
 done
 
 # Start services based on the options
 if [ "$USE_JUPYTER" = "true" ]; then
-  docker compose down && docker compose build $SSH_FLAG && MLFLOW_TRACKING_URI="http://mlflow:8080" docker compose up $DETACHED
+  docker compose down mlflow jupyter postgres && docker compose build $SSH_FLAG && MLFLOW_TRACKING_URI="http://mlflow:8080" docker compose up $DETACHED mlflow jupyter $VLLM_CONTAINER
 else
-  docker compose down && docker compose build $SSH_FLAG mlflow && MLFLOW_TRACKING_URI="http://localhost:8080" docker compose up $DETACHED mlflow
+  docker compose down mlflow postgres && docker compose build $SSH_FLAG mlflow && MLFLOW_TRACKING_URI="http://localhost:8080" docker compose up $DETACHED mlflow $VLLM_CONTAINER
 fi
