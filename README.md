@@ -29,7 +29,7 @@ given docker-compose.yaml file will start up:
     ```
     Or if you are using the cli only, and not using jupyter:
     ```bash
-    ./start_services.sh -d no-jupyter
+    ./start_services.sh -d --no-jupyter
     ```
 1. Visit the [Jupyter Server](http://localhost:8888/?token=changeme). The
    token is configured in the .env file. You shouldn't need to enter it 

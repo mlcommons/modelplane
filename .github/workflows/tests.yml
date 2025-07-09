@@ -21,7 +21,7 @@ jobs:
 
       - name: Start MLflow server (no jupyter)
         run: |
-          ./start_services.sh no-jupyter -d
+          ./start_services.sh --no-jupyter -d
 
       - name: Install poetry
         run: pipx install "poetry == 1.8.5"
@@ -47,9 +47,9 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Start MLflow server
+      - name: Start MLflow server with jupyter and vllm
         run: |
-          ./start_services.sh -d
+          ./start_services.sh -d --vllm
 
       - name: Copy test script to Jupyter container
         run: |

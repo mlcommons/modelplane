@@ -64,12 +64,35 @@ services:
       USE_PRIVATE_MODELBENCH: ${USE_PRIVATE_MODELBENCH}
       JUPYTER_TOKEN: ${JUPYTER_TOKEN}
       GIT_PYTHON_REFRESH: ${GIT_PYTHON_REFRESH}
+      # Below env needed for dvc support (backed by GCP)
+      SSH_AUTH_SOCK: /ssh-agent
+      GOOGLE_APPLICATION_CREDENTIALS: /creds/gcp-key.json
     ports:
       - "8888:8888"
     volumes:
       - ./flightpaths:/app/flightpaths
       # Volume not needed if using cloud storage for artifacts
       - ./mlruns:/mlruns
+      # Below needed for dvc support (backed by GCP)
+      - $SSH_AUTH_SOCK:/ssh-agent
+      - ${GOOGLE_CREDENTIALS_PATH:-/dev/null}:/creds/gcp-key.json:ro
+
+  # Runs a dummy docker container to mock a vLLM server
+  vllm:
+    build:
+      context: .
+      dockerfile: Dockerfile.mockvllm
+    environment:
+      VLLM_MODEL: mlc/not-real-model
+      VLLM_HOST: 0.0.0.0
+      VLLM_PORT: 8001
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
 volumes:
   pgdata:
