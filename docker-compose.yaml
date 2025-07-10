@@ -64,6 +64,7 @@ services:
       USE_PRIVATE_MODELBENCH: ${USE_PRIVATE_MODELBENCH}
       JUPYTER_TOKEN: ${JUPYTER_TOKEN}
       GIT_PYTHON_REFRESH: ${GIT_PYTHON_REFRESH}
+      VLLM_API_KEY: ${VLLM_API_KEY}
       # Below env needed for dvc (via git) support (backed by GCP)
       # SSH_AUTH_SOCK: /ssh-agent
       # GOOGLE_APPLICATION_CREDENTIALS: /creds/gcp-key.json
@@ -86,6 +87,7 @@ services:
       VLLM_MODEL: mlc/not-real-model
       VLLM_HOST: 0.0.0.0
       VLLM_PORT: 8001
+      VLLM_API_KEY: ${VLLM_API_KEY}
     ports:
       - "8001:8001"
     healthcheck:

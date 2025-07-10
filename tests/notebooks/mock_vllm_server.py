@@ -4,12 +4,17 @@ import http
 import os
 import random
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 app = FastAPI()
 allowed_model = os.getenv("VLLM_MODEL", "mlc/not-real-model")
+api_key = os.getenv("VLLM_API_KEY")
+if not api_key:
+    raise ValueError(
+        "VLLM_API_KEY environment variable must be set for the mock server."
+    )
 
 
 class CompletionRequest(BaseModel):
@@ -19,7 +24,9 @@ class CompletionRequest(BaseModel):
 
 
 @app.post("/v1/completions")
-async def completions(req: CompletionRequest):
+async def completions(req: CompletionRequest, authorization: str = Header(None)):
+    if authorization != f"Bearer {api_key}":
+        raise HTTPException(status_code=401, detail="Invalid API key.")
     result_text = random.choice(["safe", "unsafe"])
     return {
         "id": "cmpl-mock",
