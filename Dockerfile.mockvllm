@@ -1,0 +1,12 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY tests/notebooks/mock_vllm_server.py .
+
+# versions chosen to match whats in poetry.lock as of 2025-07-09
+RUN pip install fastapi==0.115.12 uvicorn==0.34.3
+
+EXPOSE ${VLLM_PORT}
+
+CMD ["sh", "-c", "uvicorn mock_vllm_server:app --host $VLLM_HOST --port $VLLM_PORT"]

@@ -9,13 +9,19 @@ ENV USE_PRIVATE_MODELBENCH=${USE_PRIVATE_MODELBENCH}
 # Used for the notebook server
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y pipx openssh-client && \
+# pipx needed for poetry installation
+# ssh client needed for installing private modelbench dependencies
+# git needed dvc
+RUN apt-get update && apt-get install -y pipx openssh-client git && \
     pipx install poetry
 COPY pyproject.toml poetry.lock README.md ./
 
+RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh
+RUN git config --global core.sshCommand "ssh -o UserKnownHostsFile=/root/.ssh/known_hosts -o ForwardAgent=yes"
+RUN ssh-keyscan github.com > /root/.ssh/known_hosts
+
 # conditionally forward ssh key to install private dependencies
 RUN --mount=type=ssh if [ "$USE_PRIVATE_MODELBENCH" = "true" ]; then \
-        ssh-keyscan github.com > /etc/ssh/ssh_known_hosts; \
         poetry install --no-interaction --no-ansi --no-root --extras modelbench-private; \
     else \
         poetry install --no-interaction --no-ansi --no-root; \

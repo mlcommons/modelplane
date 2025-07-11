@@ -45,8 +45,12 @@ class DVCInput(BaseInput):
     """A dataset from a DVC remote."""
 
     def __init__(self, path: str, repo: str, dest_dir: str):
+        repo_path = repo.split("#")
+        if len(repo_path) == 2:
+            repo, self.rev = repo_path
+        else:
+            self.rev = "main"
         self.path = path
-        self.rev = "main"
         self.url = dvc.api.get_url(path, repo=repo, rev=self.rev)  # For logging.
         self._local_path = self._download_dvc_file(path, repo, dest_dir)
 

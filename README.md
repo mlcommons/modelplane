@@ -2,6 +2,16 @@
 
 Develop new evaluators / annotators.
 
+## ⚠️ Content warning
+
+The sample datasets provided in the [`flightpaths/data`](https://github.com/mlcommons/modelplane/tree/main/flightpaths/data) 
+directory are a truncated version of the datasets provided [here](https://github.com/mlcommons/ailuminate).
+These data come with the following warning:
+
+>This dataset was created to elicit hazardous responses. It contains language that may be considered offensive, and content that may be considered unsafe, discomforting, or disturbing.
+>Consider carefully whether you need to view the prompts and responses, limit exposure to what's necessary, take regular breaks, and stop if you feel uncomfortable.
+>For more information on the risks, see [this literature review](https://www.zevohealth.com/wp-content/uploads/2024/07/lit_review_IN-1.pdf) on vicarious trauma.
+
 ## Get Started
 
 You must have docker installed on your system. The
@@ -29,7 +39,7 @@ given docker-compose.yaml file will start up:
     ```
    If you are using the cli only, and not using jupyter, you must pass the `no-jupyter` option:
     ```bash
-    ./start_services.sh -d no-jupyter
+    ./start_services.sh -d --no-jupyter
     ```
 1. Visit the [Jupyter Server](http://localhost:8888/?token=changeme). The
    token is configured in the .env file. You shouldn't need to enter it 

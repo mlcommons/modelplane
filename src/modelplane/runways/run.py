@@ -37,7 +37,7 @@ def cli():
     "--dvc_repo",
     type=str,
     required=False,
-    help="URL of the DVC repo to get the prompts from. E.g. https://github.com/my-org/my-repo.git",
+    help="URL of the DVC repo to get the prompts from. E.g. https://github.com/my-org/my-repo.git. Can specify the revision using the `#` suffix, e.g. https://github.com/my-org/my-repo.git#main.",
 )
 @click.option(
     "--cache_dir",
