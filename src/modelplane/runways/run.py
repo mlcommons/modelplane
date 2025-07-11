@@ -4,6 +4,11 @@ import click
 from modelgauge.ensemble_annotator_set import ENSEMBLE_STRATEGIES
 
 from modelplane.runways.annotator import annotate, KNOWN_ENSEMBLES
+from modelplane.runways.lister import (
+    list_annotators,
+    list_ensemble_strategies,
+    list_suts,
+)
 from modelplane.runways.responder import respond
 from modelplane.runways.scorer import score
 from modelplane.utils.env import load_from_dotenv
@@ -12,6 +17,21 @@ from modelplane.utils.env import load_from_dotenv
 @click.group(name="modelplane")
 def cli():
     pass
+
+
+@cli.command(name="list-annotators", help="List known annotators.")
+def list_annotators_cli():
+    list_annotators()
+
+
+@cli.command(name="list-ensemble-strategies", help="List known ensemble strategies.")
+def list_ensemble_strategies_cli():
+    list_ensemble_strategies()
+
+
+@cli.command(name="list-suts", help="List known suts.")
+def list_suts_cli():
+    list_suts()
 
 
 @cli.command(name="get-sut-responses")
