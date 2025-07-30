@@ -48,7 +48,7 @@ pytest = "^8"
 pytest-cov = "^6"
 
 [tool.poetry.scripts]
-modelplane = "modelplane.runways.run:cli"
+modelplane = "modelplane.cli:cli"
 
 [build-system]
 requires = ["poetry-core"]
