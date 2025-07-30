@@ -1,7 +1,7 @@
 import pytest
 from click.testing import CliRunner
 
-from modelplane.runways.run import cli
+from modelplane.cli import cli
 
 
 def test_main_help():
