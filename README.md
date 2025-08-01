@@ -70,6 +70,8 @@ allowing it to load the private repository to build the image.
 for yourself (`flights/users/{username}`) and either
 copy an existing flightpath there or create a notebook from
 scratch.
+    * You can manage branches and commits for 
+    `modelplane-flights` directly from jupyter.
 
 ## CLI
 
