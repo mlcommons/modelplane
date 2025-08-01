@@ -29,7 +29,7 @@ If you plan to share notebooks, clone
 [modelplane-flights](https://github.com/mlcommons/modelplane-flights) as well. Both `modelplane`
 and `modelplane-flights` should be in the same directory.
 
-Finally up secrets for accessing SUTs, as needed in 
+Finally, set up secrets for accessing SUTs, as needed in 
 `modelplane/flightpaths/config/secrets.toml`. See [modelbench](https://github.com/mlcommons/modelbench) for more details.
 
 
