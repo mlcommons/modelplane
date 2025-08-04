@@ -48,7 +48,7 @@ def annotate(
     ensemble_id: str | None = None,
     overwrite: bool = False,
     cache_dir: str | None = None,
-    n_jobs: int = 1,
+    num_workers: int = 1,
 ) -> str:
     """
     Run annotations and record measurements.
@@ -58,7 +58,7 @@ def annotate(
         annotator_ids, ensemble_strategy, ensemble_id
     )
     pipeline_kwargs["cache_dir"] = cache_dir
-    pipeline_kwargs["num_workers"] = n_jobs
+    pipeline_kwargs["num_workers"] = num_workers
 
     # set the tags
     tags = {RUN_TYPE_TAG_NAME: RUN_TYPE_ANNOTATOR}
@@ -82,7 +82,7 @@ def annotate(
 
     params = {
         "cache_dir": cache_dir,
-        "n_jobs": n_jobs,
+        "num_workers": num_workers,
     }
 
     with mlflow.start_run(run_id=run_id, experiment_id=experiment_id, tags=tags) as run:

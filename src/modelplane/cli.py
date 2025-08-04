@@ -66,10 +66,10 @@ def list_suts_cli():
     help="The cache directory. Defaults to None. Local directory used to cache LLM responses.",
 )
 @click.option(
-    "--n_jobs",
+    "--num_workers",
     type=int,
     default=1,
-    help="The number of jobs to run in parallel. Defaults to 1.",
+    help="The number of workers to run in parallel. Defaults to 1.",
 )
 @load_from_dotenv
 def get_sut_responses(
@@ -78,7 +78,7 @@ def get_sut_responses(
     experiment: str,
     dvc_repo: str | None = None,
     cache_dir: str | None = None,
-    n_jobs: int = 1,
+    num_workers: int = 1,
 ):
     """
     Run the pipeline to get responses from SUTs.
@@ -89,7 +89,7 @@ def get_sut_responses(
         experiment=experiment,
         dvc_repo=dvc_repo,
         cache_dir=cache_dir,
-        n_jobs=n_jobs,
+        num_workers=num_workers,
     )
 
 
@@ -154,10 +154,10 @@ def get_sut_responses(
     help="The cache directory. Defaults to None. Local directory used to cache LLM responses.",
 )
 @click.option(
-    "--n_jobs",
+    "--num_workers",
     type=int,
     default=1,
-    help="The number of jobs to run in parallel. Defaults to 1.",
+    help="The number of workers to run in parallel. Defaults to 1.",
 )
 @load_from_dotenv
 def get_annotations(
@@ -170,7 +170,7 @@ def get_annotations(
     ensemble_id: str | None = None,
     overwrite: bool = False,
     cache_dir: str | None = None,
-    n_jobs: int = 1,
+    num_workers: int = 1,
 ):
     return annotate(
         experiment=experiment,
@@ -182,7 +182,7 @@ def get_annotations(
         ensemble_id=ensemble_id,
         overwrite=overwrite,
         cache_dir=cache_dir,
-        n_jobs=n_jobs,
+        num_workers=num_workers,
     )
 
 
