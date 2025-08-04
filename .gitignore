@@ -6,3 +6,4 @@ secrets.toml
 *.pyc
 .vscode/
 .coverage*
+.cache

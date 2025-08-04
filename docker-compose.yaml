@@ -74,7 +74,7 @@ services:
     volumes:
       - ./flightpaths:/app/flightpaths
       # Used for caching of SUT/annotator results
-      - ./cache:/app/flightpaths/.cache
+      - ./flightpaths/.cache:/app/flightpaths/.cache
       # Volume not needed if not using modelplane-flights for sharing notebooks
       - ../modelplane-flights:/app/flightpaths/flights
       # Volume not needed if using cloud storage for artifacts
