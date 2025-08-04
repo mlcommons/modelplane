@@ -26,14 +26,14 @@ def test_e2e():
         sut_id=sut_id,
         prompts=prompts,
         experiment=experiment,
-        cache_dir=None,
+        disable_cache=True,
         num_workers=num_workers,
     )
     run_id = check_annotator(
         response_run_id=run_id,
         annotator_ids=[TEST_ANNOTATOR_ID],
         experiment=experiment,
-        cache_dir=None,
+        disable_cache=True,
         num_workers=num_workers,
     )
     check_scorer(
@@ -48,7 +48,7 @@ def check_responder(
     sut_id: str,
     prompts: str,
     experiment: str,
-    cache_dir: str | None,
+    disable_cache: bool,
     num_workers: int,
 ):
     with tempfile.TemporaryDirectory() as cache_dir:
@@ -56,7 +56,7 @@ def check_responder(
             sut_id=sut_id,
             prompts=prompts,
             experiment=experiment,
-            cache_dir=cache_dir,
+            disable_cache=disable_cache,
             num_workers=num_workers,
         )
 
@@ -99,7 +99,7 @@ def check_annotator(
     response_run_id: str,
     annotator_ids: List[str],
     experiment: str,
-    cache_dir: str | None,
+    disable_cache: bool,
     num_workers: int,
 ):
     # run the annotator
@@ -108,7 +108,7 @@ def check_annotator(
             response_run_id=response_run_id,
             annotator_ids=annotator_ids,
             experiment=experiment,
-            cache_dir=cache_dir,
+            disable_cache=disable_cache,
             num_workers=num_workers,
         )
     # confirm experiment exists

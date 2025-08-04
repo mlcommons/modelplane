@@ -60,10 +60,10 @@ def list_suts_cli():
     help="URL of the DVC repo to get the prompts from. E.g. https://github.com/my-org/my-repo.git. Can specify the revision using the `#` suffix, e.g. https://github.com/my-org/my-repo.git#main.",
 )
 @click.option(
-    "--cache_dir",
-    type=str,
-    default=None,
-    help="The cache directory. Defaults to None. Local directory used to cache LLM responses.",
+    "--disable_cache",
+    is_flag=True,
+    default=False,
+    help="Disable caching of LLM responses. If set, the pipeline will not cache SUT/annotator responses. Otherwise, cached responses will be stored locally in `.cache`.",
 )
 @click.option(
     "--num_workers",
@@ -77,7 +77,7 @@ def get_sut_responses(
     prompts: str,
     experiment: str,
     dvc_repo: str | None = None,
-    cache_dir: str | None = None,
+    disable_cache: bool = False,
     num_workers: int = 1,
 ):
     """
@@ -88,7 +88,7 @@ def get_sut_responses(
         prompts=prompts,
         experiment=experiment,
         dvc_repo=dvc_repo,
-        cache_dir=cache_dir,
+        disable_cache=disable_cache,
         num_workers=num_workers,
     )
 
@@ -148,10 +148,10 @@ def get_sut_responses(
     help="Use the response_run_id to save annotation artifact. Any existing annotation artifact will be overwritten. If not set, a new run will be created. Only applies if not using response_run_file.",
 )
 @click.option(
-    "--cache_dir",
-    type=str,
-    default=None,
-    help="The cache directory. Defaults to None. Local directory used to cache LLM responses.",
+    "--disable_cache",
+    is_flag=True,
+    default=False,
+    help="Disable caching of LLM responses. If set, the pipeline will not cache SUT/annotator responses. Otherwise, cached responses will be stored locally in `.cache`.",
 )
 @click.option(
     "--num_workers",
@@ -169,7 +169,7 @@ def get_annotations(
     ensemble_strategy: str | None = None,
     ensemble_id: str | None = None,
     overwrite: bool = False,
-    cache_dir: str | None = None,
+    disable_cache: bool = False,
     num_workers: int = 1,
 ):
     return annotate(
@@ -181,7 +181,7 @@ def get_annotations(
         ensemble_strategy=ensemble_strategy,
         ensemble_id=ensemble_id,
         overwrite=overwrite,
-        cache_dir=cache_dir,
+        disable_cache=disable_cache,
         num_workers=num_workers,
     )
 
