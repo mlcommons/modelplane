@@ -73,6 +73,11 @@ scratch.
     * You can manage branches and commits for 
     `modelplane-flights` directly from jupyter.
 
+## Caching
+
+Annotator and SUT responses will be cached (locally) unless you pass the
+`disable_cache` flag to the appropriate calls.
+
 ## CLI
 
 You can also interact with modelplane via CLI. Run `poetry run modelplane --help`
