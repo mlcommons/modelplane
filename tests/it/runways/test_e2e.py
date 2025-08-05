@@ -20,21 +20,21 @@ def test_e2e():
     prompts = "tests/data/prompts.csv"
     ground_truth = "tests/data/ground_truth.csv"
     experiment = "test_experiment_" + time.strftime("%Y%m%d%H%M%S", time.localtime())
-    n_jobs = 1
+    num_workers = 1
 
     run_id = check_responder(
         sut_id=sut_id,
         prompts=prompts,
         experiment=experiment,
-        cache_dir=None,
-        n_jobs=n_jobs,
+        disable_cache=True,
+        num_workers=num_workers,
     )
     run_id = check_annotator(
         response_run_id=run_id,
         annotator_ids=[TEST_ANNOTATOR_ID],
         experiment=experiment,
-        cache_dir=None,
-        n_jobs=n_jobs,
+        disable_cache=True,
+        num_workers=num_workers,
     )
     check_scorer(
         annotation_run_id=run_id,
@@ -48,17 +48,16 @@ def check_responder(
     sut_id: str,
     prompts: str,
     experiment: str,
-    cache_dir: str | None,
-    n_jobs: int,
+    disable_cache: bool,
+    num_workers: int,
 ):
-    with tempfile.TemporaryDirectory() as cache_dir:
-        run_id = respond(
-            sut_id=sut_id,
-            prompts=prompts,
-            experiment=experiment,
-            cache_dir=cache_dir,
-            n_jobs=n_jobs,
-        )
+    run_id = respond(
+        sut_id=sut_id,
+        prompts=prompts,
+        experiment=experiment,
+        disable_cache=disable_cache,
+        num_workers=num_workers,
+    )
 
     # confirm experiment exists
     exp = mlflow.get_experiment_by_name(experiment)
@@ -69,8 +68,7 @@ def check_responder(
     run = mlflow.get_run(run_id)
     params = run.data.params
     tags = run.data.tags
-    assert params.get("cache_dir") == cache_dir
-    assert params.get("n_jobs") == str(n_jobs)
+    assert params.get("num_workers") == str(num_workers)
     assert tags.get("sut_id") == sut_id
 
     # validate responses
@@ -99,18 +97,17 @@ def check_annotator(
     response_run_id: str,
     annotator_ids: List[str],
     experiment: str,
-    cache_dir: str | None,
-    n_jobs: int,
+    disable_cache: bool,
+    num_workers: int,
 ):
     # run the annotator
-    with tempfile.TemporaryDirectory() as cache_dir:
-        run_id = annotate(
-            response_run_id=response_run_id,
-            annotator_ids=annotator_ids,
-            experiment=experiment,
-            cache_dir=cache_dir,
-            n_jobs=n_jobs,
-        )
+    run_id = annotate(
+        response_run_id=response_run_id,
+        annotator_ids=annotator_ids,
+        experiment=experiment,
+        disable_cache=disable_cache,
+        num_workers=num_workers,
+    )
     # confirm experiment exists
     exp = mlflow.get_experiment_by_name(experiment)
     assert exp is not None
@@ -120,8 +117,7 @@ def check_annotator(
     params = run.data.params
     tags = run.data.tags
     metrics = run.data.metrics
-    assert params.get("cache_dir") == cache_dir
-    assert params.get("n_jobs") == str(n_jobs)
+    assert params.get("num_workers") == str(num_workers)
     assert tags.get(f"annotator_{TEST_ANNOTATOR_ID}") == "true"
 
     # expect 5 safe (every other item)

@@ -18,6 +18,7 @@ from modelgauge.pipeline_runner import build_runner
 
 from modelplane.mlflow.loghelpers import log_tags
 from modelplane.runways.utils import (
+    CACHE_DIR,
     MODELGAUGE_RUN_TAG_NAME,
     PROMPT_RESPONSE_ARTIFACT_NAME,
     RUN_TYPE_ANNOTATOR,
@@ -47,8 +48,8 @@ def annotate(
     ensemble_strategy: str | None = None,
     ensemble_id: str | None = None,
     overwrite: bool = False,
-    cache_dir: str | None = None,
-    n_jobs: int = 1,
+    disable_cache: bool = False,
+    num_workers: int = 1,
 ) -> str:
     """
     Run annotations and record measurements.
@@ -57,8 +58,9 @@ def annotate(
     pipeline_kwargs = _get_annotator_settings(
         annotator_ids, ensemble_strategy, ensemble_id
     )
-    pipeline_kwargs["cache_dir"] = cache_dir
-    pipeline_kwargs["num_workers"] = n_jobs
+    if not disable_cache:
+        pipeline_kwargs["cache_dir"] = CACHE_DIR
+    pipeline_kwargs["num_workers"] = num_workers
 
     # set the tags
     tags = {RUN_TYPE_TAG_NAME: RUN_TYPE_ANNOTATOR}
@@ -80,10 +82,7 @@ def annotate(
     else:
         run_id = None
 
-    params = {
-        "cache_dir": cache_dir,
-        "n_jobs": n_jobs,
-    }
+    params = {"num_workers": num_workers}
 
     with mlflow.start_run(run_id=run_id, experiment_id=experiment_id, tags=tags) as run:
         mlflow.log_params(params)
