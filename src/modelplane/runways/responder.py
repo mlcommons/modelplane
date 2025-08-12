@@ -5,7 +5,7 @@ import tempfile
 
 import mlflow
 
-from modelgauge.pipeline_runner import PromptRunner
+from modelgauge.pipeline_runner import build_runner
 from modelgauge.sut_registry import SUTS
 
 from modelplane.runways.utils import (
@@ -27,6 +27,8 @@ def respond(
     dvc_repo: str | None = None,
     disable_cache: bool = False,
     num_workers: int = 1,
+    prompt_uid_col=None,
+    prompt_text_col=None,
 ) -> str:
     secrets = setup_sut_credentials(sut_id)
     sut = SUTS.make_instance(uid=sut_id, secrets=secrets)
@@ -41,12 +43,14 @@ def respond(
         with tempfile.TemporaryDirectory() as tmp:
             input_data = build_input(path=prompts, dvc_repo=dvc_repo, dest_dir=tmp)
             input_data.log_input()
-            pipeline_runner = PromptRunner(
+            pipeline_runner = build_runner(
                 num_workers=num_workers,
                 input_path=input_data.local_path(),
                 output_dir=pathlib.Path(tmp),
                 cache_dir=None if disable_cache else CACHE_DIR,
                 suts={sut_id: sut},
+                prompt_uid_col=prompt_uid_col,
+                prompt_text_col=prompt_text_col,
             )
 
             pipeline_runner.run(

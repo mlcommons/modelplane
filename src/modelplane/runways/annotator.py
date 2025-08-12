@@ -50,6 +50,10 @@ def annotate(
     overwrite: bool = False,
     disable_cache: bool = False,
     num_workers: int = 1,
+    prompt_uid_col=None,
+    prompt_text_col=None,
+    sut_uid_col=None,
+    sut_response_col=None,
 ) -> str:
     """
     Run annotations and record measurements.
@@ -102,7 +106,13 @@ def annotate(
             input_path = input_data.local_path()  # type: ignore
             pipeline_kwargs["input_path"] = pathlib.Path(input_path)
             pipeline_kwargs["output_dir"] = pathlib.Path(tmp)
-            pipeline_runner = build_runner(**pipeline_kwargs)
+            pipeline_runner = build_runner(
+                prompt_uid_col=prompt_uid_col,
+                prompt_text_col=prompt_text_col,
+                sut_uid_col=sut_uid_col,
+                sut_response_col=sut_response_col,
+                **pipeline_kwargs,
+            )
 
             pipeline_runner.run(
                 progress_callback=mlflow.log_metrics, debug=is_debug_mode()

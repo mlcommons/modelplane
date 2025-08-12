@@ -71,6 +71,18 @@ def list_suts_cli():
     default=1,
     help="The number of workers to run in parallel. Defaults to 1.",
 )
+@click.option(
+    "--prompt_uid_col",
+    type=str,
+    required=False,
+    help="The name of the prompt UID column in the dataset.",
+)
+@click.option(
+    "--prompt_text_col",
+    type=str,
+    required=False,
+    help="The name of the prompt text column in the dataset.",
+)
 @load_from_dotenv
 def get_sut_responses(
     sut_id: str,
@@ -79,6 +91,8 @@ def get_sut_responses(
     dvc_repo: str | None = None,
     disable_cache: bool = False,
     num_workers: int = 1,
+    prompt_uid_col: str | None = None,
+    prompt_text_col: str | None = None,
 ):
     """
     Run the pipeline to get responses from SUTs.
@@ -90,6 +104,8 @@ def get_sut_responses(
         dvc_repo=dvc_repo,
         disable_cache=disable_cache,
         num_workers=num_workers,
+        prompt_uid_col=prompt_uid_col,
+        prompt_text_col=prompt_text_col,
     )
 
 
@@ -159,6 +175,30 @@ def get_sut_responses(
     default=1,
     help="The number of workers to run in parallel. Defaults to 1.",
 )
+@click.option(
+    "--prompt_uid_col",
+    type=str,
+    required=False,
+    help="The name of the prompt UID column in the dataset.",
+)
+@click.option(
+    "--prompt_text_col",
+    type=str,
+    required=False,
+    help="The name of the prompt text column in the dataset.",
+)
+@click.option(
+    "--sut_uid_col",
+    type=str,
+    required=False,
+    help="The name of the SUT UID column in the dataset.",
+)
+@click.option(
+    "--sut_response_col",
+    type=str,
+    required=False,
+    help="The name of the SUT response column in the dataset.",
+)
 @load_from_dotenv
 def get_annotations(
     experiment: str,
@@ -171,6 +211,10 @@ def get_annotations(
     overwrite: bool = False,
     disable_cache: bool = False,
     num_workers: int = 1,
+    prompt_uid_col: str | None = None,
+    prompt_text_col: str | None = None,
+    sut_uid_col: str | None = None,
+    sut_response_col: str | None = None,
 ):
     return annotate(
         experiment=experiment,
@@ -183,6 +227,10 @@ def get_annotations(
         overwrite=overwrite,
         disable_cache=disable_cache,
         num_workers=num_workers,
+        prompt_uid_col=prompt_uid_col,
+        prompt_text_col=prompt_text_col,
+        sut_uid_col=sut_uid_col,
+        sut_response_col=sut_response_col,
     )
 
 
