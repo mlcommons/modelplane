@@ -4346,8 +4346,8 @@ zstandard = {version = "^0.23.0", extras = ["cffi"]}
 [package.source]
 type = "git"
 url = "https://github.com/mlcommons/modelbench.git"
-reference = "5219c53b043622475baa3eda45a4a38aadecbb44"
-resolved_reference = "5219c53b043622475baa3eda45a4a38aadecbb44"
+reference = "a71a902ef2e503569696ea76d56ac40fad9ee97b"
+resolved_reference = "a71a902ef2e503569696ea76d56ac40fad9ee97b"
 
 [[package]]
 name = "modelbench-private"
@@ -4358,14 +4358,11 @@ python-versions = ">=3.10,!=3.12.5,<3.13"
 files = []
 develop = false
 
-[package.extras]
-all-plugins = []
-
 [package.source]
 type = "git"
 url = "git@github.com:mlcommons/modelbench-private.git"
-reference = "ecac4cfd343411c8011c0bba875d638fc22e9478"
-resolved_reference = "ecac4cfd343411c8011c0bba875d638fc22e9478"
+reference = "c1e4f214f8a4ac3466a8a428a668e7847c94ee4d"
+resolved_reference = "c1e4f214f8a4ac3466a8a428a668e7847c94ee4d"
 
 [[package]]
 name = "msal"
@@ -8187,4 +8184,4 @@ modelbench-private = ["modelbench-private"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,!=3.12.5,<3.13"
-content-hash = "b2ce9d12bf8d56212b83f9488f628c41458a3bec48fb8bc5e3c16e137a3ec979"
+content-hash = "21fca89e389b18bdfec909ef8d564f5ce02b5048adb04ccd6f82e1e45d21675c"
