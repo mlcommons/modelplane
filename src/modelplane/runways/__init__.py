@@ -1,4 +1,4 @@
-from modelgauge.load_plugins import load_plugins
+from modelgauge.load_namespaces import load_namespaces
 
 
-load_plugins(disable_progress_bar=True)
+load_namespaces(disable_progress_bar=True)
