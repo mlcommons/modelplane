@@ -1,6 +1,8 @@
 from typing import List
 
 import click
+
+from modelgauge.data_schema import DEFAULT_ANNOTATION_SCHEMA as ANNOTATION_SCHEMA
 from modelgauge.ensemble_annotator_set import ENSEMBLE_STRATEGIES
 
 from modelplane.runways.annotator import annotate, KNOWN_ENSEMBLES
@@ -258,18 +260,42 @@ def get_annotations(
     required=False,
     help="URL of the DVC repo to get the ground truth from. E.g. https://github.com/my-org/my-repo.git",
 )
+@click.option(
+    "--sample_uid_col",
+    type=str,
+    required=False,
+    help="The name of the sample uid columns in the annotations and ground truth files. prompt_uid x sut_uid will be used by default.",
+)
+@click.option(
+    "--annotator_uid_col",
+    type=str,
+    required=False,
+    help="The name of the annotator UID column in the annotations file.",
+)
+@click.option(
+    "--annotation_col",
+    type=str,
+    required=False,
+    help="The name of the JSON annotation column in the annotations file.",
+)
 @load_from_dotenv
 def score_annotations(
     experiment: str,
     annotation_run_id: str,
     ground_truth: str,
     dvc_repo: str | None = None,
+    sample_uid_col: str | None = None,
+    annotator_uid_col: str = ANNOTATION_SCHEMA.annotator_uid,
+    annotation_col: str = ANNOTATION_SCHEMA.annotation,
 ):
     return score(
         annotation_run_id=annotation_run_id,
         experiment=experiment,
         ground_truth=ground_truth,
         dvc_repo=dvc_repo,
+        sample_uid_col=sample_uid_col,
+        annotator_uid_col=annotator_uid_col,
+        annotation_col=annotation_col,
     )
 
 
