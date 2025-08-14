@@ -1,6 +1,8 @@
 from typing import List
 
 import click
+
+from modelgauge.data_schema import DEFAULT_ANNOTATION_SCHEMA as ANNOTATION_SCHEMA
 from modelgauge.ensemble_annotator_set import ENSEMBLE_STRATEGIES
 
 from modelplane.runways.annotator import annotate, KNOWN_ENSEMBLES
@@ -71,6 +73,18 @@ def list_suts_cli():
     default=1,
     help="The number of workers to run in parallel. Defaults to 1.",
 )
+@click.option(
+    "--prompt_uid_col",
+    type=str,
+    required=False,
+    help="The name of the prompt UID column in the dataset.",
+)
+@click.option(
+    "--prompt_text_col",
+    type=str,
+    required=False,
+    help="The name of the prompt text column in the dataset.",
+)
 @load_from_dotenv
 def get_sut_responses(
     sut_id: str,
@@ -79,6 +93,8 @@ def get_sut_responses(
     dvc_repo: str | None = None,
     disable_cache: bool = False,
     num_workers: int = 1,
+    prompt_uid_col: str | None = None,
+    prompt_text_col: str | None = None,
 ):
     """
     Run the pipeline to get responses from SUTs.
@@ -90,6 +106,8 @@ def get_sut_responses(
         dvc_repo=dvc_repo,
         disable_cache=disable_cache,
         num_workers=num_workers,
+        prompt_uid_col=prompt_uid_col,
+        prompt_text_col=prompt_text_col,
     )
 
 
@@ -159,6 +177,30 @@ def get_sut_responses(
     default=1,
     help="The number of workers to run in parallel. Defaults to 1.",
 )
+@click.option(
+    "--prompt_uid_col",
+    type=str,
+    required=False,
+    help="The name of the prompt UID column in the dataset.",
+)
+@click.option(
+    "--prompt_text_col",
+    type=str,
+    required=False,
+    help="The name of the prompt text column in the dataset.",
+)
+@click.option(
+    "--sut_uid_col",
+    type=str,
+    required=False,
+    help="The name of the SUT UID column in the dataset.",
+)
+@click.option(
+    "--sut_response_col",
+    type=str,
+    required=False,
+    help="The name of the SUT response column in the dataset.",
+)
 @load_from_dotenv
 def get_annotations(
     experiment: str,
@@ -171,6 +213,10 @@ def get_annotations(
     overwrite: bool = False,
     disable_cache: bool = False,
     num_workers: int = 1,
+    prompt_uid_col: str | None = None,
+    prompt_text_col: str | None = None,
+    sut_uid_col: str | None = None,
+    sut_response_col: str | None = None,
 ):
     return annotate(
         experiment=experiment,
@@ -183,6 +229,10 @@ def get_annotations(
         overwrite=overwrite,
         disable_cache=disable_cache,
         num_workers=num_workers,
+        prompt_uid_col=prompt_uid_col,
+        prompt_text_col=prompt_text_col,
+        sut_uid_col=sut_uid_col,
+        sut_response_col=sut_response_col,
     )
 
 
@@ -210,18 +260,42 @@ def get_annotations(
     required=False,
     help="URL of the DVC repo to get the ground truth from. E.g. https://github.com/my-org/my-repo.git",
 )
+@click.option(
+    "--sample_uid_col",
+    type=str,
+    required=False,
+    help="The name of the sample uid columns in the annotations and ground truth files. prompt_uid x sut_uid will be used by default.",
+)
+@click.option(
+    "--annotator_uid_col",
+    type=str,
+    required=False,
+    help="The name of the annotator UID column in the annotations file.",
+)
+@click.option(
+    "--annotation_col",
+    type=str,
+    required=False,
+    help="The name of the JSON annotation column in the annotations file.",
+)
 @load_from_dotenv
 def score_annotations(
     experiment: str,
     annotation_run_id: str,
     ground_truth: str,
     dvc_repo: str | None = None,
+    sample_uid_col: str | None = None,
+    annotator_uid_col: str = ANNOTATION_SCHEMA.annotator_uid,
+    annotation_col: str = ANNOTATION_SCHEMA.annotation,
 ):
     return score(
         annotation_run_id=annotation_run_id,
         experiment=experiment,
         ground_truth=ground_truth,
         dvc_repo=dvc_repo,
+        sample_uid_col=sample_uid_col,
+        annotator_uid_col=annotator_uid_col,
+        annotation_col=annotation_col,
     )
 
 

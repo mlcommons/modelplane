@@ -1,128 +1,129 @@
 import pytest
-import pandas as pd
-import json
-import os
-from pathlib import Path
 
-from modelplane.runways.scorer import (
-    transform_mlflow_annotator_artifact,
-    ground_truth_to_df,
-    format_df,
-    score_annotator
-)
+from modelplane.runways.scorer import AnnotationData, score_annotator
 
-ANNOTATIONS_FILE = "tests/data/annotations.csv"
-GROUND_TRUTH_FILE = "tests/data/ground_truth.csv"
+@pytest.fixture
+def annotations_csv(tmp_path):
+    file_path = tmp_path / "annotations.csv"
+    content = (
+        "prompt_uid,sut_uid,annotator_uid,annotation_json\n"
+        "p1,s1,a1,{\"is_safe\": true}\n"
+        "p1,s2,a1,{\"is_safe\": true}\n"
+        "p1,s1,a2,{\"is_safe\": true}\n"
+        "p1,s2,a2,{\"is_safe\": false}\n"
+    )
+    file_path.write_text(content)
+    return file_path
 
-def test_transform_mlflow_annotator_artifact():
-    annotators, df = transform_mlflow_annotator_artifact(ANNOTATIONS_FILE)
-    assert annotators == ["test_annotator"]
-    assert "is_safe" in df.columns
-    assert "is_unsafe" in df.columns
-    assert "sample_id" in df.columns
-    assert len(df) == 10  # Number of rows in test data
-    # Check that is_safe was properly extracted from JSON
-    first_row = df.iloc[0]
-    assert first_row["is_safe"] == True
-    assert first_row["is_unsafe"] == False
-    assert first_row["sample_id"] == "0_demo_yes_no"
 
-def test_ground_truth_to_df():
-    df = ground_truth_to_df(GROUND_TRUTH_FILE)
-    assert "is_safe" in df.columns
-    assert "is_unsafe" in df.columns
-    assert "sample_id" in df.columns
-    assert len(df) == 10  # Number of rows in test data
-    # Check that string "safe" was converted to boolean
-    assert df["is_safe"].dtype == bool
-    assert df["is_unsafe"].dtype == bool
+@pytest.fixture
+def annotation_data(annotations_csv):
+    return AnnotationData(annotations_csv, is_json_annotation=True)
 
-def test_format_df():
-    # Create a test dataframe
-    test_df = pd.DataFrame({
-        "prompt_uid": ["1", "2"],
-        "sut_uid": ["a", "b"],
-        "is_safe": [True, False]
-    })
-    
-    formatted_df = format_df(test_df, ["is_safe"])
-    assert "sample_id" in formatted_df.columns
-    assert "is_unsafe" in formatted_df.columns
-    assert formatted_df["sample_id"].iloc[0] == "1_a"
-    assert formatted_df["is_unsafe"].iloc[0] == False
-    assert formatted_df["is_unsafe"].iloc[1] == True
 
-def test_format_df_missing_columns():
-    # Test that format_df raises assertion error when required columns are missing
-    test_df = pd.DataFrame({
-        "prompt_uid": ["1", "2"]  # Missing sut_uid
-    })
-    
-    with pytest.raises(AssertionError):
-        format_df(test_df, ["is_safe"])
+def test_annotation_data(annotation_data):
+    assert annotation_data.annotators == ["a1", "a2"]
+    assert len(annotation_data.df) == 4
+    assert annotation_data.df["sample_uid"].tolist() == ["p1_s1", "p1_s2", "p1_s1", "p1_s2"]
+    assert annotation_data.df["is_unsafe"].tolist() == [False, False, False, True]
 
-def test_score_annotator():
-    # Load test data
-    _, annotations_df = transform_mlflow_annotator_artifact(ANNOTATIONS_FILE)
-    ground_truth_df = ground_truth_to_df(GROUND_TRUTH_FILE)
-    
-    # Score test_annotator
-    scores = score_annotator("test_annotator", annotations_df, ground_truth_df)
-    
-    # Check that all expected metrics are present
-    expected_metrics = [
-        "num_annotator_samples",
-        "num_samples_scored",
-        "peters_metric",
-        "false_safe_rate",
-        "false_unsafe_rate",
-        "precision",
-        "negative_predictive_value",
-        "false_safe",
-        "true_safe",
-        "false_unsafe",
-        "true_unsafe",
-        "recall",
-        "f1",
-        "accuracy"
-    ]
-    
-    for metric in expected_metrics:
-        assert metric in scores
-    
-    # Check basic metric properties
-    # Ground truth is all safe aka all negative. Annotations are half safe and half unsafe.
-    assert scores["num_annotator_samples"] == 10
-    assert scores["num_samples_scored"] == 10
+def test_annotation_data_missing_columns(annotations_csv):
+    with pytest.raises(AssertionError, match="Sample UID column 'missing_col' not found"):
+        AnnotationData(annotations_csv, is_json_annotation=True, sample_uid_col="missing_col")
+
+    with pytest.raises(AssertionError, match="Annotation column 'missing_col' not found"):
+        AnnotationData(annotations_csv, is_json_annotation=True, annotation_col="missing_col")
+
+def test_annotation_data_custom_sample_uid(tmp_path):
+    file_path = tmp_path / "annotations.csv"
+    content = (
+        "sample_uid,annotator_uid,annotation_json\n"
+        "x1,a1,{\"is_safe\": true}\n"
+        "x2,a1,{\"is_safe\": true}\n"
+        "x1,a2,{\"is_safe\": true}\n"
+        "x2,a2,{\"is_safe\": false}\n"
+    )
+    file_path.write_text(content)
+
+    data = AnnotationData(file_path, is_json_annotation=True, sample_uid_col="sample_uid")
+    assert data.annotators == ["a1", "a2"]
+    assert len(data.df) == 4
+    assert data.df["sample_uid"].tolist() == ["x1", "x2", "x1", "x2"]
+    assert data.df["is_unsafe"].tolist() == [False, False, False, True]
+
+@pytest.fixture
+def ground_truth_csv(tmp_path):
+    file_path = tmp_path / "groundtruth.csv"
+    content = (
+        "prompt_uid,sut_uid,is_safe\n"
+        "p1,s1,safe\n"
+        "p1,s2,unsafe\n"
+    )
+    file_path.write_text(content)
+    return file_path
+
+
+@pytest.fixture
+def ground_truth_data(ground_truth_csv):
+    return AnnotationData(ground_truth_csv, is_json_annotation=False, annotator_uid_col=None, annotation_col="is_safe")
+
+
+def test_ground_truth_data(ground_truth_data):
+    assert len(ground_truth_data.df) == 2
+    assert ground_truth_data.df["sample_uid"].tolist() == ["p1_s1", "p1_s2"]
+    assert ground_truth_data.df["is_unsafe"].tolist() == [False, True]
+
+
+def test_ground_truth_data_invalid_annotation(tmp_path):
+    file_path = tmp_path / "bad_groundtruth.csv"
+    content = (
+        "prompt_uid,sut_uid,is_safe\n"
+        "p1,s2,oops\n"
+    )
+    file_path.write_text(content)
+    with pytest.raises(AssertionError, match="Invalid annotation values"):
+        data = AnnotationData(file_path, is_json_annotation=False, annotator_uid_col=None,annotation_col="is_safe")
+
+
+def test_score_annotator(annotation_data, ground_truth_data):
+    # A1: safe, safe
+    # Ground truth: safe, unsafe
+    scores = score_annotator("a1", annotation_data, ground_truth_data)
+
+    assert scores["num_annotator_samples"] == 2
+    assert scores["num_samples_scored"] == 2
+    assert scores["peters_metric"] == 0.5
+    assert scores["false_unsafe_rate"] == 0.0
+    assert scores["false_safe_rate"] == 1.0
+    assert scores["precision"] == 0.0  # No true positives ie unsafes
+    assert scores["negative_predictive_value"] == 0.5
+    assert scores["false_safe"] == 1
+    assert scores["true_safe"] == 1
+    assert scores["false_unsafe"] == 0
+    assert scores["true_unsafe"] == 0
+    assert scores["recall"] == 0
+    assert scores["f1"] == 0
     assert scores["accuracy"] == 0.5
-    assert scores["false_unsafe_rate"] == 0.5
-    assert scores["precision"] == 0.0 # No true positives
-    assert scores["false_safe"] == 0
-    assert scores["true_safe"] == 5
-    assert scores["false_unsafe"] == 5
 
-def test_score_annotator_no_overlap():
-    # Create test dataframes with no overlapping samples
-    annotations_df = pd.DataFrame({
-        "sample_id": ["1_a", "2_b"],
-        "prompt_uid": ["1", "2"],
-        "sut_uid": ["a", "b"],
-        "annotator_uid": ["test_annotator", "test_annotator"],
-        "is_safe": [True, False],
-        "is_unsafe": [False, True]
-    })
-    
-    ground_truth_df = pd.DataFrame({
-        "sample_id": ["3_c", "4_d"],
-        "prompt_uid": ["3", "4"],
-        "sut_uid": ["c", "d"],
-        "is_safe": [True, True],
-        "is_unsafe": [False, False]
-    })
-    
+
+def test_score_annotator_no_overlap(tmp_path):
+    # Create data files with no overlapping samples
+    ground_truth_path = tmp_path / "groundtruth.csv"
+    content = (
+        "prompt_uid,sut_uid,is_safe\n"
+        "p1,s1,safe\n"
+    )
+    ground_truth_path.write_text(content)
+    ground_truth_data = AnnotationData(ground_truth_path, is_json_annotation=False, annotator_uid_col=None, annotation_col="is_safe")
+
+    annotations_path = tmp_path / "annotations.csv"
+    content = (
+        "prompt_uid,sut_uid,annotator_uid,annotation_json\n"
+        "p5,s5,a1,{\"is_safe\": true}\n"
+    )
+    annotations_path.write_text(content)
+    annotation_data = AnnotationData(annotations_path, is_json_annotation=True)
+
     # Test that score_annotator raises assertion error when no overlapping samples
     with pytest.raises(AssertionError):
-        score_annotator("test_annotator", annotations_df, ground_truth_df)
-
-
-
+        score_annotator("a1", annotation_data, ground_truth_data)

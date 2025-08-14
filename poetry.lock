@@ -4305,16 +4305,24 @@ files = []
 develop = false
 
 [package.dependencies]
+anthropic = "*"
+azure-ai-ml = "^1.22"
+boto3 = "^1.36.25"
 casefy = "^1.0.0"
 click = "^8.1.7"
 diskcache = "^5.6.3"
 fastapi = "^0.115.0"
 gdown = ">=5.1.0"
+google-api-python-client = ">=2.64.0,<2.65.0"
+google-auth = "^2.36.0"
+google-genai = "^1.17.0"
+google-generativeai = "^0.8.0"
 huggingface-hub = "^0.30.2"
 jinja2 = "^3.1.3"
 jq = "^1.6.0"
 jsonlines = "^4.0.0"
 llama-api-client = "^0.1.1"
+mistralai = "1.6.0"
 openai = "^1.8.0"
 pip = ">=24,<26"
 prometheus-client = "^0.21.1"
@@ -4332,26 +4340,14 @@ tomli = "^2.0.1"
 tqdm = ">=4.66.1"
 types-tqdm = "^4.66.0.0"
 typing-extensions = "^4.10.0"
+typing-inspect = "^0.9.0"
 zstandard = {version = "^0.23.0", extras = ["cffi"]}
-
-[package.extras]
-all-plugins = ["modelgauge_amazon @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/amazon", "modelgauge_anthropic @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/anthropic", "modelgauge_azure @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/azure", "modelgauge_baseten @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/baseten", "modelgauge_demo_plugin @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/demo_plugin", "modelgauge_google @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/google", "modelgauge_mistral @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/mistral", "modelgauge_nvidia @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/nvidia", "modelgauge_perspective_api @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/perspective_api", "modelgauge_vertexai @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/vertexai"]
-amazon = ["modelgauge_amazon @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/amazon"]
-anthropic = ["modelgauge_anthropic @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/anthropic"]
-azure = ["modelgauge_azure @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/azure"]
-baseten = ["modelgauge_baseten @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/baseten"]
-demo = ["modelgauge_demo_plugin @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/demo_plugin"]
-google = ["modelgauge_google @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/google"]
-mistral = ["modelgauge_mistral @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/mistral"]
-nvidia = ["modelgauge_nvidia @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/nvidia"]
-perspective-api = ["modelgauge_perspective_api @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/perspective_api"]
-vertexai = ["modelgauge_vertexai @ file:///Users/vishal/Library/Caches/pypoetry/virtualenvs/modelplane-8xT__OfZ-py3.12/src/modelbench/plugins/vertexai"]
 
 [package.source]
 type = "git"
 url = "https://github.com/mlcommons/modelbench.git"
-reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-resolved_reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
+reference = "a71a902ef2e503569696ea76d56ac40fad9ee97b"
+resolved_reference = "a71a902ef2e503569696ea76d56ac40fad9ee97b"
 
 [[package]]
 name = "modelbench-private"
@@ -4362,200 +4358,11 @@ python-versions = ">=3.10,!=3.12.5,<3.13"
 files = []
 develop = false
 
-[package.extras]
-all-plugins = []
-
 [package.source]
 type = "git"
 url = "git@github.com:mlcommons/modelbench-private.git"
-reference = "ecac4cfd343411c8011c0bba875d638fc22e9478"
-resolved_reference = "ecac4cfd343411c8011c0bba875d638fc22e9478"
-
-[[package]]
-name = "modelgauge-amazon"
-version = "1.0.0"
-description = ""
-optional = false
-python-versions = "^3.10"
-files = []
-develop = false
-
-[package.dependencies]
-boto3 = "^1.36.25"
-
-[package.source]
-type = "git"
-url = "https://github.com/mlcommons/modelbench.git"
-reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-resolved_reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-subdirectory = "plugins/amazon"
-
-[[package]]
-name = "modelgauge-anthropic"
-version = "1.0.0"
-description = ""
-optional = false
-python-versions = "^3.10"
-files = []
-develop = false
-
-[package.dependencies]
-anthropic = "*"
-
-[package.source]
-type = "git"
-url = "https://github.com/mlcommons/modelbench.git"
-reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-resolved_reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-subdirectory = "plugins/anthropic"
-
-[[package]]
-name = "modelgauge-azure"
-version = "1.0.0"
-description = ""
-optional = false
-python-versions = "^3.10"
-files = []
-develop = false
-
-[package.dependencies]
-azure-ai-ml = "^1.22"
-
-[package.source]
-type = "git"
-url = "https://github.com/mlcommons/modelbench.git"
-reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-resolved_reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-subdirectory = "plugins/azure"
-
-[[package]]
-name = "modelgauge-baseten"
-version = "1.0.0"
-description = ""
-optional = false
-python-versions = "^3.10"
-files = []
-develop = false
-
-[package.source]
-type = "git"
-url = "https://github.com/mlcommons/modelbench.git"
-reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-resolved_reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-subdirectory = "plugins/baseten"
-
-[[package]]
-name = "modelgauge-demo-plugin"
-version = "1.0.0"
-description = ""
-optional = false
-python-versions = "^3.10"
-files = []
-develop = false
-
-[package.source]
-type = "git"
-url = "https://github.com/mlcommons/modelbench.git"
-reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-resolved_reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-subdirectory = "demo_plugin"
-
-[[package]]
-name = "modelgauge-google"
-version = "1.0.0"
-description = ""
-optional = false
-python-versions = "^3.10"
-files = []
-develop = false
-
-[package.dependencies]
-google-genai = "^1.17.0"
-google-generativeai = "^0.8.0"
-
-[package.source]
-type = "git"
-url = "https://github.com/mlcommons/modelbench.git"
-reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-resolved_reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-subdirectory = "plugins/google"
-
-[[package]]
-name = "modelgauge-mistral"
-version = "1.0.0"
-description = "Mistral SUT"
-optional = false
-python-versions = "^3.10"
-files = []
-develop = false
-
-[package.dependencies]
-mistralai = "1.6.0"
-typing-inspect = "^0.9.0"
-
-[package.source]
-type = "git"
-url = "https://github.com/mlcommons/modelbench.git"
-reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-resolved_reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-subdirectory = "plugins/mistral"
-
-[[package]]
-name = "modelgauge-nvidia"
-version = "1.0.0"
-description = ""
-optional = false
-python-versions = "^3.10"
-files = []
-develop = false
-
-[package.dependencies]
-openai = "^1.8.0"
-
-[package.source]
-type = "git"
-url = "https://github.com/mlcommons/modelbench.git"
-reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-resolved_reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-subdirectory = "plugins/nvidia"
-
-[[package]]
-name = "modelgauge-perspective-api"
-version = "1.0.0"
-description = ""
-optional = false
-python-versions = "^3.10"
-files = []
-develop = false
-
-[package.dependencies]
-google-api-python-client = ">=2.64.0,<2.65.0"
-
-[package.source]
-type = "git"
-url = "https://github.com/mlcommons/modelbench.git"
-reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-resolved_reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-subdirectory = "plugins/perspective_api"
-
-[[package]]
-name = "modelgauge-vertexai"
-version = "1.0.0"
-description = "Mistral SUT"
-optional = false
-python-versions = "^3.10"
-files = []
-develop = false
-
-[package.dependencies]
-google-auth = "^2.36.0"
-
-[package.source]
-type = "git"
-url = "https://github.com/mlcommons/modelbench.git"
-reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-resolved_reference = "ba582ed35a58cf6219786624c83e6915a9bcf98a"
-subdirectory = "plugins/vertexai"
+reference = "c1e4f214f8a4ac3466a8a428a668e7847c94ee4d"
+resolved_reference = "c1e4f214f8a4ac3466a8a428a668e7847c94ee4d"
 
 [[package]]
 name = "msal"
@@ -8377,4 +8184,4 @@ modelbench-private = ["modelbench-private"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,!=3.12.5,<3.13"
-content-hash = "2da3a294b9467fac2b22afdd669f1d6de24b333c3b054de05f03eec75b6427f0"
+content-hash = "21fca89e389b18bdfec909ef8d564f5ce02b5048adb04ccd6f82e1e45d21675c"

@@ -38,11 +38,10 @@ jobs:
         run: |
           poetry env remove python || true
 
-      # TODO: get rid of the POETRY_INSTALLER_MAX_WORKERS env var once we get rid of plugins
       - name: Install dependencies
         run: |
           poetry cache clear --no-interaction --all .
-          POETRY_INSTALLER_MAX_WORKERS=1 poetry install --with test --no-cache
+          poetry install --with test --no-cache
 
       - name: Run all tests
         run: MLFLOW_TRACKING_URI=http://localhost:8080 poetry run pytest
