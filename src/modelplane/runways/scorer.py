@@ -2,7 +2,6 @@
 
 import json
 import math
-import os
 import tempfile
 from pathlib import Path
 
@@ -19,7 +18,7 @@ from modelplane.runways.utils import (
     RUN_TYPE_TAG_NAME,
     get_experiment_id,
 )
-from modelplane.utils.input import build_input
+from modelplane.utils.input import build_and_log_input
 
 
 def score(
@@ -50,19 +49,21 @@ def score(
 
         with tempfile.TemporaryDirectory() as tmp:
             # Load annotations
-            annotation_input = build_input(
+            annotation_input = build_and_log_input(
+                current_run_id=run.info.run_id,
                 run_id=annotation_run_id,
                 artifact_path=ANNOTATION_RESPONSE_ARTIFACT_NAME,
                 dest_dir=tmp,
             )
-            annotation_input.log_input()
             annotation_data = AnnotationData(annotation_input.local_path(), is_json_annotation=True, sample_uid_col=sample_uid_col, annotator_uid_col=annotator_uid_col, annotation_col=annotation_col)
 
             # Load ground truth
-            ground_truth_input = build_input(
-                path=ground_truth, dvc_repo=dvc_repo, dest_dir=tmp
+            ground_truth_input = build_and_log_input(
+                current_run_id=run.info.run_id,
+                path=ground_truth,
+                dvc_repo=dvc_repo,
+                dest_dir=tmp,
             )
-            ground_truth_input.log_input()
             ground_truth_data = AnnotationData(ground_truth_input.local_path(), is_json_annotation=False, annotation_col="is_safe", annotator_uid_col=None, sample_uid_col=sample_uid_col)
             mlflow.log_metric("num_ground_truth_samples", len(ground_truth_data.df))
 
