@@ -105,6 +105,7 @@ class MLFlowArtifactInput(BaseInput):
 
 def build_and_log_input(
     current_run_id: str,
+    input_obj: Optional[BaseInput] = None,
     path: Optional[str] = None,
     run_id: Optional[str] = None,
     artifact_path: Optional[str] = None,
@@ -112,8 +113,11 @@ def build_and_log_input(
     dest_dir: str = "",
     df: Optional[pd.DataFrame] = None,
 ) -> BaseInput:
+    # Direct input
+    if input_obj is not None:
+        inp = input_obj
     # DF case
-    if df is not None:
+    elif df is not None:
         inp = DataframeInput(df, dest_dir=dest_dir)
     # DVC case
     elif dvc_repo is not None:
