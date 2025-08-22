@@ -13,7 +13,7 @@ packages = [
 python = ">=3.10,!=3.12.5,<3.13"
 click = "^8"
 dvc = {extras = ["gs"], version = "^3.60"} 
-modelbench = {git = "https://github.com/mlcommons/modelbench.git", rev = "a71a902ef2e503569696ea76d56ac40fad9ee97b" }
+modelbench = {git = "https://github.com/mlcommons/modelbench.git", rev = "54a24f0d336268e244af6dde82af02faafb7960c" }
 mlflow = "^3.1.1"
 python-dotenv = "^1"
 requests = "^2"
@@ -25,7 +25,7 @@ jupyter = "^1"
 jupyterlab-git = "*"
 scikit-learn = "^1.5.0"
 pandas = "^2.2.2"
-modelbench-private = { git = "git@github.com:mlcommons/modelbench-private.git", rev = "c1e4f214f8a4ac3466a8a428a668e7847c94ee4d", optional = true }
+modelbench-private = { git = "git@github.com:mlcommons/modelbench-private.git", rev = "86fc61a460fbd6ecbc65bf97a1aff858613e4ec0", optional = true }
 
 [tool.poetry.extras]
 modelbench-private = ["modelbench-private"]
