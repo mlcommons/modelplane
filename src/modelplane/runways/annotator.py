@@ -27,7 +27,7 @@ from modelplane.runways.utils import (
     is_debug_mode,
     setup_annotator_credentials,
 )
-from modelplane.utils.input import build_and_log_input
+from modelplane.runways.data import BaseInput, build_and_log_input
 
 KNOWN_ENSEMBLES: Dict[str, AnnotatorSet] = {}
 # try to load the private ensemble
@@ -41,6 +41,7 @@ except NotImplementedError:
 
 def annotate(
     experiment: str,
+    input_object: BaseInput | None = None,
     dvc_repo: str | None = None,
     response_file: str | None = None,
     response_run_id: str | None = None,
@@ -96,6 +97,7 @@ def annotate(
         with tempfile.TemporaryDirectory() as tmp:
             # load/transform the prompt responses from the specified run
             input_data = build_and_log_input(
+                input_object=input_object,
                 path=response_file,
                 run_id=response_run_id,
                 artifact_path=PROMPT_RESPONSE_ARTIFACT_NAME,

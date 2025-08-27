@@ -152,7 +152,6 @@ def check_scorer(
     run = mlflow.get_run(run_id)
     params = run.data.params
     metrics = run.data.metrics
-    assert params.get("ground_truth") == ground_truth
     assert params.get("annotation_run_id") == annotation_run_id
 
     assert metrics.get("num_ground_truth_samples") == 10

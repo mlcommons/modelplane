@@ -151,7 +151,7 @@ class MLFlowArtifactInput(BaseInput):
 
 
 def build_and_log_input(
-    input_obj: Optional[BaseInput] = None,
+    input_object: Optional[BaseInput] = None,
     path: Optional[str] = None,
     run_id: Optional[str] = None,
     artifact_path: Optional[str] = None,
@@ -162,8 +162,8 @@ def build_and_log_input(
     if mlflow.active_run() is None:
         raise RuntimeError(_MLFLOW_REQUIRED_ERROR_MESSAGE)
     # Direct input
-    if input_obj is not None:
-        inp = input_obj
+    if input_object is not None:
+        inp = input_object
     # DF case
     elif df is not None:
         inp = DataframeInput(df, dest_dir=dest_dir)
