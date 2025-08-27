@@ -13,17 +13,37 @@ import pandas as pd
 class BaseInput(ABC):
     """Base class for input datasets."""
 
-    def log_artifact(self, current_run_id: str):
-        """Log the dataset to MLflow as an artifact for the given `current_run_id`."""
-        mlflow.log_artifact(str(self.local_path()), run_id=current_run_id)
+    input_type: str
+
+    def __init_subclass__(cls):
+        super().__init_subclass__()
+        if not hasattr(cls, "input_type"):
+            raise TypeError(f"{cls.__name__} must define class attribute 'input_type'")
+
+    def log_artifact(self):
+        """Log the dataset to MLflow as an artifact to the current run."""
+        mlflow.log_artifact(str(self.local_path()))
+        mlflow.set_tags(self.input_tags())
 
     @abstractmethod
     def local_path(self) -> Path:
         pass
 
+    def input_tags(self) -> dict:
+        tags = {"input_type": self.input_type}
+        tags.update(self.tags_for_input_type)
+        return tags
+
+    @property
+    @abstractmethod
+    def tags_for_input_type(self) -> dict:
+        pass
+
 
 class LocalInput(BaseInput):
     """A dataset that is stored locally."""
+
+    input_type = "local"
 
     def __init__(self, path: str):
         self.path = path
@@ -31,10 +51,15 @@ class LocalInput(BaseInput):
     def local_path(self) -> Path:
         return Path(self.path)
 
+    @property
+    def tags_for_input_type(self) -> dict:
+        return {"input_path": self.path}
+
 
 class DataframeInput(BaseInput):
     """A dataset that is represented as a Pandas DataFrame."""
 
+    input_type = "dataframe"
     _INPUT_FILE_NAME = "input.csv"
 
     def __init__(self, df: pd.DataFrame, dest_dir: str):
@@ -56,9 +81,15 @@ class DataframeInput(BaseInput):
     def local_path(self) -> Path:
         return self._local_path
 
+    @property
+    def tags_for_input_type(self) -> dict:
+        return {}
+
 
 class DVCInput(BaseInput):
     """A dataset from a DVC remote."""
+
+    input_type = "dvc"
 
     def __init__(self, path: str, repo: str, dest_dir: str):
         repo_path = repo.split("#")
@@ -67,6 +98,7 @@ class DVCInput(BaseInput):
         else:
             self.rev = "main"
         self._local_path = self._download_dvc_file(path, repo, dest_dir)
+        self._tags = {"input_repo": repo, "input_rev": self.rev, "input_path": path}
 
     def _download_dvc_file(self, path: str, repo: str, dest_dir: str) -> str:
         local_path = os.path.join(dest_dir, path)
@@ -81,13 +113,20 @@ class DVCInput(BaseInput):
     def local_path(self) -> Path:
         return Path(self._local_path)
 
+    @property
+    def tags_for_input_type(self) -> dict:
+        return self._tags
+
 
 class MLFlowArtifactInput(BaseInput):
     """A dataset artifact from a previous MLFlow run."""
 
+    input_type = "artifact"
+
     def __init__(self, run_id: str, artifact_path: str, dest_dir: str):
         self.run_id = run_id
         self._local_path = self._download_artifacts(run_id, artifact_path, dest_dir)
+        self._tags = {"input_run_id": run_id, "input_artifact_path": artifact_path}
 
     def _download_artifacts(
         self, run_id: str, artifact_path: str, dest_dir: str
@@ -102,9 +141,12 @@ class MLFlowArtifactInput(BaseInput):
     def local_path(self) -> Path:
         return Path(self._local_path)
 
+    @property
+    def tags_for_input_type(self) -> dict:
+        return self._tags
+
 
 def build_and_log_input(
-    current_run_id: str,
     input_obj: Optional[BaseInput] = None,
     path: Optional[str] = None,
     run_id: Optional[str] = None,
@@ -140,5 +182,5 @@ def build_and_log_input(
         inp = MLFlowArtifactInput(run_id, artifact_path, dest_dir)
     else:
         raise ValueError("Either path or run_id must be provided to build an input.")
-    inp.log_artifact(current_run_id=current_run_id)
+    inp.log_artifact()
     return inp
