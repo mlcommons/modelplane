@@ -1,5 +1,4 @@
 import csv
-import tempfile
 import time
 from typing import List
 
@@ -11,6 +10,7 @@ from modelplane.runways.responder import respond
 from modelplane.runways.scorer import score
 from modelplane.runways.utils import PROMPT_RESPONSE_ARTIFACT_NAME
 from half_safe_annotator import TEST_ANNOTATOR_ID
+import requests
 
 
 def test_e2e():
@@ -72,24 +72,23 @@ def check_responder(
     assert tags.get("sut_id") == sut_id
 
     # validate responses
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # download/validate the prompt responses artifact
-        responses_file = mlflow.artifacts.download_artifacts(
-            run_id=run_artifacts.run_id,
-            artifact_path=PROMPT_RESPONSE_ARTIFACT_NAME,
-            dst_path=temp_dir,
-        )
-        with open(responses_file, "r") as f:
-            reader = csv.DictReader(f)
-            responses = list(reader)
-            assert len(responses) == 10
-            for response in responses:
-                assert response["sut_uid"] == sut_id
-                expected = "no" if len(response["prompt_text"].split()) % 2 else "yes"
-                yesno = response["sut_response"]
-                assert (
-                    yesno.lower() == expected
-                ), f"Unexpectedly got '{yesno} for prompt '{response['prompt_text']}'"
+    # download/validate the prompt responses artifact
+    responses_artifact = run_artifacts.artifacts[PROMPT_RESPONSE_ARTIFACT_NAME]
+    assert responses_artifact is not None
+    responses_link = responses_artifact.download_link
+    response = requests.get(responses_link)
+    response.raise_for_status()
+    responses_text = response.text
+    reader = csv.DictReader(responses_text.splitlines())
+    responses = list(reader)
+    assert len(responses) == 10
+    for response in responses:
+        assert response["sut_uid"] == sut_id
+        expected = "no" if len(response["prompt_text"].split()) % 2 else "yes"
+        yesno = response["sut_response"]
+        assert (
+            yesno.lower() == expected
+        ), f"Unexpectedly got '{yesno} for prompt '{response['prompt_text']}'"
     return run_artifacts
 
 
