@@ -19,6 +19,9 @@ class BaseInput(ABC):
 
     input_type: str
 
+    def __init__(self):
+        self.input_run_id = None
+
     def __init_subclass__(cls):
         super().__init_subclass__()
         if not hasattr(cls, "input_type"):
@@ -26,8 +29,27 @@ class BaseInput(ABC):
 
     def log_artifact(self):
         """Log the dataset to MLflow as an artifact to the current run."""
-        mlflow.log_artifact(str(self.local_path()))
+        if self.input_run_id is not None:
+            raise ValueError(
+                f"Input has already been logged with an input_run_id: {self.input_run_id}"
+            )
+        current_run = mlflow.active_run()
+        if current_run is None:
+            raise ValueError("An active MLflow run is required to log input artifacts.")
+        local = self.local_path()
+        mlflow.log_artifact(str(local))
         mlflow.set_tags(self.input_tags())
+        mlflow_tracking_uri = mlflow.get_tracking_uri()
+        self._mlflow_link = f"{mlflow_tracking_uri}/#/experiments/{current_run.info.experiment_id}/runs/{current_run.info.run_id}/artifacts/{local.name}"
+        self._download_link = f"{mlflow_tracking_uri}/api/2.0/mlflow-artifacts/artifacts/{local.name}?run_id={current_run.info.run_id}"
+
+    @property
+    def mlflow_link(self) -> str:
+        return self._mlflow_link
+
+    @property
+    def download_link(self) -> str:
+        return self._download_link
 
     @abstractmethod
     def local_path(self) -> Path:
@@ -50,6 +72,7 @@ class LocalInput(BaseInput):
     input_type = "local"
 
     def __init__(self, path: str):
+        super().__init__()
         self.path = path
 
     def local_path(self) -> Path:
@@ -67,6 +90,7 @@ class DataframeInput(BaseInput):
     _INPUT_FILE_NAME = "input.csv"
 
     def __init__(self, df: pd.DataFrame, dest_dir: str):
+        super().__init__()
         self._local_path = Path(dest_dir) / self._INPUT_FILE_NAME
         self.df = df
 
@@ -96,6 +120,7 @@ class DVCInput(BaseInput):
     input_type = "dvc"
 
     def __init__(self, path: str, repo: str, dest_dir: str):
+        super().__init__()
         repo_path = repo.split("#")
         if len(repo_path) == 2:
             repo, self.rev = repo_path
@@ -128,6 +153,7 @@ class MLFlowArtifactInput(BaseInput):
     input_type = "artifact"
 
     def __init__(self, run_id: str, artifact_path: str, dest_dir: str):
+        super().__init__()
         self.run_id = run_id
         self._local_path = self._download_artifacts(run_id, artifact_path, dest_dir)
         self._tags = {"input_run_id": run_id, "input_artifact_path": artifact_path}
@@ -161,12 +187,34 @@ def build_and_log_input(
 ) -> BaseInput:
     if mlflow.active_run() is None:
         raise RuntimeError(_MLFLOW_REQUIRED_ERROR_MESSAGE)
+    inp = build_input(
+        input_object=input_object,
+        path=path,
+        run_id=run_id,
+        artifact_path=artifact_path,
+        dvc_repo=dvc_repo,
+        dest_dir=dest_dir,
+        df=df,
+    )
+    inp.log_artifact()
+    return inp
+
+
+def build_input(
+    input_object: Optional[BaseInput] = None,
+    path: Optional[str] = None,
+    run_id: Optional[str] = None,
+    artifact_path: Optional[str] = None,
+    dvc_repo: Optional[str] = None,
+    dest_dir: str = "",
+    df: Optional[pd.DataFrame] = None,
+) -> BaseInput:
     # Direct input
     if input_object is not None:
-        inp = input_object
+        return input_object
     # DF case
     elif df is not None:
-        inp = DataframeInput(df, dest_dir=dest_dir)
+        return DataframeInput(df, dest_dir=dest_dir)
     # DVC case
     elif dvc_repo is not None:
         if path is None:
@@ -175,18 +223,15 @@ def build_and_log_input(
             raise ValueError(
                 "Cannot provide both run_id and dvc_repo to build an input."
             )
-        inp = DVCInput(path=path, repo=dvc_repo, dest_dir=dest_dir)
+        return DVCInput(path=path, repo=dvc_repo, dest_dir=dest_dir)
     # Local case
     elif path is not None:
         if run_id is not None:
             raise ValueError("Cannot provide both path and run_id.")
-        inp = LocalInput(path)
+        return LocalInput(path)
     # MLFlow artifact case
     elif run_id is not None:
         if artifact_path is None:
             raise ValueError("Artifact path must be provided when run_id is provided.")
-        inp = MLFlowArtifactInput(run_id, artifact_path, dest_dir)
-    else:
-        raise ValueError("Either path or run_id must be provided to build an input.")
-    inp.log_artifact()
-    return inp
+        return MLFlowArtifactInput(run_id, artifact_path, dest_dir)
+    raise ValueError("Either path or run_id must be provided to build an input.")
