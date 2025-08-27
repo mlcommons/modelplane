@@ -18,7 +18,7 @@ from modelplane.runways.utils import (
     RUN_TYPE_TAG_NAME,
     get_experiment_id,
 )
-from modelplane.runways.data import BaseInput, build_and_log_input
+from modelplane.runways.data import BaseInput, RunArtifacts, build_and_log_input
 
 
 def score(
@@ -30,7 +30,7 @@ def score(
     sample_uid_col: str | None = None,
     annotator_uid_col: str | None = ANNOTATION_SCHEMA.annotator_uid,
     annotation_col: str | None = ANNOTATION_SCHEMA.annotation,
-):
+) -> RunArtifacts:
     """
     Score annotations against ground truth.
     Annotations are expected to be in JSON format with an "is_safe" field.
@@ -78,6 +78,11 @@ def score(
             )
             mlflow.log_metric("num_ground_truth_samples", len(ground_truth_data.df))
 
+            artifacts = {
+                annotation_input.local_path().name: annotation_input.artifact,
+                ground_truth_input.local_path().name: ground_truth_input.artifact,
+            }
+
         # Score each annotator in the annotation dataframe.
         for annotator in annotation_data.annotators:
             score = score_annotator(annotator, annotation_data, ground_truth_data)
@@ -92,7 +97,7 @@ def score(
                 else:
                     mlflow.log_metric(f"{annotator}_{metric}", score[metric])
 
-        return run.info.run_id
+        return RunArtifacts(run_id=run.info.run_id, artifacts=artifacts)
 
 
 def score_annotator(annotator: str, annotation_data, ground_truth_data):

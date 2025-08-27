@@ -27,7 +27,12 @@ from modelplane.runways.utils import (
     is_debug_mode,
     setup_annotator_credentials,
 )
-from modelplane.runways.data import BaseInput, build_and_log_input
+from modelplane.runways.data import (
+    Artifact,
+    BaseInput,
+    RunArtifacts,
+    build_and_log_input,
+)
 
 KNOWN_ENSEMBLES: Dict[str, AnnotatorSet] = {}
 # try to load the private ensemble
@@ -55,7 +60,7 @@ def annotate(
     prompt_text_col=None,
     sut_uid_col=None,
     sut_response_col=None,
-) -> str:
+) -> RunArtifacts:
     """
     Run annotations and record measurements.
     """
@@ -138,7 +143,15 @@ def annotate(
                 / pipeline_runner.output_file_name,
                 dir=tmp,
             )
-        return run.info.run_id
+            artifacts = {
+                input_data.local_path().name: input_data.artifact,
+                pipeline_runner.output_file_name: Artifact(
+                    experiment_id=run.info.experiment_id,
+                    run_id=run.info.run_id,
+                    name=pipeline_runner.output_file_name,
+                ),
+            }
+        return RunArtifacts(run_id=run.info.run_id, artifacts=artifacts)
 
 
 def _get_annotator_settings(

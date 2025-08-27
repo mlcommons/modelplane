@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import os
 import shutil
 from abc import ABC, abstractmethod
@@ -14,6 +15,31 @@ _MLFLOW_REQUIRED_ERROR_MESSAGE = (
 )
 
 
+class Artifact:
+
+    def __init__(self, experiment_id: str, run_id: str, name: str):
+        self.name = name
+        tracking_uri = mlflow.get_tracking_uri()
+        self._mlflow_link = (
+            f"{tracking_uri}/#/experiments/{experiment_id}/runs/{run_id}"
+        )
+        self._download_link = f"{tracking_uri}/api/2.0/mlflow/artifacts/download?run_id={run_id}&artifact_path={name}"
+
+    @property
+    def mlflow_link(self) -> str:
+        return self._mlflow_link
+
+    @property
+    def download_link(self) -> str:
+        return self._download_link
+
+
+@dataclass
+class RunArtifacts:
+    run_id: str
+    artifacts: dict[str, Artifact | None]
+
+
 class BaseInput(ABC):
     """Base class for input datasets."""
 
@@ -21,6 +47,7 @@ class BaseInput(ABC):
 
     def __init__(self):
         self.input_run_id = None
+        self._artifact = None
 
     def __init_subclass__(cls):
         super().__init_subclass__()
@@ -39,17 +66,15 @@ class BaseInput(ABC):
         local = self.local_path()
         mlflow.log_artifact(str(local))
         mlflow.set_tags(self.input_tags())
-        mlflow_tracking_uri = mlflow.get_tracking_uri()
-        self._mlflow_link = f"{mlflow_tracking_uri}/#/experiments/{current_run.info.experiment_id}/runs/{current_run.info.run_id}/artifacts/{local.name}"
-        self._download_link = f"{mlflow_tracking_uri}/api/2.0/mlflow-artifacts/artifacts/{local.name}?run_id={current_run.info.run_id}"
+        self._artifact = Artifact(
+            experiment_id=current_run.info.experiment_id,
+            run_id=current_run.info.run_id,
+            name=local.name,
+        )
 
     @property
-    def mlflow_link(self) -> str:
-        return self._mlflow_link
-
-    @property
-    def download_link(self) -> str:
-        return self._download_link
+    def artifact(self) -> Artifact | None:
+        return self._artifact
 
     @abstractmethod
     def local_path(self) -> Path:

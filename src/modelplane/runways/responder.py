@@ -17,7 +17,12 @@ from modelplane.runways.utils import (
     is_debug_mode,
     setup_sut_credentials,
 )
-from modelplane.runways.data import BaseInput, build_and_log_input
+from modelplane.runways.data import (
+    Artifact,
+    BaseInput,
+    RunArtifacts,
+    build_and_log_input,
+)
 
 
 def respond(
@@ -30,7 +35,7 @@ def respond(
     num_workers: int = 1,
     prompt_uid_col=None,
     prompt_text_col=None,
-) -> str:
+) -> RunArtifacts:
     secrets = setup_sut_credentials(sut_id)
     sut = SUTS.make_instance(uid=sut_id, secrets=secrets)
     params = {"num_workers": num_workers}
@@ -68,4 +73,13 @@ def respond(
                 local_path=pipeline_runner.output_dir()
                 / pipeline_runner.output_file_name,
             )
-        return run.info.run_id
+            artifacts = {
+                input_data.local_path().name: input_data.artifact,
+                pipeline_runner.output_file_name: Artifact(
+                    experiment_id=run.info.experiment_id,
+                    run_id=run.info.run_id,
+                    name=pipeline_runner.output_file_name,
+                ),
+            }
+
+        return RunArtifacts(run_id=run.info.run_id, artifacts=artifacts)
