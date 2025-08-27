@@ -8,6 +8,7 @@ import mlflow
 import mlflow.tracking
 
 from modelplane.utils.input import (
+    _MLFLOW_REQUIRED_ERROR_MESSAGE,
     LocalInput,
     DVCInput,
     MLFlowArtifactInput,
@@ -38,17 +39,10 @@ def mlflow_experiment_id(mlflow_tmpdir):
 def run_id_local_input(mlflow_experiment_id):
     """Run ID + LocalInput for a run that logged a local input."""
     with mlflow.start_run(experiment_id=mlflow_experiment_id) as run:
-        return (
+        yield (
             run.info.run_id,
-            build_and_log_input(current_run_id=run.info.run_id, path=LOCAL_FILE_PATH),
+            build_and_log_input(path=LOCAL_FILE_PATH),
         )
-
-
-@pytest.fixture
-def current_run_id(mlflow_experiment_id):
-    """Fixture to provide the current run ID."""
-    with mlflow.start_run(experiment_id=mlflow_experiment_id) as run:
-        yield run.info.run_id
 
 
 class TestLocalInput:
@@ -94,7 +88,6 @@ class TestDVCInput:
         """MLFlow integration test."""
         with mlflow.start_run(experiment_id=mlflow_experiment_id) as run:
             dvc_input = build_and_log_input(
-                current_run_id=run.info.run_id,
                 input_obj=dvc_input,
             )
         client = mlflow.tracking.MlflowClient()
@@ -108,11 +101,11 @@ class TestDVCInput:
 
 
 class TestMLFlowArtifactInput:
-    @patch("modelplane.utils.input.mlflow.artifacts")
-    def test_local_path(self, current_run_id, tmpdir):
-        expected_download_path = os.path.join(tmpdir, ARTIFACT_NAME)
+    def test_local_path(self, run_id_local_input, tmpdir):
+        expected_download_path = os.path.join(tmpdir, LOCAL_FILE_NAME)
+        run_id, _ = run_id_local_input
 
-        mlflow_input = MLFlowArtifactInput(current_run_id, ARTIFACT_NAME, tmpdir)
+        mlflow_input = MLFlowArtifactInput(run_id, LOCAL_FILE_NAME, tmpdir)
         path = mlflow_input.local_path()
 
         assert isinstance(path, Path)
@@ -146,14 +139,12 @@ class TestBuildAndLogInput:
     def test_build_local_input(self, run_id_local_input):
         """No run_id nor dvc_repo should result in LocalInput."""
         run_id, _ = run_id_local_input
-        inp = build_and_log_input(current_run_id=run_id, path=LOCAL_FILE_PATH)
+        inp = build_and_log_input(path=LOCAL_FILE_PATH)
         assert isinstance(inp, LocalInput)
 
     def test_build_local_input_ignores_dest_dir(self, run_id_local_input):
         run_id, _ = run_id_local_input
-        inp = build_and_log_input(
-            current_run_id=run_id, path=LOCAL_FILE_PATH, dest_dir="fake_dir"
-        )
+        inp = build_and_log_input(path=LOCAL_FILE_PATH, dest_dir="fake_dir")
         assert isinstance(inp, LocalInput)
 
     @patch("modelplane.utils.input.dvc.api")
@@ -162,61 +153,47 @@ class TestBuildAndLogInput:
         run_id, _ = run_id_local_input
         with patch.object(DVCInput, "_download_dvc_file", return_value=LOCAL_FILE_PATH):
             inp = build_and_log_input(
-                current_run_id=run_id,
-                path=LOCAL_FILE_PATH,
-                dvc_repo="some-repo",
-                dest_dir="fake_dir",
+                path=LOCAL_FILE_PATH, dvc_repo="some-repo", dest_dir="fake_dir"
             )
         assert isinstance(inp, DVCInput)
 
-    def test_build_dvc_input_no_path_raises_error(self, current_run_id):
+    def test_build_dvc_input_no_path_raises_error(self, run_id_local_input):
         with pytest.raises(ValueError, match="Path must be provided"):
-            build_and_log_input(
-                current_run_id=current_run_id, dvc_repo="some-repo", dest_dir="fake_dir"
-            )
+            build_and_log_input(dvc_repo="some-repo", dest_dir="fake_dir")
 
-    def test_build_mlf_input(self, run_id_local_input, current_run_id):
+    def test_build_mlf_input(self, run_id_local_input):
         run_id, _ = run_id_local_input
         inp = build_and_log_input(
-            current_run_id=current_run_id,
-            run_id=run_id,
-            artifact_path=LOCAL_FILE_NAME,
-            dest_dir="fake_dir",
+            run_id=run_id, artifact_path=LOCAL_FILE_NAME, dest_dir="fake_dir"
         )
         assert isinstance(inp, MLFlowArtifactInput)
 
-    def test_build_mlf_input_no_artifact_path_raises_error(
-        self, run_id_local_input, current_run_id
-    ):
+    def test_build_mlf_input_no_artifact_path_raises_error(self, run_id_local_input):
         run_id, _ = run_id_local_input
         with pytest.raises(ValueError, match="Artifact path must be provided"):
-            build_and_log_input(
-                current_run_id=current_run_id,
-                run_id=run_id,
-                dest_dir="fake_dir",
-            )
+            build_and_log_input(run_id=run_id, dest_dir="fake_dir")
 
-    def test_run_id_and_path_error(self, run_id_local_input, current_run_id):
+    def test_run_id_and_path_error(self, run_id_local_input):
         run_id, _ = run_id_local_input
         with pytest.raises(ValueError, match="Cannot provide both path and run_id"):
             build_and_log_input(
-                current_run_id=current_run_id,
-                run_id=run_id,
-                path=LOCAL_FILE_PATH,
-                dest_dir="fake_dir",
+                run_id=run_id, path=LOCAL_FILE_PATH, dest_dir="fake_dir"
             )
 
-    def test_run_id_and_repo_error(self, run_id_local_input, current_run_id):
+    def test_run_id_and_repo_error(self, run_id_local_input):
         run_id, _ = run_id_local_input
         with pytest.raises(ValueError, match="Cannot provide both run_id and dvc_repo"):
             build_and_log_input(
-                current_run_id=current_run_id,
                 run_id=run_id,
                 path=LOCAL_FILE_PATH,
                 dvc_repo="some_repo",
                 dest_dir="fake_dir",
             )
 
-    def test_no_args_error(self, current_run_id):
+    def test_no_args_error(self, run_id_local_input):
         with pytest.raises(ValueError, match="Either path or run_id must be provided"):
-            build_and_log_input(current_run_id=current_run_id)
+            build_and_log_input()
+
+    def test_no_current_mlflow_run(self):
+        with pytest.raises(RuntimeError, match=_MLFLOW_REQUIRED_ERROR_MESSAGE):
+            build_and_log_input()

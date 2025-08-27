@@ -42,7 +42,6 @@ def respond(
         # Use temporary file as mlflow will log this into the artifact store
         with tempfile.TemporaryDirectory() as tmp:
             input_data = build_and_log_input(
-                current_run_id=run.info.run_id,
                 path=prompts,
                 dvc_repo=dvc_repo,
                 dest_dir=tmp,

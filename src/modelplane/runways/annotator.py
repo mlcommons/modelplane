@@ -96,7 +96,6 @@ def annotate(
         with tempfile.TemporaryDirectory() as tmp:
             # load/transform the prompt responses from the specified run
             input_data = build_and_log_input(
-                current_run_id=run.info.run_id,
                 path=response_file,
                 run_id=response_run_id,
                 artifact_path=PROMPT_RESPONSE_ARTIFACT_NAME,

@@ -50,7 +50,6 @@ def score(
         with tempfile.TemporaryDirectory() as tmp:
             # Load annotations
             annotation_input = build_and_log_input(
-                current_run_id=run.info.run_id,
                 run_id=annotation_run_id,
                 artifact_path=ANNOTATION_RESPONSE_ARTIFACT_NAME,
                 dest_dir=tmp,
@@ -59,7 +58,6 @@ def score(
 
             # Load ground truth
             ground_truth_input = build_and_log_input(
-                current_run_id=run.info.run_id,
                 path=ground_truth,
                 dvc_repo=dvc_repo,
                 dest_dir=tmp,

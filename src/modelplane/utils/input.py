@@ -9,6 +9,10 @@ import mlflow
 import mlflow.artifacts
 import pandas as pd
 
+_MLFLOW_REQUIRED_ERROR_MESSAGE = (
+    "An active MLflow run is required to log input artifacts."
+)
+
 
 class BaseInput(ABC):
     """Base class for input datasets."""
@@ -155,6 +159,8 @@ def build_and_log_input(
     dest_dir: str = "",
     df: Optional[pd.DataFrame] = None,
 ) -> BaseInput:
+    if mlflow.active_run() is None:
+        raise RuntimeError(_MLFLOW_REQUIRED_ERROR_MESSAGE)
     # Direct input
     if input_obj is not None:
         inp = input_obj
