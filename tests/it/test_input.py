@@ -5,20 +5,20 @@ from unittest.mock import patch
 
 import pytest
 import mlflow
+import mlflow.tracking
 
 from modelplane.utils.input import (
-    BaseInput,
+    _MLFLOW_REQUIRED_ERROR_MESSAGE,
     LocalInput,
     DVCInput,
     MLFlowArtifactInput,
-    build_input,
+    build_and_log_input,
 )
 
 LOCAL_FILE_PATH = "tests/data/prompts.csv"
-HTTTP_PATH = LOCAL_FILE_PATH
+LOCAL_FILE_NAME = "prompts.csv"
 ARTIFACT_PATH = "tests/data/prompts-responses.csv"
 ARTIFACT_NAME = "prompts-responses.csv"
-HTTP_ARTIFACT_DIGEST = "abc123def456"
 
 
 @pytest.fixture(scope="module")
@@ -36,56 +36,33 @@ def mlflow_experiment_id(mlflow_tmpdir):
 
 
 @pytest.fixture
-def local_input():
-    return LocalInput(LOCAL_FILE_PATH)
-
-
-@pytest.fixture
-def run_id_local_input(mlflow_experiment_id, local_input):
-    """Run ID for a run that logged a local input."""
+def run_id_local_input(mlflow_experiment_id):
+    """Run ID + LocalInput for a run that logged a local input."""
     with mlflow.start_run(experiment_id=mlflow_experiment_id) as run:
-        local_input.log_input()
-        # Log output artifact.
-        mlflow.log_artifact(ARTIFACT_PATH)
-        run_id = run.info.run_id
-    return run_id
-
-
-@pytest.fixture
-def run_id_http_input(mlflow_experiment_id):
-    """Run ID for a run that logged an HTTP dataset input."""
-    with mlflow.start_run(experiment_id=mlflow_experiment_id) as run:
-        # Create an HTTP dataset source
-        http_url = "https://example.com/data.csv"
-        http_dataset = mlflow.data.meta_dataset.MetaDataset(
-            source=mlflow.data.http_dataset_source.HTTPDatasetSource(http_url),
-            name=HTTTP_PATH,
-            digest=HTTP_ARTIFACT_DIGEST,
+        yield (
+            run.info.run_id,
+            build_and_log_input(path=LOCAL_FILE_PATH),
         )
-        mlflow.log_input(http_dataset)
-
-        # Log output artifact.
-        mlflow.log_artifact(ARTIFACT_PATH)
-        run_id = run.info.run_id
-    return run_id
 
 
 class TestLocalInput:
-    def test_local_path(self, local_input):
+    def test_local_path(self, run_id_local_input):
+        _, local_input = run_id_local_input
         path = local_input.local_path()
         assert isinstance(path, Path)
         assert str(path) == LOCAL_FILE_PATH
 
-    def test_log_input(self, local_input, run_id_local_input):
+    def test_input_logging(self, run_id_local_input):
         """MLFlow integration test."""
+        run_id, _ = run_id_local_input
         client = mlflow.tracking.MlflowClient()
-        inputs = client.get_run(run_id_local_input).inputs
 
-        assert len(inputs.dataset_inputs) == 1
-        dataset = inputs.dataset_inputs[0].dataset
+        artifacts = client.list_artifacts(run_id)
 
-        assert dataset.name == LOCAL_FILE_PATH
-        assert dataset.source_type == "local"
+        assert len(artifacts) == 1
+        artifact = artifacts[0]
+
+        assert artifact.path == Path(LOCAL_FILE_PATH).name
 
 
 class TestDVCInput:
@@ -107,46 +84,38 @@ class TestDVCInput:
         assert isinstance(local_path, Path)
         assert str(local_path) == LOCAL_FILE_PATH
 
-    def test_digest(self, dvc_input):
-        """Test digest method parses MD5 hash from URL."""
-        digest = dvc_input.digest()
-        assert digest == "01abcdef1234"
-
-    def test_log_input(self, dvc_input, mlflow_experiment_id):
+    def test_input_logging(self, dvc_input, mlflow_experiment_id):
         """MLFlow integration test."""
         with mlflow.start_run(experiment_id=mlflow_experiment_id) as run:
-            dvc_input.log_input()
-            run_id = run.info.run_id
+            dvc_input = build_and_log_input(
+                input_obj=dvc_input,
+            )
         client = mlflow.tracking.MlflowClient()
-        inputs = client.get_run(run_id).inputs
 
-        assert len(inputs.dataset_inputs) == 1
-        dataset = inputs.dataset_inputs[0].dataset
+        artifacts = client.list_artifacts(run.info.run_id)
 
-        assert dataset.name == LOCAL_FILE_PATH
-        assert dataset.source_type == "http"
-        assert dataset.digest == "01abcdef1234"
+        assert len(artifacts) == 1
+        artifact = artifacts[0]
+
+        assert artifact.path == Path(LOCAL_FILE_PATH).name
 
 
 class TestMLFlowArtifactInput:
-    @patch("modelplane.utils.input.mlflow.artifacts")
-    def test_local_path(self, mock_artifact, tmpdir):
-        fake_run_id = "test_run_123"
-        expected_download_path = os.path.join(tmpdir, ARTIFACT_NAME)
+    def test_local_path(self, run_id_local_input, tmpdir):
+        expected_download_path = os.path.join(tmpdir, LOCAL_FILE_NAME)
+        run_id, _ = run_id_local_input
 
-        mlflow_input = MLFlowArtifactInput(fake_run_id, ARTIFACT_NAME, tmpdir)
+        mlflow_input = MLFlowArtifactInput(run_id, LOCAL_FILE_NAME, tmpdir)
         path = mlflow_input.local_path()
 
         assert isinstance(path, Path)
         assert str(path) == expected_download_path
 
-    @pytest.mark.parametrize(
-        "run_id_fixture", ["run_id_local_input", "run_id_http_input"]
-    )
-    def test_downloads_artifact(self, request, run_id_fixture, tmpdir):
+    def test_download_artifact(self, run_id_local_input, tmpdir):
         """Integration test that downloads a real MLflow artifact from a run with different input types."""
         # Get the actual run_id from the fixture
-        run_id = request.getfixturevalue(run_id_fixture)
+        run_id, _ = run_id_local_input
+        mlflow.log_artifact(ARTIFACT_PATH, run_id=run_id)
 
         mlflow_input = MLFlowArtifactInput(run_id, ARTIFACT_NAME, tmpdir)
 
@@ -165,94 +134,66 @@ class TestMLFlowArtifactInput:
 
         assert original_content == downloaded_content
 
-    def test_log_input_local_source(
-        self, mlflow_experiment_id, run_id_local_input, tmpdir
-    ):
-        """Test log_input for a local mlflow artifact with real MLflow integration."""
-        mlflow_input = MLFlowArtifactInput(run_id_local_input, ARTIFACT_NAME, tmpdir)
 
-        with mlflow.start_run(experiment_id=mlflow_experiment_id) as new_run:
-            mlflow_input.log_input()
-
-            # Verify the input was logged
-            client = mlflow.tracking.MlflowClient()
-            inputs = client.get_run(new_run.info.run_id).inputs
-
-            # TODO: Shouldn't the actual artifact from the previous run also get logged?
-            assert len(inputs.dataset_inputs) == 1
-            dataset = inputs.dataset_inputs[0].dataset
-            assert dataset.name == LOCAL_FILE_PATH
-            assert dataset.source_type == "local"
-
-    def test_log_input_http_source(
-        self, mlflow_experiment_id, run_id_http_input, tmpdir
-    ):
-        """Test log_input for an HTTP source mlflow artifact with real MLflow integration."""
-        mlflow_input = MLFlowArtifactInput(run_id_http_input, ARTIFACT_NAME, tmpdir)
-
-        with mlflow.start_run(experiment_id=mlflow_experiment_id) as new_run:
-            mlflow_input.log_input()
-
-            # Verify the input was logged
-            client = mlflow.tracking.MlflowClient()
-            inputs = client.get_run(new_run.info.run_id).inputs
-
-            # TODO: Shouldn't the actual artifact from the previous run also get logged?
-            assert len(inputs.dataset_inputs) == 1
-            dataset = inputs.dataset_inputs[0].dataset
-            assert dataset.name == HTTTP_PATH
-            assert dataset.source_type == "http"
-
-
-class TestBuildInput:
-    def test_build_local_input(self):
+class TestBuildAndLogInput:
+    def test_build_local_input(self, run_id_local_input):
         """No run_id nor dvc_repo should result in LocalInput."""
-        inp = build_input(path=LOCAL_FILE_PATH)
+        run_id, _ = run_id_local_input
+        inp = build_and_log_input(path=LOCAL_FILE_PATH)
         assert isinstance(inp, LocalInput)
 
-    def test_build_local_input_ignores_dest_dir(self):
-        inp = build_input(path=LOCAL_FILE_PATH, dest_dir="fake_dir")
+    def test_build_local_input_ignores_dest_dir(self, run_id_local_input):
+        run_id, _ = run_id_local_input
+        inp = build_and_log_input(path=LOCAL_FILE_PATH, dest_dir="fake_dir")
         assert isinstance(inp, LocalInput)
 
     @patch("modelplane.utils.input.dvc.api")
-    def test_build_dvc_input(self, mock_dvc):
+    def test_build_dvc_input(self, mock_dvc, run_id_local_input):
         mock_dvc.get_url.return_value = "url"
+        run_id, _ = run_id_local_input
         with patch.object(DVCInput, "_download_dvc_file", return_value=LOCAL_FILE_PATH):
-            inp = build_input(
+            inp = build_and_log_input(
                 path=LOCAL_FILE_PATH, dvc_repo="some-repo", dest_dir="fake_dir"
             )
         assert isinstance(inp, DVCInput)
 
-    def test_build_dvc_input_no_path_raises_error(self):
+    def test_build_dvc_input_no_path_raises_error(self, run_id_local_input):
         with pytest.raises(ValueError, match="Path must be provided"):
-            build_input(dvc_repo="some-repo", dest_dir="fake_dir")
+            build_and_log_input(dvc_repo="some-repo", dest_dir="fake_dir")
 
-    @patch("modelplane.utils.input.mlflow.artifacts")
     def test_build_mlf_input(self, run_id_local_input):
-        inp = build_input(
-            run_id=run_id_local_input, artifact_path=ARTIFACT_PATH, dest_dir="fake_dir"
+        run_id, _ = run_id_local_input
+        inp = build_and_log_input(
+            run_id=run_id, artifact_path=LOCAL_FILE_NAME, dest_dir="fake_dir"
         )
         assert isinstance(inp, MLFlowArtifactInput)
 
     def test_build_mlf_input_no_artifact_path_raises_error(self, run_id_local_input):
+        run_id, _ = run_id_local_input
         with pytest.raises(ValueError, match="Artifact path must be provided"):
-            build_input(run_id=run_id_local_input, dest_dir="fake_dir")
+            build_and_log_input(run_id=run_id, dest_dir="fake_dir")
 
     def test_run_id_and_path_error(self, run_id_local_input):
+        run_id, _ = run_id_local_input
         with pytest.raises(ValueError, match="Cannot provide both path and run_id"):
-            build_input(
-                run_id=run_id_local_input, path=LOCAL_FILE_PATH, dest_dir="fake_dir"
+            build_and_log_input(
+                run_id=run_id, path=LOCAL_FILE_PATH, dest_dir="fake_dir"
             )
 
-    def test_run_id_and_repo_error(self):
+    def test_run_id_and_repo_error(self, run_id_local_input):
+        run_id, _ = run_id_local_input
         with pytest.raises(ValueError, match="Cannot provide both run_id and dvc_repo"):
-            build_input(
-                run_id=run_id_local_input,
+            build_and_log_input(
+                run_id=run_id,
                 path=LOCAL_FILE_PATH,
                 dvc_repo="some_repo",
                 dest_dir="fake_dir",
             )
 
-    def test_no_args_error(self):
+    def test_no_args_error(self, run_id_local_input):
         with pytest.raises(ValueError, match="Either path or run_id must be provided"):
-            build_input()
+            build_and_log_input()
+
+    def test_no_current_mlflow_run(self):
+        with pytest.raises(RuntimeError, match=_MLFLOW_REQUIRED_ERROR_MESSAGE):
+            build_and_log_input()

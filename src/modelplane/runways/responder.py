@@ -17,7 +17,7 @@ from modelplane.runways.utils import (
     is_debug_mode,
     setup_sut_credentials,
 )
-from modelplane.utils.input import build_input
+from modelplane.utils.input import build_and_log_input
 
 
 def respond(
@@ -41,8 +41,11 @@ def respond(
         mlflow.log_params(params)
         # Use temporary file as mlflow will log this into the artifact store
         with tempfile.TemporaryDirectory() as tmp:
-            input_data = build_input(path=prompts, dvc_repo=dvc_repo, dest_dir=tmp)
-            input_data.log_input()
+            input_data = build_and_log_input(
+                path=prompts,
+                dvc_repo=dvc_repo,
+                dest_dir=tmp,
+            )
             pipeline_runner = build_runner(
                 num_workers=num_workers,
                 input_path=input_data.local_path(),

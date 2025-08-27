@@ -27,7 +27,7 @@ from modelplane.runways.utils import (
     is_debug_mode,
     setup_annotator_credentials,
 )
-from modelplane.utils.input import build_input
+from modelplane.utils.input import build_and_log_input
 
 KNOWN_ENSEMBLES: Dict[str, AnnotatorSet] = {}
 # try to load the private ensemble
@@ -95,14 +95,13 @@ def annotate(
 
         with tempfile.TemporaryDirectory() as tmp:
             # load/transform the prompt responses from the specified run
-            input_data = build_input(
+            input_data = build_and_log_input(
                 path=response_file,
                 run_id=response_run_id,
                 artifact_path=PROMPT_RESPONSE_ARTIFACT_NAME,
                 dvc_repo=dvc_repo,
                 dest_dir=tmp,
             )
-            input_data.log_input()
             input_path = input_data.local_path()  # type: ignore
             pipeline_kwargs["input_path"] = pathlib.Path(input_path)
             pipeline_kwargs["output_dir"] = pathlib.Path(tmp)
