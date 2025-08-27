@@ -20,10 +20,8 @@ class Artifact:
     def __init__(self, experiment_id: str, run_id: str, name: str):
         self.name = name
         tracking_uri = mlflow.get_tracking_uri()
-        self._mlflow_link = (
-            f"{tracking_uri}/#/experiments/{experiment_id}/runs/{run_id}"
-        )
-        self._download_link = f"{tracking_uri}/api/2.0/mlflow/artifacts/download?run_id={run_id}&artifact_path={name}"
+        self._mlflow_link = f"{tracking_uri}/#/experiments/{experiment_id}/runs/{run_id}/artifacts/{name}"
+        self._download_link = f"{tracking_uri}/get-artifact?run_id={run_id}&path={name}"
 
     @property
     def mlflow_link(self) -> str:
