@@ -18,18 +18,19 @@ from modelplane.runways.utils import (
     RUN_TYPE_TAG_NAME,
     get_experiment_id,
 )
-from modelplane.utils.input import build_and_log_input
+from modelplane.runways.data import BaseInput, RunArtifacts, build_and_log_input
 
 
 def score(
     annotation_run_id: str,
     experiment: str,
-    ground_truth: str,
+    ground_truth: str | None = None,
+    ground_truth_input_object: BaseInput | None = None,
     dvc_repo: str | None = None,
     sample_uid_col: str | None = None,
-    annotator_uid_col: str = ANNOTATION_SCHEMA.annotator_uid,
-    annotation_col: str = ANNOTATION_SCHEMA.annotation,
-):
+    annotator_uid_col: str | None = ANNOTATION_SCHEMA.annotator_uid,
+    annotation_col: str | None = ANNOTATION_SCHEMA.annotation,
+) -> RunArtifacts:
     """
     Score annotations against ground truth.
     Annotations are expected to be in JSON format with an "is_safe" field.
@@ -37,7 +38,6 @@ def score(
     if `sample_uid_col` is not provided, samples will be keyed by prompt_uid X sut_uid.
     """
     params = {
-        "ground_truth": ground_truth,
         "annotation_run_id": annotation_run_id,
     }
     experiment_id = get_experiment_id(experiment)
@@ -54,16 +54,34 @@ def score(
                 artifact_path=ANNOTATION_RESPONSE_ARTIFACT_NAME,
                 dest_dir=tmp,
             )
-            annotation_data = AnnotationData(annotation_input.local_path(), is_json_annotation=True, sample_uid_col=sample_uid_col, annotator_uid_col=annotator_uid_col, annotation_col=annotation_col)
+            annotation_data = AnnotationData(
+                annotation_input.local_path(),
+                is_json_annotation=True,
+                sample_uid_col=sample_uid_col,
+                annotator_uid_col=annotator_uid_col,
+                annotation_col=annotation_col,
+            )
 
             # Load ground truth
             ground_truth_input = build_and_log_input(
+                input_object=ground_truth_input_object,
                 path=ground_truth,
                 dvc_repo=dvc_repo,
                 dest_dir=tmp,
             )
-            ground_truth_data = AnnotationData(ground_truth_input.local_path(), is_json_annotation=False, annotation_col="is_safe", annotator_uid_col=None, sample_uid_col=sample_uid_col)
+            ground_truth_data = AnnotationData(
+                ground_truth_input.local_path(),
+                is_json_annotation=False,
+                annotation_col="is_safe",
+                annotator_uid_col=None,
+                sample_uid_col=sample_uid_col,
+            )
             mlflow.log_metric("num_ground_truth_samples", len(ground_truth_data.df))
+
+            artifacts = {
+                annotation_input.local_path().name: annotation_input.artifact,
+                ground_truth_input.local_path().name: ground_truth_input.artifact,
+            }
 
         # Score each annotator in the annotation dataframe.
         for annotator in annotation_data.annotators:
@@ -79,7 +97,7 @@ def score(
                 else:
                     mlflow.log_metric(f"{annotator}_{metric}", score[metric])
 
-        return run.info.run_id
+        return RunArtifacts(run_id=run.info.run_id, artifacts=artifacts)
 
 
 def score_annotator(annotator: str, annotation_data, ground_truth_data):
@@ -140,6 +158,7 @@ def score_annotator(annotator: str, annotation_data, ground_truth_data):
 
 class AnnotationData:
     """Transform a CSV to a dataframe with columns `sample_uid` and `is_unsafe`."""
+
     sample_uid_col = "sample_uid"
     unsafe_col = "is_unsafe"
 
@@ -148,10 +167,10 @@ class AnnotationData:
         path: Path,
         is_json_annotation: bool,
         sample_uid_col: str | None = None,
-        annotator_uid_col: str = ANNOTATION_SCHEMA.annotator_uid,
-        annotation_col: str = ANNOTATION_SCHEMA.annotation,
+        annotator_uid_col: str | None = ANNOTATION_SCHEMA.annotator_uid,
+        annotation_col: str | None = ANNOTATION_SCHEMA.annotation,
     ):
-        self.annotator_uid_col = annotator_uid_col # Not used for ground truth data.
+        self.annotator_uid_col = annotator_uid_col  # Not used for ground truth data.
 
         self.path = path
         self.df = pd.read_csv(path)
@@ -159,19 +178,18 @@ class AnnotationData:
         self._set_sample_uid(sample_uid_col)
         self._format_annotation(is_json_annotation, annotation_col)
 
-
     @property
     def annotators(self) -> list[str]:
-        assert self.annotator_uid_col in self.df.columns, (
-            f"Annotator UID column '{self.annotator_uid_col}' not found in dataframe for {self.path}. "
-        )
-        return  list(self.df[self.annotator_uid_col].unique())
+        assert (
+            self.annotator_uid_col in self.df.columns
+        ), f"Annotator UID column '{self.annotator_uid_col}' not found in dataframe for {self.path}. "
+        return list(self.df[self.annotator_uid_col].unique())
 
     def _set_sample_uid(self, sample_uid_col):
         if sample_uid_col is not None:
-            assert sample_uid_col in self.df.columns, (
-                f"Sample UID column '{sample_uid_col}' not found in dataframe for {self.path}. "
-            )
+            assert (
+                sample_uid_col in self.df.columns
+            ), f"Sample UID column '{sample_uid_col}' not found in dataframe for {self.path}. "
             self.df[self.sample_uid_col] = self.df[sample_uid_col]
         else:
             missing_cols = []
@@ -179,23 +197,25 @@ class AnnotationData:
             for col in required_cols:
                 if col not in self.df.columns:
                     missing_cols.append(col)
-            assert len(missing_cols) == 0, f"If no sample_uid_col is passed, a sample UID column is made from {required_cols}. Missing columns {missing_cols}  from {self.path}."
+            assert (
+                len(missing_cols) == 0
+            ), f"If no sample_uid_col is passed, a sample UID column is made from {required_cols}. Missing columns {missing_cols}  from {self.path}."
             self.df[self.sample_uid_col] = (
-                    self.df[ANNOTATION_SCHEMA.prompt_uid].astype(str)
-                    + "_"
-                    + self.df[ANNOTATION_SCHEMA.sut_uid].astype(str)
+                self.df[ANNOTATION_SCHEMA.prompt_uid].astype(str)
+                + "_"
+                + self.df[ANNOTATION_SCHEMA.sut_uid].astype(str)
             )
 
     def _format_annotation(self, is_json_annotation, annotation_col):
-        assert annotation_col in self.df.columns, (
-            f"Annotation column '{annotation_col}' not found in dataframe for {self.path}."
-        )
+        assert (
+            annotation_col in self.df.columns
+        ), f"Annotation column '{annotation_col}' not found in dataframe for {self.path}."
         if is_json_annotation:
-            is_safe = self.df[annotation_col].apply(
-                lambda x: json.loads(x)["is_safe"]
-            )
+            is_safe = self.df[annotation_col].apply(lambda x: json.loads(x)["is_safe"])
         else:
-            assert self.df[annotation_col].str.lower().isin({"safe", "unsafe"}).all(), f"Invalid annotation values found in the {annotation_col} column of {self.path}"
+            assert (
+                self.df[annotation_col].str.lower().isin({"safe", "unsafe"}).all()
+            ), f"Invalid annotation values found in the {annotation_col} column of {self.path}"
             # currently, is_safe is a str "safe" or "unsafe"; convert it to boolean.
             is_safe = self.df[annotation_col].apply(lambda x: x.lower() == "safe")
 

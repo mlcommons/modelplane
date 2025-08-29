@@ -7,7 +7,7 @@ import pytest
 import mlflow
 import mlflow.tracking
 
-from modelplane.utils.input import (
+from modelplane.runways.data import (
     _MLFLOW_REQUIRED_ERROR_MESSAGE,
     LocalInput,
     DVCInput,
@@ -67,7 +67,7 @@ class TestLocalInput:
 
 class TestDVCInput:
     @pytest.fixture
-    @patch("modelplane.utils.input.dvc.api")
+    @patch("modelplane.runways.data.dvc.api")
     def dvc_input(self, mock_dvc, tmpdir):
         repo = "https://github.com/fake-org/fake-repo.git"
         # Mock url following google cloud storage schema. Used to get the md5 hash.
@@ -88,7 +88,7 @@ class TestDVCInput:
         """MLFlow integration test."""
         with mlflow.start_run(experiment_id=mlflow_experiment_id) as run:
             dvc_input = build_and_log_input(
-                input_obj=dvc_input,
+                input_object=dvc_input,
             )
         client = mlflow.tracking.MlflowClient()
 
@@ -147,7 +147,7 @@ class TestBuildAndLogInput:
         inp = build_and_log_input(path=LOCAL_FILE_PATH, dest_dir="fake_dir")
         assert isinstance(inp, LocalInput)
 
-    @patch("modelplane.utils.input.dvc.api")
+    @patch("modelplane.runways.data.dvc.api")
     def test_build_dvc_input(self, mock_dvc, run_id_local_input):
         mock_dvc.get_url.return_value = "url"
         run_id, _ = run_id_local_input

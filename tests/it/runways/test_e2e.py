@@ -1,5 +1,4 @@
 import csv
-import tempfile
 import time
 from typing import List
 
@@ -11,6 +10,7 @@ from modelplane.runways.responder import respond
 from modelplane.runways.scorer import score
 from modelplane.runways.utils import PROMPT_RESPONSE_ARTIFACT_NAME
 from half_safe_annotator import TEST_ANNOTATOR_ID
+import requests
 
 
 def test_e2e():
@@ -22,22 +22,22 @@ def test_e2e():
     experiment = "test_experiment_" + time.strftime("%Y%m%d%H%M%S", time.localtime())
     num_workers = 1
 
-    run_id = check_responder(
+    run_artifacts = check_responder(
         sut_id=sut_id,
         prompts=prompts,
         experiment=experiment,
         disable_cache=True,
         num_workers=num_workers,
     )
-    run_id = check_annotator(
-        response_run_id=run_id,
+    run_artifacts = check_annotator(
+        response_run_id=run_artifacts.run_id,
         annotator_ids=[TEST_ANNOTATOR_ID],
         experiment=experiment,
         disable_cache=True,
         num_workers=num_workers,
     )
     check_scorer(
-        annotation_run_id=run_id,
+        annotation_run_id=run_artifacts.run_id,
         ground_truth=ground_truth,
         annotator_id=TEST_ANNOTATOR_ID,
         experiment=experiment,
@@ -51,7 +51,7 @@ def check_responder(
     disable_cache: bool,
     num_workers: int,
 ):
-    run_id = respond(
+    run_artifacts = respond(
         sut_id=sut_id,
         prompts=prompts,
         experiment=experiment,
@@ -62,35 +62,34 @@ def check_responder(
     # confirm experiment exists
     exp = mlflow.get_experiment_by_name(experiment)
     assert exp is not None
-    assert run_id is not None
+    assert run_artifacts.run_id is not None
 
     # validate params / tags logged
-    run = mlflow.get_run(run_id)
+    run = mlflow.get_run(run_artifacts.run_id)
     params = run.data.params
     tags = run.data.tags
     assert params.get("num_workers") == str(num_workers)
     assert tags.get("sut_id") == sut_id
 
     # validate responses
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # download/validate the prompt responses artifact
-        responses_file = mlflow.artifacts.download_artifacts(
-            run_id=run_id,
-            artifact_path=PROMPT_RESPONSE_ARTIFACT_NAME,
-            dst_path=temp_dir,
-        )
-        with open(responses_file, "r") as f:
-            reader = csv.DictReader(f)
-            responses = list(reader)
-            assert len(responses) == 10
-            for response in responses:
-                assert response["sut_uid"] == sut_id
-                expected = "no" if len(response["prompt_text"].split()) % 2 else "yes"
-                yesno = response["sut_response"]
-                assert (
-                    yesno.lower() == expected
-                ), f"Unexpectedly got '{yesno} for prompt '{response['prompt_text']}'"
-    return run_id
+    # download/validate the prompt responses artifact
+    responses_artifact = run_artifacts.artifacts[PROMPT_RESPONSE_ARTIFACT_NAME]
+    assert responses_artifact is not None
+    responses_link = responses_artifact.download_link
+    response = requests.get(responses_link)
+    response.raise_for_status()
+    responses_text = response.text
+    reader = csv.DictReader(responses_text.splitlines())
+    responses = list(reader)
+    assert len(responses) == 10
+    for response in responses:
+        assert response["sut_uid"] == sut_id
+        expected = "no" if len(response["prompt_text"].split()) % 2 else "yes"
+        yesno = response["sut_response"]
+        assert (
+            yesno.lower() == expected
+        ), f"Unexpectedly got '{yesno} for prompt '{response['prompt_text']}'"
+    return run_artifacts
 
 
 def check_annotator(
@@ -101,7 +100,7 @@ def check_annotator(
     num_workers: int,
 ):
     # run the annotator
-    run_id = annotate(
+    run_artifacts = annotate(
         response_run_id=response_run_id,
         annotator_ids=annotator_ids,
         experiment=experiment,
@@ -113,7 +112,7 @@ def check_annotator(
     assert exp is not None
 
     # validate params / tags / metrics logged
-    run = mlflow.get_run(run_id)
+    run = mlflow.get_run(run_artifacts.run_id)
     params = run.data.params
     tags = run.data.tags
     metrics = run.data.metrics
@@ -129,12 +128,12 @@ def check_annotator(
     ), "Expected total_safe to be 5"
 
     # confirm annotations.csv exists
-    artifacts = mlflow.artifacts.list_artifacts(run_id=run_id)
+    artifacts = mlflow.artifacts.list_artifacts(run_id=run_artifacts.run_id)
     assert any(
         artifact.path == "annotations.csv" for artifact in artifacts
     ), "Expected 'annotations.csv' artifact not found in run"
     # TODO: validate annotations.csv
-    return run_id
+    return run_artifacts
 
 
 def check_scorer(
@@ -143,16 +142,15 @@ def check_scorer(
     annotator_id: str,
     experiment: str,
 ):
-    run_id = score(annotation_run_id, experiment, ground_truth)
+    run_artifacts = score(annotation_run_id, experiment, ground_truth)
     # confirm experiment exists
     exp = mlflow.get_experiment_by_name(experiment)
     assert exp is not None
 
     # validate params / metrics logged
-    run = mlflow.get_run(run_id)
+    run = mlflow.get_run(run_artifacts.run_id)
     params = run.data.params
     metrics = run.data.metrics
-    assert params.get("ground_truth") == ground_truth
     assert params.get("annotation_run_id") == annotation_run_id
 
     assert metrics.get("num_ground_truth_samples") == 10

@@ -27,7 +27,12 @@ from modelplane.runways.utils import (
     is_debug_mode,
     setup_annotator_credentials,
 )
-from modelplane.utils.input import build_and_log_input
+from modelplane.runways.data import (
+    Artifact,
+    BaseInput,
+    RunArtifacts,
+    build_and_log_input,
+)
 
 KNOWN_ENSEMBLES: Dict[str, AnnotatorSet] = {}
 # try to load the private ensemble
@@ -41,6 +46,7 @@ except NotImplementedError:
 
 def annotate(
     experiment: str,
+    input_object: BaseInput | None = None,
     dvc_repo: str | None = None,
     response_file: str | None = None,
     response_run_id: str | None = None,
@@ -54,7 +60,7 @@ def annotate(
     prompt_text_col=None,
     sut_uid_col=None,
     sut_response_col=None,
-) -> str:
+) -> RunArtifacts:
     """
     Run annotations and record measurements.
     """
@@ -96,6 +102,7 @@ def annotate(
         with tempfile.TemporaryDirectory() as tmp:
             # load/transform the prompt responses from the specified run
             input_data = build_and_log_input(
+                input_object=input_object,
                 path=response_file,
                 run_id=response_run_id,
                 artifact_path=PROMPT_RESPONSE_ARTIFACT_NAME,
@@ -136,7 +143,15 @@ def annotate(
                 / pipeline_runner.output_file_name,
                 dir=tmp,
             )
-        return run.info.run_id
+            artifacts = {
+                input_data.local_path().name: input_data.artifact,
+                pipeline_runner.output_file_name: Artifact(
+                    experiment_id=run.info.experiment_id,
+                    run_id=run.info.run_id,
+                    name=pipeline_runner.output_file_name,
+                ),
+            }
+        return RunArtifacts(run_id=run.info.run_id, artifacts=artifacts)
 
 
 def _get_annotator_settings(
