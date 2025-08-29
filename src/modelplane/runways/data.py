@@ -69,6 +69,7 @@ class BaseInput(ABC):
             run_id=current_run.info.run_id,
             name=local.name,
         )
+        self.input_run_id = current_run.info.run_id
 
     @property
     def artifact(self) -> Artifact | None:
