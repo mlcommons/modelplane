@@ -12,9 +12,9 @@ packages = [
 [tool.poetry.dependencies]
 python = ">=3.10,!=3.12.5,<3.13"
 click = "^8"
-dvc = {extras = ["gs"], version = "^3.60"} 
+dvc = {extras = ["gs"], version = "^3.63"} 
 modelbench = {git = "https://github.com/mlcommons/modelbench.git", rev = "fec32f2270da4dfa6177a56b829f0a1f8cf7059d" }
-mlflow = "3.1.1"
+mlflow = "3.3.2"
 python-dotenv = "^1"
 requests = "^2"
 prometheus-client = "*" # version controlled by dependencies
