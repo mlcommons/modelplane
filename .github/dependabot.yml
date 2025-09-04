@@ -3,4 +3,8 @@ updates:
   - package-ecosystem: "pip" # Confusingly, pip is correct for poetry
     directory: "/" # Location of package manifests
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
