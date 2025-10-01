@@ -5,13 +5,13 @@ from pydantic import BaseModel
 from modelgauge.annotator import CompletionAnnotator
 from modelgauge.annotator_registry import ANNOTATORS
 from modelgauge.annotators.llama_guard_annotator import LlamaGuardAnnotation
-from modelgauge.single_turn_prompt_response import TestItem
+from modelgauge.prompt import ChatPrompt, TextPrompt
 from modelgauge.sut import SUTResponse
 from modelgauge.tests.safe_v1 import BaseSafeTestVersion1
 
 
 class AnnotationRequest(BaseModel):
-    test_item: TestItem
+    prompt: ChatPrompt | TextPrompt
     response: SUTResponse
 
 
@@ -28,13 +28,16 @@ class TestAnnotator(CompletionAnnotator[LlamaGuardAnnotation]):
         super().__init__(uid)
         self.next_is_safe = True
 
-    def translate_request(self, test_item: TestItem, response: SUTResponse):
-        return AnnotationRequest(test_item=test_item, response=response)
+    def translate_prompt(self, prompt: ChatPrompt | TextPrompt, response: SUTResponse):
+        return AnnotationRequest(
+            prompt=prompt,
+            response=response,
+        )
 
     def annotate(self, annotation_request: AnnotationRequest) -> LlamaGuardAnnotation:
         unsafe_categories = []
         if not self.next_is_safe:
-            unsafe_categories =  BaseSafeTestVersion1.hazards
+            unsafe_categories = BaseSafeTestVersion1.hazards
         annotation = LlamaGuardAnnotation(
             is_safe=self.next_is_safe,
             is_safe_logprob=random.random(),
