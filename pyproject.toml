@@ -12,9 +12,9 @@ packages = [
 [tool.poetry.dependencies]
 python = ">=3.10,!=3.12.5,<3.13"
 click = "^8"
-dvc = {extras = ["gs"], version = "^3.60"} 
+dvc = {extras = ["gs"], version = "^3.64"} 
 modelbench = {git = "https://github.com/mlcommons/modelbench.git", rev = "8bf3a7bedcf2ae4049373a46e73ca9be6961c8c6" }
-mlflow = "3.1.1"
+mlflow = "3.6.0"
 python-dotenv = "^1"
 requests = "^2"
 prometheus-client = "*" # version controlled by dependencies
@@ -34,8 +34,8 @@ modelbench-private = ["modelbench-private"]
 ipython = "<9"
 
 [tool.poetry.group.test.dependencies]
-pytest = "^8"
-pytest-cov = "^6"
+pytest = "^9"
+pytest-cov = "^7"
 
 [tool.poetry.scripts]
 modelplane = "modelplane.cli:cli"
