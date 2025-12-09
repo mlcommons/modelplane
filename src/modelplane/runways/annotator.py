@@ -35,6 +35,9 @@ from modelplane.runways.utils import (
 )
 
 
+DEFAULT_ENSEMBLE_ANNOTATOR_UID = "ensemble"
+
+
 def annotate(
     experiment: str,
     annotator_ids: List[str],
@@ -123,7 +126,7 @@ def annotate(
                 annotator_uids=(
                     annotator_uids
                     if ensemble_strategy is None
-                    else annotator_uids + ["ensemble"]
+                    else annotator_uids + [DEFAULT_ENSEMBLE_ANNOTATOR_UID]
                 ),
                 data_path=pipeline_runner.output_dir()
                 / pipeline_runner.output_file_name,
@@ -155,11 +158,12 @@ def _get_annotator_settings(
                 f"Unknown ensemble strategy: {ensemble_strategy}. "
                 f"Available strategies: {list(ENSEMBLE_STRATEGIES.keys())}"
             )
-        kwargs["ensemble"] = EnsembleAnnotator(
-            uid="ensemble",
+        annotator = EnsembleAnnotator(
+            uid=DEFAULT_ENSEMBLE_ANNOTATOR_UID,
             annotators=annotator_ids,
             ensemble_strategy=ensemble_strategy,
         )
+        kwargs["annotators"][DEFAULT_ENSEMBLE_ANNOTATOR_UID] = annotator
     return kwargs
 
 
