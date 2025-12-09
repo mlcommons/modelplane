@@ -11,12 +11,18 @@ import numpy as np
 from matplotlib import pyplot as plt
 from modelgauge.annotator import Annotator
 from modelgauge.annotator_registry import ANNOTATORS
-from modelgauge.annotator_set import AnnotatorSet
 from modelgauge.dataset import AnnotationDataset
-from modelgauge.ensemble_annotator_set import ENSEMBLE_STRATEGIES, EnsembleAnnotatorSet
+from modelgauge.ensemble_annotator import EnsembleAnnotator
+from modelgauge.ensemble_strategies import ENSEMBLE_STRATEGIES
 from modelgauge.pipeline_runner import build_runner
 
 from modelplane.mlflow.loghelpers import log_tags
+from modelplane.runways.data import (
+    Artifact,
+    BaseInput,
+    RunArtifacts,
+    build_and_log_input,
+)
 from modelplane.runways.utils import (
     CACHE_DIR,
     MODELGAUGE_RUN_TAG_NAME,
@@ -27,32 +33,16 @@ from modelplane.runways.utils import (
     is_debug_mode,
     setup_annotator_credentials,
 )
-from modelplane.runways.data import (
-    Artifact,
-    BaseInput,
-    RunArtifacts,
-    build_and_log_input,
-)
-
-KNOWN_ENSEMBLES: Dict[str, AnnotatorSet] = {}
-# try to load the private ensemble
-try:
-    from modelgauge.private_ensemble_annotator_set import PRIVATE_ANNOTATOR_SET
-
-    KNOWN_ENSEMBLES["official-1.0"] = PRIVATE_ANNOTATOR_SET
-except NotImplementedError:
-    pass
 
 
 def annotate(
     experiment: str,
+    annotator_ids: List[str],
     input_object: BaseInput | None = None,
     dvc_repo: str | None = None,
     response_file: str | None = None,
     response_run_id: str | None = None,
-    annotator_ids: List[str] | None = None,
     ensemble_strategy: str | None = None,
-    ensemble_id: str | None = None,
     overwrite: bool = False,
     disable_cache: bool = False,
     num_workers: int = 1,
@@ -65,9 +55,7 @@ def annotate(
     Run annotations and record measurements.
     """
     # this will set annotator_ids and optionally ensemble
-    pipeline_kwargs = _get_annotator_settings(
-        annotator_ids, ensemble_strategy, ensemble_id
-    )
+    pipeline_kwargs = _get_annotator_settings(annotator_ids, ensemble_strategy)
     if not disable_cache:
         pipeline_kwargs["cache_dir"] = CACHE_DIR
     pipeline_kwargs["num_workers"] = num_workers
@@ -83,8 +71,6 @@ def annotate(
     )
     if ensemble_strategy is not None:
         tags["ensemble_strategy"] = ensemble_strategy
-    if ensemble_id is not None:
-        tags["ensemble_id"] = ensemble_id
 
     experiment_id = get_experiment_id(experiment)
     if overwrite and response_run_id:
@@ -155,38 +141,26 @@ def annotate(
 
 
 def _get_annotator_settings(
-    annotator_ids: List[str] | None,
+    annotator_ids: List[str],
     ensemble_strategy: str | None,
-    ensemble_id: str | None,
 ) -> Dict[str, Any]:
 
     kwargs = {}
 
-    if not ((annotator_ids is not None) ^ (ensemble_id is not None)):
-        raise ValueError("Either annotator_ids or ensemble_id must be provided.")
-    if annotator_ids is not None:
-        kwargs["annotators"] = _get_annotators(annotator_ids)
+    kwargs["annotators"] = _get_annotators(annotator_ids)
 
-        if ensemble_strategy is not None:
-            if ensemble_strategy not in ENSEMBLE_STRATEGIES:
-                raise ValueError(
-                    f"Unknown ensemble strategy: {ensemble_strategy}. "
-                    f"Available strategies: {list(ENSEMBLE_STRATEGIES.keys())}"
-                )
-            kwargs["ensemble"] = EnsembleAnnotatorSet(
-                annotators=annotator_ids,
-                strategy=ENSEMBLE_STRATEGIES[ensemble_strategy],
-            )
-        return kwargs
-    else:
-        if ensemble_id not in KNOWN_ENSEMBLES:
+    if ensemble_strategy is not None:
+        if ensemble_strategy not in ENSEMBLE_STRATEGIES:
             raise ValueError(
-                f"Unknown ensemble_id: {ensemble_id}. "
-                f"Available strategies: {list(KNOWN_ENSEMBLES.keys())}"
+                f"Unknown ensemble strategy: {ensemble_strategy}. "
+                f"Available strategies: {list(ENSEMBLE_STRATEGIES.keys())}"
             )
-        kwargs["ensemble"] = KNOWN_ENSEMBLES[ensemble_id]
-        kwargs["annotators"] = _get_annotators(KNOWN_ENSEMBLES[ensemble_id].annotators)
-        return kwargs
+        kwargs["ensemble"] = EnsembleAnnotator(
+            uid="ensemble",
+            annotators=annotator_ids,
+            ensemble_strategy=ensemble_strategy,
+        )
+    return kwargs
 
 
 def _get_annotators(annotator_ids: List[str]) -> Dict[str, Annotator]:

@@ -1,11 +1,10 @@
 from typing import List
 
 import click
+from modelgauge.data_schema import DEFAULT_ANNOTATION_SCHEMA
+from modelgauge.ensemble_strategies import ENSEMBLE_STRATEGIES
 
-from modelgauge.data_schema import DEFAULT_ANNOTATION_SCHEMA as ANNOTATION_SCHEMA
-from modelgauge.ensemble_annotator_set import ENSEMBLE_STRATEGIES
-
-from modelplane.runways.annotator import annotate, KNOWN_ENSEMBLES
+from modelplane.runways.annotator import annotate
 from modelplane.runways.lister import (
     list_annotators,
     list_ensemble_strategies,
@@ -153,13 +152,6 @@ def get_sut_responses(
     "Available strategies: " + ", ".join(list(ENSEMBLE_STRATEGIES.keys())),
 )
 @click.option(
-    "--ensemble_id",
-    type=str,
-    default=None,
-    help="Use a fixed ensemble id to use a predefined ensemble strategy. Options include: "
-    + ", ".join(list(KNOWN_ENSEMBLES.keys())),
-)
-@click.option(
     "--overwrite",
     is_flag=True,
     default=False,
@@ -204,12 +196,11 @@ def get_sut_responses(
 @load_from_dotenv
 def get_annotations(
     experiment: str,
+    annotator_id: List[str],
     dvc_repo: str | None = None,
     response_file: str | None = None,
     response_run_id: str | None = None,
-    annotator_id: List[str] | None = None,
     ensemble_strategy: str | None = None,
-    ensemble_id: str | None = None,
     overwrite: bool = False,
     disable_cache: bool = False,
     num_workers: int = 1,
@@ -225,7 +216,6 @@ def get_annotations(
         response_run_id=response_run_id,
         annotator_ids=annotator_id,
         ensemble_strategy=ensemble_strategy,
-        ensemble_id=ensemble_id,
         overwrite=overwrite,
         disable_cache=disable_cache,
         num_workers=num_workers,
@@ -285,8 +275,8 @@ def score_annotations(
     ground_truth: str,
     dvc_repo: str | None = None,
     sample_uid_col: str | None = None,
-    annotator_uid_col: str = ANNOTATION_SCHEMA.annotator_uid,
-    annotation_col: str = ANNOTATION_SCHEMA.annotation,
+    annotator_uid_col: str | None = DEFAULT_ANNOTATION_SCHEMA.annotator_uid,
+    annotation_col: str | None = DEFAULT_ANNOTATION_SCHEMA.annotation,
 ):
     return score(
         annotation_run_id=annotation_run_id,

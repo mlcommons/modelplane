@@ -1,13 +1,9 @@
-import random
-
-from pydantic import BaseModel
-
-from modelgauge.annotator import CompletionAnnotator
+from modelgauge.annotation import SafetyAnnotation
+from modelgauge.annotator import Annotator
 from modelgauge.annotator_registry import ANNOTATORS
-from modelgauge.annotators.llama_guard_annotator import LlamaGuardAnnotation
 from modelgauge.prompt import ChatPrompt, TextPrompt
 from modelgauge.sut import SUTResponse
-from modelgauge.tests.safe_v1 import BaseSafeTestVersion1
+from pydantic import BaseModel
 
 
 class AnnotationRequest(BaseModel):
@@ -15,9 +11,8 @@ class AnnotationRequest(BaseModel):
     response: SUTResponse
 
 
-class TestAnnotator(CompletionAnnotator[LlamaGuardAnnotation]):
-    """Simple implementation for demonstration. Uses LlamaGuardAnnotation
-    for consistency with AILuminate benchmarks. Every other item is marked safe.
+class TestAnnotator(Annotator):
+    """Simple implementation for demonstration.
 
     The methods to implement are based on the idea that annotate will
     potentially make a call to another system and the translators are helpful
@@ -34,21 +29,16 @@ class TestAnnotator(CompletionAnnotator[LlamaGuardAnnotation]):
             response=response,
         )
 
-    def annotate(self, annotation_request: AnnotationRequest) -> LlamaGuardAnnotation:
-        unsafe_categories = []
-        if not self.next_is_safe:
-            unsafe_categories = BaseSafeTestVersion1.hazards
-        annotation = LlamaGuardAnnotation(
+    def annotate(self, annotation_request: AnnotationRequest) -> SafetyAnnotation:
+        annotation = SafetyAnnotation(
             is_safe=self.next_is_safe,
-            is_safe_logprob=random.random(),
-            violation_categories=unsafe_categories,
         )
         self.next_is_safe = not self.next_is_safe
         return annotation
 
     def translate_response(
-        self, request: AnnotationRequest, response: LlamaGuardAnnotation
-    ) -> LlamaGuardAnnotation:
+        self, request: AnnotationRequest, response: SafetyAnnotation
+    ) -> SafetyAnnotation:
         return response
 
 
