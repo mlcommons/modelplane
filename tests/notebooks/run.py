@@ -5,17 +5,9 @@ import os
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 
-NOTEBOOKS_TO_SKIP = {
-    "Running the Evaluator with Mods.ipynb",  # requires private annotators
-}
-
 
 def test_notebooks(notebooks_dir):
-    notebooks = [
-        f
-        for f in os.listdir(notebooks_dir)
-        if f.endswith(".ipynb") and f not in NOTEBOOKS_TO_SKIP
-    ]
+    notebooks = [f for f in os.listdir(notebooks_dir) if f.endswith(".ipynb")]
     if not notebooks:
         print(f"No notebooks found in {notebooks_dir}")
         return
