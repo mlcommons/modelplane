@@ -1,7 +1,7 @@
-FROM ghcr.io/mlflow/mlflow:v3.1.1
+FROM ghcr.io/mlflow/mlflow:v3.7.0
 
 # The base image does not include various dependencies that are needed for
 # the MLflow server. We assume a postgres backend, so we need psycopg2.
 # We also need boto3 for S3 support, and google-cloud-storage for GCS support.
-RUN pip install mlflow[auth]==3.1.1 psycopg2-binary==2.9.11 boto3==1.40.42 \
-    google-cloud-storage==3.4.0
+RUN pip install mlflow[auth]==3.7.0 psycopg2-binary==2.9.11 boto3==1.42.5 \
+    google-cloud-storage==3.4.1

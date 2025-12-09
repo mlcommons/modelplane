@@ -38,21 +38,18 @@ if [[ "${pyproject_mlflow_version}" != "${docker_mlflow_version}" ]]; then
   mismatches=$((mismatches + 1))
 fi
 
-lock_version() {
-  local pkg="$1"
-  local name_line
-  name_line="$(grep -n "^name = \"${pkg}\"$" "${poetry_lock}" | head -n1)"
-  [[ -z "${name_line}" ]] && return 1
-  local line_number="${name_line%%:*}"
-  sed -n "$((line_number + 1))p" "${poetry_lock}" | cut -d '"' -f2
-}
-
 check_dep() {
   local pkg="$1"
   local token
   token="$(grep -o "${pkg}==[^[:space:]]*" "${dockerfile}" | head -n1)"
   local docker_version="${token##*==}"
-  local lock_version_value="$(lock_version "${pkg}")"
+  local lock_version_value="$(\
+    poetry show "${pkg}" 2>/dev/null \
+    | sed -n 's/version[[:space:]]*: //p' \
+    | head -n1 \
+    | tr -d '[:space:]'
+  )"
+
 
   if [[ -z "${docker_version}" || -z "${lock_version_value}" ]]; then
     echo "Unable to resolve ${pkg} in Dockerfile or poetry.lock" >&2
