@@ -32,7 +32,7 @@ jobs:
           ./start_services.sh --no-jupyter -d
 
       - name: Install poetry
-        run: pipx install "poetry == 1.8.5"
+        run: pipx install poetry
 
       - name: Verify MLflow versions match
         run: ./scripts/check_mlflow_versions.sh
