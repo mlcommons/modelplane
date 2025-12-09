@@ -7,3 +7,7 @@ secrets.toml
 .vscode/
 .coverage*
 .cache
+*.csv
+*.txt
+*.json
+*.jsonl

@@ -43,9 +43,8 @@ for access.
 MLFlow server (`MLFLOW_TRACKING_USERNAME` /
 `MLFLOW_TRACKING_PASSWORD`).
     * Alternatively, put the credentials in `~/.mlflow/credentials` as described [here](https://mlflow.org/docs/latest/ml/auth/#credentials-file).
-1. To access `modelbench-private` code (assuming you have 
-access), you must also set `USE_MODELBENCH_PRIVATE=true` in `.env.jupyteronly`. This will forward your ssh agent to the container
-allowing it to load the private repository to build the image.
+1. To access the private annotators, you need to set up credentials to access cheval (see `modelgauge.annotators.cheval.registration`)
+and reach out to [airr-engineering@mlcommons.org](mailto:airr-engineering@mlcommons.org) for the credentials.
 1. Start jupyter with `./start_jupyter.sh`. (You can add the
 `-d` flag to start in the background.)
 
@@ -97,17 +96,14 @@ or you can get the `run_id` via the MLFlow UI.
 MLFLOW_TRACKING_URI=http://localhost:8080 poetry run modelplane annotate --annotator_id {annotator_id} --experiment expname --response_run_id {run_id}
 ```
 
+#### Private Ensemble
+If you have access to the private annotator, you can run directly with:
+```
+MLFLOW_TRACKING_URI=http://localhost:8080 poetry run modelplane annotate --annotator_id safety-v1.1 --experiment expname --response_run_id {run_id}
+```
+
+
 ### Custom Ensembles
 ```
 MLFLOW_TRACKING_URI=http://localhost:8080 poetry run modelplane annotate --annotator_id {annotator_id1} --annotator_id {annotator_id2} --ensemble_strategy {ensemble_strategy} --experiment expname --response_file path/to/response.csv
-```
-
-### Private Ensemble
-If you have access to the private ensemble, you can install with the needed extras
-```
-poetry install --extras modelbench-private
-```
-And then run annotations with:
-```
-MLFLOW_TRACKING_URI=http://localhost:8080 poetry run modelplane annotate --ensemble_id official --experiment expname --response_run_id {run_id}
 ```

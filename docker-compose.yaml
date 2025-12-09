@@ -27,6 +27,9 @@ services:
       GOOGLE_APPLICATION_CREDENTIALS: /creds/gcp-key.json
       # if not provided via volume below, AWS S3 will not work as artifact store
       AWS_SHARED_CREDENTIALS_FILE: /creds/aws-credentials
+      # https://mlflow.org/docs/latest/community/usage-tracking/
+      MLFLOW_DISABLE_TELEMETRY: "true"
+      DO_NOT_TRACK: "true"
     depends_on:
       - postgres
     # grab backend from .env, pass artifact root, if provided, otherwise local storage of artifacts
@@ -37,6 +40,7 @@ services:
         --serve-artifacts
         --host 0.0.0.0
         --port 8080
+        --allowed-hosts 'mlflow:*,localhost:*,127.0.0.1:*'
     ports:
       - "8080:8080"
     healthcheck:
@@ -51,7 +55,7 @@ services:
       - ${GOOGLE_CREDENTIALS_PATH:-/dev/null}:/creds/gcp-key.json:ro
       # Volume only needed for AWS S3 storage artifacts
       - ${AWS_CREDENTIALS_PATH:-/dev/null}:/creds/aws-credentials:ro
-  
+
   jupyter:
     build:
       context: .
