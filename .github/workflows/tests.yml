@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: 'Branch'
+        description: "Branch"
         required: true
         default: main
 
@@ -27,12 +27,18 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Verify MLflow versions match
+        run: ./scripts/check_mlflow_versions.sh
+
       - name: Start MLflow server (no jupyter)
         run: |
           ./start_services.sh --no-jupyter -d
 
       - name: Install poetry
         run: pipx install "poetry == 1.8.5"
+
+      - name: Check poetry lock file
+        run: poetry check --lock
 
       - name: Remove existing virtual environment
         run: |
@@ -75,6 +81,5 @@ jobs:
         run: |
           docker exec modelplane-jupyter-1 poetry run python /app/test_notebooks.py
 
-          
       - name: Stop MLflow server
         run: docker compose down
