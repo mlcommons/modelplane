@@ -4,10 +4,15 @@ import pathlib
 import tempfile
 
 import mlflow
-
 from modelgauge.pipeline_runner import build_runner
-from modelgauge.sut_registry import SUTS
+from modelgauge.sut_factory import SUT_FACTORY
 
+from modelplane.runways.data import (
+    Artifact,
+    BaseInput,
+    RunArtifacts,
+    build_and_log_input,
+)
 from modelplane.runways.utils import (
     CACHE_DIR,
     MODELGAUGE_RUN_TAG_NAME,
@@ -16,12 +21,6 @@ from modelplane.runways.utils import (
     get_experiment_id,
     is_debug_mode,
     setup_sut_credentials,
-)
-from modelplane.runways.data import (
-    Artifact,
-    BaseInput,
-    RunArtifacts,
-    build_and_log_input,
 )
 
 
@@ -37,7 +36,7 @@ def respond(
     prompt_text_col=None,
 ) -> RunArtifacts:
     secrets = setup_sut_credentials(sut_id)
-    sut = SUTS.make_instance(uid=sut_id, secrets=secrets)
+    sut = SUT_FACTORY.make_instance(uid=sut_id, secrets=secrets)
     params = {"num_workers": num_workers}
     tags = {"sut_id": sut_id, RUN_TYPE_TAG_NAME: RUN_TYPE_RESPONDER}
 
