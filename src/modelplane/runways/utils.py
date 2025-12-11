@@ -2,7 +2,6 @@ import os
 from typing import List
 
 import mlflow
-
 from modelgauge.annotator_registry import ANNOTATORS
 from modelgauge.config import (
     SECRETS_PATH,
@@ -10,7 +9,7 @@ from modelgauge.config import (
     raise_if_missing_from_config,
 )
 from modelgauge.secret_values import RawSecrets
-from modelgauge.sut_registry import SUTS
+from modelgauge.sut_factory import SUT_FACTORY
 
 # Path to the secrets toml file
 SECRETS_PATH_ENV = "MODEL_SECRETS_PATH"
@@ -35,7 +34,7 @@ def is_debug_mode() -> bool:
 def setup_sut_credentials(uid: str) -> RawSecrets:
     missing_secrets = []
     secrets = safe_load_secrets_from_config()
-    missing_secrets.extend(SUTS.get_missing_dependencies(uid, secrets=secrets))
+    missing_secrets.extend(SUT_FACTORY.get_missing_dependencies(uid, secrets=secrets))
     raise_if_missing_from_config(missing_secrets)
     return secrets
 
