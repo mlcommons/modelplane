@@ -1,9 +1,6 @@
 FROM python:3.12-slim
 
-ARG USE_PRIVATE_MODELBENCH
-
 ENV PATH="/root/.local/bin:$PATH"
-ENV USE_PRIVATE_MODELBENCH=${USE_PRIVATE_MODELBENCH}
 # Used for the notebook server
 WORKDIR /app
 
@@ -18,12 +15,7 @@ RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh
 RUN git config --global core.sshCommand "ssh -o UserKnownHostsFile=/root/.ssh/known_hosts -o ForwardAgent=yes"
 RUN ssh-keyscan github.com > /root/.ssh/known_hosts
 
-# conditionally forward ssh key to install private dependencies
-RUN --mount=type=ssh if [ "$USE_PRIVATE_MODELBENCH" = "true" ]; then \
-        poetry install --no-interaction --no-ansi --no-root --extras modelbench-private; \
-    else \
-        poetry install --no-interaction --no-ansi --no-root; \
-    fi
+RUN poetry install --no-interaction --no-ansi --no-root
 
 COPY src/ ./src/
 RUN echo $(poetry env info --path)
