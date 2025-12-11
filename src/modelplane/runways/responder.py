@@ -57,7 +57,7 @@ def respond(
                 input_path=input_data.local_path(),
                 output_dir=pathlib.Path(tmp),
                 cache_dir=None if disable_cache else CACHE_DIR,
-                suts={sut_id: sut},
+                suts={sut.uid: sut},
                 prompt_uid_col=prompt_uid_col,
                 prompt_text_col=prompt_text_col,
             )
