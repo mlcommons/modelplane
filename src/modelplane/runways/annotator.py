@@ -7,6 +7,7 @@ import tempfile
 from typing import Any, Dict, List
 
 import mlflow
+import modelgauge.annotators.cheval.registration  # noqa: F401
 import numpy as np
 from matplotlib import pyplot as plt
 from modelgauge.annotator import Annotator
