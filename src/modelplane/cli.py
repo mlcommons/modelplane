@@ -1,7 +1,7 @@
 from typing import List
 
 import click
-from modelgauge.data_schema import DEFAULT_ANNOTATION_SCHEMA
+from modelgauge.data_schema import AnnotationSchema
 from modelgauge.ensemble_strategies import ENSEMBLE_STRATEGIES
 
 from modelplane.runways.annotator import annotate
@@ -13,6 +13,8 @@ from modelplane.runways.lister import (
 from modelplane.runways.responder import respond
 from modelplane.runways.scorer import score
 from modelplane.utils.env import load_from_dotenv
+
+DEFAULT_ANNOTATION_SCHEMA = AnnotationSchema.default()
 
 
 @click.group(name="modelplane")

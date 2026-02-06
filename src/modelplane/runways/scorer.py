@@ -7,18 +7,19 @@ from pathlib import Path
 
 import mlflow
 import pandas as pd
+from modelgauge.data_schema import AnnotationSchema
 from sklearn import metrics
 
-from modelgauge.data_schema import DEFAULT_ANNOTATION_SCHEMA as ANNOTATION_SCHEMA
-
 from modelplane.mlflow.loghelpers import log_tags
+from modelplane.runways.data import BaseInput, RunArtifacts, build_and_log_input
 from modelplane.runways.utils import (
     ANNOTATION_RESPONSE_ARTIFACT_NAME,
     RUN_TYPE_SCORER,
     RUN_TYPE_TAG_NAME,
     get_experiment_id,
 )
-from modelplane.runways.data import BaseInput, RunArtifacts, build_and_log_input
+
+ANNOTATION_SCHEMA = AnnotationSchema.default()
 
 
 def score(
