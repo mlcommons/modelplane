@@ -4,9 +4,10 @@ import pathlib
 import tempfile
 
 import mlflow
+from modelgauge.model_options import ModelOptions
 from modelgauge.pipeline_runner import build_runner
-from modelgauge.sut import SUTOptions
 from modelgauge.sut_factory import SUT_FACTORY
+from modelgauge.tests.safe_v1 import BaseSafeTestVersion1
 
 from modelplane.runways.data import (
     Artifact,
@@ -24,13 +25,8 @@ from modelplane.runways.utils import (
     setup_sut_credentials,
 )
 
-# Taken from modelgauge.tests.security.BaseSecurityTest
 # TODO: Figure out a way to expose the options in the CLI.
-DEFAULT_SUT_OPTIONS = SUTOptions(
-    max_tokens=3000,
-    max_total_output_tokens=10000,  # For reasoning SUTs.
-    temperature=0.01,
-)
+DEFAULT_SUT_OPTIONS = BaseSafeTestVersion1.sut_options()
 
 
 def respond(
@@ -43,7 +39,7 @@ def respond(
     num_workers: int = 1,
     prompt_uid_col=None,
     prompt_text_col=None,
-    sut_options: SUTOptions = DEFAULT_SUT_OPTIONS,
+    sut_options: ModelOptions = DEFAULT_SUT_OPTIONS,
 ) -> RunArtifacts:
     secrets = setup_sut_credentials(sut_id)
     sut = SUT_FACTORY.make_instance(uid=sut_id, secrets=secrets)
