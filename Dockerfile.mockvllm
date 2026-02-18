@@ -4,8 +4,8 @@ WORKDIR /app
 
 COPY tests/notebooks/mock_vllm_server.py .
 
-# versions chosen to match whats in poetry.lock as of 2025-07-09
-RUN pip install fastapi==0.115.12 uvicorn==0.34.3
+# versions chosen to match whats in uv.lock as of 2026-02-18
+RUN pip install fastapi==0.129.0 uvicorn==0.41.0
 
 EXPOSE ${VLLM_PORT}
 

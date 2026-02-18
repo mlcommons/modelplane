@@ -4,22 +4,21 @@ ENV PATH="/root/.local/bin:$PATH"
 # Used for the notebook server
 WORKDIR /app
 
-# pipx needed for poetry installation
+# pipx needed for uv installation script
 # ssh client needed for installing private modelbench dependencies
 # git needed dvc
 RUN apt-get update && apt-get install -y pipx openssh-client git && \
-    pipx install poetry
-COPY pyproject.toml poetry.lock README.md ./
+    pipx install uv
+COPY pyproject.toml uv.lock README.md ./
 
 RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh
 RUN git config --global core.sshCommand "ssh -o UserKnownHostsFile=/root/.ssh/known_hosts -o ForwardAgent=yes"
 RUN ssh-keyscan github.com > /root/.ssh/known_hosts
 
-RUN poetry install --no-interaction --no-ansi --no-root
+RUN uv sync --frozen --no-install-project
 
 COPY src/ ./src/
-RUN echo $(poetry env info --path)
-RUN poetry install --no-interaction --no-ansi
+RUN uv sync --frozen
 
 EXPOSE 8888
-CMD ["poetry", "run", "jupyter", "notebook", "--ip", "0.0.0.0", "--allow-root", "--no-browser", "--ServerApp.root_dir=/app/flightpaths"]
+CMD ["uv", "run", "jupyter", "notebook", "--ip", "0.0.0.0", "--allow-root", "--no-browser", "--ServerApp.root_dir=/app/flightpaths"]

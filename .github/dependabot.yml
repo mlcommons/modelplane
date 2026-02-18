@@ -1,6 +1,6 @@
 version: 2
 updates:
-  - package-ecosystem: "pip" # Confusingly, pip is correct for poetry
+  - package-ecosystem: "pip" # Dependabot uses pip for uv-managed pyproject files
     directory: "/" # Location of package manifests
     schedule:
       interval: "monthly"

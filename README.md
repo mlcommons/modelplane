@@ -79,31 +79,31 @@ Annotator and SUT responses will be cached (locally) unless you pass the
 
 ## CLI
 
-You can also interact with modelplane via CLI. Run `poetry run modelplane --help`
+You can also interact with modelplane via CLI. Run `uv run modelplane --help`
 for more details.
 
 *Important:* You must set the `MLFLOW_TRACKING_URI` environmental variable.
 For example, if you've brought up MLFlow using the fully local docker compose process above,
 you could run:
 ```
-MLFLOW_TRACKING_URI=http://localhost:8080 poetry run modelplane get-sut-responses --sut_id {sut_id} --prompts tests/data/prompts.csv --experiment expname
+MLFLOW_TRACKING_URI=http://localhost:8080 uv run modelplane get-sut-responses --sut_id {sut_id} --prompts tests/data/prompts.csv --experiment expname
 ```
 After running the command, you'd see the `run_id` in the output from mlflow, 
 or you can get the `run_id` via the MLFlow UI.
 
 ### Basic Annotations
 ```
-MLFLOW_TRACKING_URI=http://localhost:8080 poetry run modelplane annotate --annotator_id {annotator_id} --experiment expname --response_run_id {run_id}
+MLFLOW_TRACKING_URI=http://localhost:8080 uv run modelplane annotate --annotator_id {annotator_id} --experiment expname --response_run_id {run_id}
 ```
 
 #### Private Ensemble
 If you have access to the private annotator, you can run directly with:
 ```
-MLFLOW_TRACKING_URI=http://localhost:8080 poetry run modelplane annotate --annotator_id safety-v1.1 --experiment expname --response_run_id {run_id}
+MLFLOW_TRACKING_URI=http://localhost:8080 uv run modelplane annotate --annotator_id safety-v1.1 --experiment expname --response_run_id {run_id}
 ```
 
 
 ### Custom Ensembles
 ```
-MLFLOW_TRACKING_URI=http://localhost:8080 poetry run modelplane annotate --annotator_id {annotator_id1} --annotator_id {annotator_id2} --ensemble_strategy {ensemble_strategy} --experiment expname --response_file path/to/response.csv
+MLFLOW_TRACKING_URI=http://localhost:8080 uv run modelplane annotate --annotator_id {annotator_id1} --annotator_id {annotator_id2} --ensemble_strategy {ensemble_strategy} --experiment expname --response_file path/to/response.csv
 ```
