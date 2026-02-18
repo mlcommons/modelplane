@@ -1,20 +1,38 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-pyproject="pyproject.toml"
 dockerfile="Dockerfile.mlflow"
-poetry_lock="poetry.lock"
+uv_lock="uv.lock"
 
-for file in "${pyproject}" "${dockerfile}" "${poetry_lock}"; do
+for file in "${dockerfile}" "${uv_lock}"; do
   [[ -f "${file}" ]] || { echo "Missing ${file}" >&2; exit 1; }
 done
 
-pyproject_mlflow_version="$(grep '^mlflow[[:space:]]*=' "${pyproject}" | head -n1 | sed -E 's/.*version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/')"
-if [[ -z "${pyproject_mlflow_version}" ]]; then
-  echo "Unable to determine mlflow version from ${pyproject}" >&2
+read_lock_version() {
+  local pkg_path="$1"
+  local pkg_name="$2"
+  python - "${pkg_path}" "${pkg_name}" <<'PY'
+import sys
+import tomllib
+
+path, pkg = sys.argv[1:3]
+pkg = pkg.lower()
+
+with open(path, "rb") as fp:
+  data = tomllib.load(fp)
+
+for package in data.get("package", []):
+  if package.get("name", "").lower() == pkg:
+    print(package.get("version", ""))
+    break
+PY
+}
+
+lock_mlflow_version="$(read_lock_version "${uv_lock}" "mlflow")"
+if [[ -z "${lock_mlflow_version}" ]]; then
+  echo "Unable to determine mlflow version from ${uv_lock}" >&2
   exit 1
 fi
-
 docker_image_version="$(head -n1 "${dockerfile}" | cut -d ':' -f2 | tr -d 'v')"
 if [[ -z "${docker_image_version}" ]]; then
   echo "Unable to determine base image version from ${dockerfile}" >&2
@@ -28,13 +46,13 @@ fi
 
 mismatches=0
 
-if [[ "${pyproject_mlflow_version}" != "${docker_image_version}" ]]; then
-  echo "Mismatch: pyproject mlflow (${pyproject_mlflow_version}) vs Docker base (${docker_image_version})" >&2
+if [[ "${lock_mlflow_version}" != "${docker_image_version}" ]]; then
+  echo "Mismatch: uv.lock mlflow (${lock_mlflow_version}) vs Docker base (${docker_image_version})" >&2
   mismatches=$((mismatches + 1))
 fi
 
-if [[ "${pyproject_mlflow_version}" != "${docker_mlflow_version}" ]]; then
-  echo "Mismatch: pyproject mlflow (${pyproject_mlflow_version}) vs Docker pip install (${docker_mlflow_version})" >&2
+if [[ "${lock_mlflow_version}" != "${docker_mlflow_version}" ]]; then
+  echo "Mismatch: uv.lock mlflow (${lock_mlflow_version}) vs Docker pip install (${docker_mlflow_version})" >&2
   mismatches=$((mismatches + 1))
 fi
 
@@ -43,22 +61,17 @@ check_dep() {
   local token
   token="$(grep -o "${pkg}==[^[:space:]]*" "${dockerfile}" | head -n1)"
   local docker_version="${token##*==}"
-  local lock_version_value="$(\
-    poetry show "${pkg}" 2>/dev/null \
-    | sed -n 's/version[[:space:]]*: //p' \
-    | head -n1 \
-    | tr -d '[:space:]'
-  )"
+  local lock_version_value="$(read_lock_version "${uv_lock}" "${pkg}")"
 
 
   if [[ -z "${docker_version}" || -z "${lock_version_value}" ]]; then
-    echo "Unable to resolve ${pkg} in Dockerfile or poetry.lock" >&2
+    echo "Unable to resolve ${pkg} in Dockerfile or uv.lock" >&2
     mismatches=$((mismatches + 1))
     return
   fi
 
   if [[ "${docker_version}" != "${lock_version_value}" ]]; then
-    echo "Mismatch: ${pkg} Docker (${docker_version}) vs poetry.lock (${lock_version_value})" >&2
+    echo "Mismatch: ${pkg} Docker (${docker_version}) vs uv.lock (${lock_version_value})" >&2
     mismatches=$((mismatches + 1))
   fi
 }
@@ -72,4 +85,4 @@ if [[ ${mismatches} -ne 0 ]]; then
   exit 1
 fi
 
-echo "Dependency versions are consistent (${pyproject_mlflow_version})."
+echo "Dependency versions are consistent (${lock_mlflow_version})."

@@ -31,26 +31,19 @@ jobs:
         run: |
           ./start_services.sh --no-jupyter -d
 
-      - name: Install poetry
-        run: pipx install poetry
+      - name: Install uv
+        run: pipx install uv
 
       - name: Verify MLflow versions match
         run: ./scripts/check_mlflow_versions.sh
 
-      - name: Check poetry lock file
-        run: poetry check --lock
-
-      - name: Remove existing virtual environment
-        run: |
-          poetry env remove python || true
-
       - name: Install dependencies
         run: |
-          poetry cache clear --no-interaction --all .
-          poetry install --with test --no-cache
+          uv lock --check
+          uv sync --group test
 
       - name: Run all tests
-        run: MLFLOW_TRACKING_URI=http://localhost:8080 poetry run pytest
+        run: MLFLOW_TRACKING_URI=http://localhost:8080 uv run pytest
 
       - name: Stop MLflow server
         run: docker compose down
@@ -79,7 +72,7 @@ jobs:
 
       - name: Execute all notebooks
         run: |
-          docker exec modelplane-jupyter-1 poetry run python /app/test_notebooks.py
+          docker exec modelplane-jupyter-1 uv run python /app/test_notebooks.py
 
       - name: Stop MLflow server
         run: docker compose down

@@ -11,3 +11,4 @@ secrets.toml
 *.txt
 *.json
 *.jsonl
+modelplane.egg-info/
