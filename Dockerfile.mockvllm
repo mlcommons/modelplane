@@ -5,6 +5,7 @@ WORKDIR /app
 COPY tests/notebooks/mock_vllm_server.py .
 
 # versions chosen to match whats in uv.lock as of 2026-02-18
+# TODO: maybe match the uv.lock, though it's not functionally important here
 RUN pip install fastapi==0.129.0 uvicorn==0.41.0
 
 EXPOSE ${VLLM_PORT}
