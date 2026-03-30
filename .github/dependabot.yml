@@ -4,6 +4,9 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "monthly"
+    ignore:
+      - dependency-name: "mlflow"
+        versions: [">= 3.8"]
     groups:
       all-dependencies:
         patterns:
