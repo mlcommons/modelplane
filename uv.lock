@@ -3305,7 +3305,7 @@ requires-dist = [
     { name = "mlflow", extras = ["auth"], specifier = "==3.7.0" },
     { name = "modelbench", git = "https://github.com/mlcommons/modelbench.git" },
     { name = "numpy", specifier = ">=2,<3" },
-    { name = "pandas", specifier = ">=2.2.2,<3" },
+    { name = "pandas", specifier = ">=2.2.2,<4" },
     { name = "prometheus-client" },
     { name = "python-dotenv", specifier = ">=1,<2" },
     { name = "requests", specifier = ">=2,<3" },
@@ -3313,15 +3313,15 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "ipython", specifier = "<9" }]
+dev = [{ name = "ipython", specifier = "<10" }]
 mlflow = [
     { name = "boto3", specifier = ">=1.38.31,<2" },
     { name = "google-cloud-storage", specifier = ">=3.1.0,<4" },
     { name = "psycopg2-binary", specifier = ">=2.9.10,<3" },
 ]
 test = [
-    { name = "pytest", specifier = ">=8,<9" },
-    { name = "pytest-cov", specifier = ">=6,<7" },
+    { name = "pytest", specifier = ">=8,<10" },
+    { name = "pytest-cov", specifier = ">=6,<8" },
 ]
 
 [[package]]

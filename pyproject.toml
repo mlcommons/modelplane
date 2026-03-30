@@ -21,7 +21,7 @@ dependencies = [
     "jupyter>=1,<2",
     "jupyterlab-git",
     "scikit-learn>=1.5.0,<2.0.0",
-    "pandas>=2.2.2,<3",
+    "pandas>=2.2.2,<4",
     "modelbench @ git+https://github.com/mlcommons/modelbench.git",
 ]
 
@@ -30,11 +30,11 @@ modelplane = "modelplane.cli:cli"
 
 [dependency-groups]
 dev = [
-    "ipython<9",
+    "ipython<10",
 ]
 test = [
-    "pytest>=8,<9",
-    "pytest-cov>=6,<7",
+    "pytest>=8,<10",
+    "pytest-cov>=6,<8",
 ]
 mlflow = [
     "psycopg2-binary>=2.9.10,<3",
