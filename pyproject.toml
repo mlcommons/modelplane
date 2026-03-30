@@ -11,7 +11,7 @@ requires-python = ">=3.12,!=3.12.5,<4"
 dependencies = [
     "click>=8,<9",
     "dvc[gs]>=3.60,<4",
-    "mlflow[auth]==3.9.0",
+    "mlflow[auth]==3.7.0",
     "python-dotenv>=1,<2",
     "requests>=2,<3",
     "prometheus-client",
