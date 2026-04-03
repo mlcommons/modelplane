@@ -20,7 +20,7 @@ class AlwaysFalse(PassthroughGate):
 
 class PromptLengthGate(Gate):
     def run(self, ctx: EvalContext) -> bool:
-        return len(ctx.prompt_text) % 2 == 0
+        return len(ctx.prompt) % 2 == 0
 
 
 class LowerCaser(Enricher):
@@ -40,7 +40,7 @@ class UpperCaser(Enricher):
 class LLMEnricher(Enricher):
 
     def cost(self, ctx: EvalContext) -> float:
-        return len(ctx.prompt_text) + len(ctx.response)
+        return len(ctx.prompt) + len(ctx.response)
 
     def run(self, ctx: EvalContext) -> str:
         return ctx.response
