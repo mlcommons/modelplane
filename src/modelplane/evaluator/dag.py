@@ -1,24 +1,21 @@
 """DAGAnnotator and EvaluatorDAG implementation."""
 
 import collections
-from dataclasses import dataclass, field
 import functools
+import os
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
 import pandas as pd
+from modelgauge.annotation import SafetyAnnotation
 from modelgauge.annotator import Annotator
-
-from modelplane.evaluator.context import EvalContext
-from modelplane.evaluator.nodes import (
-    Arbiter,
-    EvaluatorDAGNode,
-    Gate,
-    Output,
-)
 from modelgauge.prompt import ChatPrompt, TextPrompt
 from modelgauge.prompt_formatting import format_chat
 from modelgauge.sut import SUTResponse
-from modelgauge.annotation import SafetyAnnotation
+
+from modelplane.evaluator.context import EvalContext
+from modelplane.evaluator.nodes import Arbiter, EvaluatorDAGNode, Gate, Output
 
 
 def requires_validate_and_build(method):
@@ -110,6 +107,8 @@ class EvaluatorDAG:
         in_degree: dict[str, int] = {n: 0 for n in self._nodes}
         for route in all_routes.values():
             for t in route:
+                if t in self._outputs:
+                    continue
                 in_degree[t] += 1
 
         root_nodes = [n for n in self._nodes if in_degree[n] == 0]
@@ -119,6 +118,8 @@ class EvaluatorDAG:
             current = queue.popleft()
             ordered.append(current)
             for child in all_routes.get(current, []):
+                if child in self._outputs:
+                    continue
                 in_degree[child] -= 1
                 if in_degree[child] == 0:
                     queue.append(child)
@@ -155,37 +156,46 @@ class EvaluatorDAG:
         self._root_nodes = root_nodes
         self._ordered = ordered
 
+    def _run_traced(
+        self, ctx: EvalContext
+    ) -> tuple[Output, dict[str, Any], set[tuple[str, str]]]:
+        """Execute the DAG and return (final output, node outputs, traversed edges)."""
+        active_nodes = self._root_nodes
+        node_outputs: dict[str, Any] = {}
+        traversed_edges: set[tuple[str, str]] = set()
+        while active_nodes:
+            next_active = []
+            for node_name in active_nodes:
+                ctx.set_parent_outputs(
+                    {
+                        pred: node_outputs[pred]
+                        for pred in self._predecessors[node_name]
+                        if pred in node_outputs
+                    }
+                )
+                node = self._nodes[node_name]
+                output = node.run(ctx)
+                if isinstance(output, Output):
+                    traversed_edges.add((node_name, output.name))
+                    return output, node_outputs, traversed_edges
+                node_outputs[node_name] = output
+                for target in node.next_nodes(output):
+                    t = target if isinstance(target, str) else target.name
+                    traversed_edges.add((node_name, t))
+                    if isinstance(target, Output):
+                        return target, node_outputs, traversed_edges
+                    next_active.append(t)
+            active_nodes = next_active
+        raise ValueError("DAG execution completed without reaching an Output node.")
+
     @requires_validate_and_build
     def run(
         self,
         ctx: EvalContext,
     ) -> Output:
-        """
-        Execute the DAG on a single prompt/response.
-        """
-        active_nodes = self._root_nodes
-        outputs: dict[str, Any] = {}
-        while active_nodes:
-            next_active = []
-            for node_name in active_nodes:
-                # set parent outputs in context for this node
-                ctx.set_parent_outputs(
-                    {
-                        pred: outputs[pred]
-                        for pred in self._predecessors[node_name]
-                        if pred in outputs
-                    }
-                )
-                # run the node
-                node = self._nodes[node_name]
-                output = node.run(ctx)
-                if isinstance(output, Output):
-                    return output
-                outputs[node_name] = output
-                # see which nodes to activate next based on output and routing
-                next_active.extend(node.next_nodes(output))
-            active_nodes = next_active
-        raise ValueError("DAG execution completed without reaching an Output node.")
+        """Execute the DAG on a single prompt/response."""
+        output, _, _ = self._run_traced(ctx)
+        return output
 
     @requires_validate_and_build
     def run_dataframe(
@@ -193,6 +203,7 @@ class EvaluatorDAG:
         df: pd.DataFrame,
         prompt_col: str = "prompt",
         response_col: str = "response",
+        n_jobs: int = 1,
     ) -> pd.DataFrame:
         """Run the DAG over every row of a DataFrame."""
 
@@ -203,7 +214,14 @@ class EvaluatorDAG:
             )
             return self.run(ctx)
 
-        records = [_run_row(row) for _, row in df.iterrows()]
+        rows = [row for _, row in df.iterrows()]
+
+        if n_jobs == 1:
+            records = [_run_row(row) for row in rows]
+        else:
+            max_workers = os.cpu_count() if n_jobs == -1 else n_jobs
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                records = list(executor.map(_run_row, rows))
 
         result_df = pd.DataFrame(
             {self.DATAFRAME_OUTPUT_COL: [r.name for r in records]}, index=df.index
@@ -241,20 +259,169 @@ class EvaluatorDAG:
         return path_costs
 
     @requires_validate_and_build
-    def visualize(self) -> None:
-        """Render the DAG structure with ascii."""
-        print(f"EvaluatorDAG: {self.name!r}")
-        print("=" * (len(self.name) + 18))
-        for node_name in self._ordered:
-            node = self._nodes[node_name]
-            node_type = type(node).__name__
-            if isinstance(node, Output):
-                route_str = f"  → verdict='{node.name}'"
-            elif isinstance(node, Gate):
-                route_str = f"  → True:{node.routes_true}  False:{node.routes_false}"
+    def visualize(
+        self,
+        node_outputs: Optional[dict[str, Any]] = None,
+        traversed_edges: Optional[set[tuple[str, str]]] = None,
+        final_output: Optional[Output] = None,
+    ):
+        """Render the DAG as a PNG image. In a Jupyter notebook the image is displayed inline.
+
+        When node_outputs/traversed_edges/final_output are provided (via visualize_run),
+        the hot path is highlighted and each node shows its output value.
+        """
+        import graphviz
+        from IPython.display import Image
+
+        traced = node_outputs is not None
+
+        def _format_output(value: Any) -> str:
+            if isinstance(value, float):
+                return f"{value:.3g}"
+            s = str(value)
+            return s if len(s) <= 30 else s[:27] + "..."
+
+        _NODE_STYLES: dict[type, dict] = {
+            Gate: {"shape": "diamond", "style": "filled", "fillcolor": "#d0e8f5"},
+            Arbiter: {"shape": "box", "style": "filled", "fillcolor": "#c8e6c9"},
+            Output: {"shape": "ellipse", "style": "filled", "fillcolor": "#fff9c4"},
+        }
+        _DEFAULT_STYLE = {"shape": "box", "style": "filled", "fillcolor": "#ffe0b2"}
+        _DIM = {
+            "style": "filled",
+            "fillcolor": "#f0f0f0",
+            "color": "#bbbbbb",
+            "fontcolor": "#aaaaaa",
+        }
+
+        dot = graphviz.Digraph(name=self.name)
+        dot.attr(
+            label=self.name,
+            labelloc="t",
+            fontsize="13",
+            fontname="Helvetica",
+            rankdir="TB",
+            ranksep="0.5",
+            nodesep="0.4",
+        )
+        dot.attr("node", fontname="Helvetica", fontsize="11")
+        dot.attr("edge", fontname="Helvetica", fontsize="10")
+
+        # implicit input node pinned to the top
+        top = graphviz.Digraph()
+        top.attr(rank="min")
+        top.node(
+            "__input__",
+            "prompt\nresponse",
+            shape="box",
+            style="dashed",
+            fillcolor="white",
+            color="#888888",
+            fontcolor="#555555",
+        )
+        dot.subgraph(top)
+
+        # output terminal nodes pinned to the bottom
+        bottom = graphviz.Digraph()
+        bottom.attr(rank="max")
+        for output_name, output_node in self._outputs.items():
+            attrs = dict(_NODE_STYLES[Output])
+            if traced:
+                if output_node is final_output:
+                    attrs["penwidth"] = "2.5"
+                else:
+                    attrs = dict(_DIM, shape="ellipse")
+            bottom.node(output_name, **attrs)
+        dot.subgraph(bottom)
+
+        # processing nodes
+        for node_name, node in self._nodes.items():
+            base_style = next(
+                (s for t, s in _NODE_STYLES.items() if isinstance(node, t)),
+                _DEFAULT_STYLE,
+            )
+            if traced and node_name not in node_outputs:
+                attrs = dict(_DIM, shape=base_style.get("shape", "box"))
+                label = node_name
             else:
-                route_str = f"  → {node.routes}"
-            print(f"  [{node_type:10s}] {node_name}{route_str}")
+                attrs = dict(base_style)
+                if traced:
+                    raw = node_outputs[node_name]  # type: ignore[index]
+                    label = f"{node_name}\n{_format_output(raw)}"
+                else:
+                    label = node_name
+            dot.node(node_name, label, **attrs)
+
+        # dashed edges from implicit input to root nodes
+        for root in self._root_nodes:
+            dot.edge(
+                "__input__", root, style="dashed", color="#888888", arrowhead="open"
+            )
+
+        # edges between processing nodes
+        for node_name, node in self._nodes.items():
+            if isinstance(node, Gate):
+                for target in node.routes_true:
+                    t = target if isinstance(target, str) else target.name
+                    hot = not traced or (node_name, t) in traversed_edges  # type: ignore[operator]
+                    dot.edge(
+                        node_name,
+                        t,
+                        label=" True",
+                        color="#2e7d32" if hot else "#cccccc",
+                        fontcolor="#2e7d32" if hot else "#cccccc",
+                        penwidth="2" if hot and traced else "1",
+                    )
+                for target in node.routes_false:
+                    t = target if isinstance(target, str) else target.name
+                    hot = not traced or (node_name, t) in traversed_edges  # type: ignore[operator]
+                    dot.edge(
+                        node_name,
+                        t,
+                        label=" False",
+                        color="#c62828" if hot else "#cccccc",
+                        fontcolor="#c62828" if hot else "#cccccc",
+                        penwidth="2" if hot and traced else "1",
+                    )
+            elif isinstance(node, Arbiter):
+                for output in node.outputs():
+                    hot = not traced or (node_name, output.name) in traversed_edges  # type: ignore[operator]
+                    dot.edge(
+                        node_name,
+                        output.name,
+                        color="#555555" if hot else "#cccccc",
+                        penwidth="2" if hot and traced else "1",
+                    )
+            else:
+                for target in node.routes:
+                    t = target if isinstance(target, str) else target.name
+                    hot = not traced or (node_name, t) in traversed_edges  # type: ignore[operator]
+                    dot.edge(
+                        node_name,
+                        t,
+                        color="#555555" if hot else "#cccccc",
+                        penwidth="2" if hot and traced else "1",
+                    )
+
+        try:
+            return Image(dot.pipe(format="png"))
+        except graphviz.ExecutableNotFound:
+            raise RuntimeError(
+                "Graphviz system binaries not found. Install them with:\n"
+                "  macOS:  brew install graphviz\n"
+                "  Ubuntu: apt-get install graphviz\n"
+                "  conda:  conda install graphviz"
+            ) from None
+
+    @requires_validate_and_build
+    def visualize_run(self, ctx: EvalContext):
+        """Run the DAG on ctx and return a PNG with the executed path highlighted."""
+        final_output, node_outputs, traversed_edges = self._run_traced(ctx)
+        return self.visualize(
+            node_outputs=node_outputs,
+            traversed_edges=traversed_edges,
+            final_output=final_output,
+        )
 
 
 class DAGAnnotator(Annotator):
