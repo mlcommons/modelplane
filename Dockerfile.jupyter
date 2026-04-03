@@ -1,13 +1,14 @@
 FROM python:3.12-slim
 
 ENV PATH="/root/.local/bin:$PATH"
+ENV PYTHONPATH="/app/flightpaths/flights"
 # Used for the notebook server
 WORKDIR /app
 
 # pipx needed for uv installation script
 # ssh client needed for installing private modelbench dependencies
 # git needed dvc
-RUN apt-get update && apt-get install -y pipx openssh-client git && \
+RUN apt-get update && apt-get install -y pipx openssh-client git graphviz && \
     pipx install uv
 COPY pyproject.toml uv.lock README.md ./
 
