@@ -4,8 +4,8 @@ from typing import Any
 class EvalContext:
     """Context state passed around during DAG execution."""
 
-    def __init__(self, prompt_text: str, response: str) -> None:
-        self.prompt_text = prompt_text
+    def __init__(self, prompt: str, response: str) -> None:
+        self.prompt = prompt
         self.response = response
         self._parent_outputs = {}
 

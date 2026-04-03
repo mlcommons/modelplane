@@ -64,7 +64,7 @@ def costly_enricher() -> LLMEnricher:
 
 @pytest.fixture
 def sample_ctx() -> EvalContext:
-    return EvalContext(prompt_text="Hello, world!", response="This is a response.")
+    return EvalContext(prompt="Hello, world!", response="This is a response.")
 
 
 @pytest.fixture

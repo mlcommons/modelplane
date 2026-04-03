@@ -46,7 +46,7 @@ class EvaluatorDAG:
             .add_node(arbiter)
         )
         # run single
-        result = dag.run(prompt_uid="123", prompt_text="...", response="...")
+        result = dag.run(prompt_uid="123", prompt="...", response="...")
         # run batch
         results_df = dag.run_dataframe(df)
     """
@@ -191,14 +191,14 @@ class EvaluatorDAG:
     def run_dataframe(
         self,
         df: pd.DataFrame,
-        prompt_text_col: str = "prompt_text",
-        response_col: str = "sut_response",
+        prompt_col: str = "prompt",
+        response_col: str = "response",
     ) -> pd.DataFrame:
         """Run the DAG over every row of a DataFrame."""
 
         def _run_row(row: Any) -> Output:
             ctx = EvalContext(
-                prompt_text=str(row[prompt_text_col]),
+                prompt=str(row[prompt_col]),
                 response=str(row[response_col]),
             )
             return self.run(ctx)
@@ -213,14 +213,14 @@ class EvaluatorDAG:
     @requires_validate_and_build
     def total_cost(
         self,
-        prompt_text: Optional[str],
+        prompt: Optional[str],
         response: Optional[str],
     ) -> dict[str, float]:
         """Run the DAG on all terminal paths and report total costs per path.
         If no prompt/response are provided, uses empty strings."""
 
         ctx = EvalContext(
-            prompt_text=prompt_text or "",
+            prompt=prompt or "",
             response=response or "",
         )
 
@@ -269,11 +269,11 @@ class DAGAnnotator(Annotator):
         prompt: TextPrompt | ChatPrompt,
         response: SUTResponse,
     ) -> EvalContext:
-        prompt_text = (
+        prompt_str = (
             prompt.text if isinstance(prompt, TextPrompt) else format_chat(prompt)
         )
         return EvalContext(
-            prompt_text=prompt_text,
+            prompt=prompt_str,
             response=response.text,
         )
 
