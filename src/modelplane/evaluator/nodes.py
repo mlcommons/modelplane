@@ -30,33 +30,17 @@ class EvaluatorDAGNode(ABC):
         self.routes_true = routes_true or []
         self.routes_false = routes_false or []
         self.routes = routes or []
-        self._was_run = False
-        self._output: Any = None
         self.validate()
 
     @abstractmethod
-    def _run(self, ctx: EvalContext) -> Any:
-        pass
-
     def run(self, ctx: EvalContext) -> Any:
         """Execute the node and return its output."""
-        if self._was_run:
-            return self._output
-        self._output = self._run(ctx)
-        self._was_run = True
-        return self._output
+        pass
 
     def cost(self, ctx: EvalContext) -> float:
         """Return the estimated cost of running this node. Default is 0.0;
         override for LLM calls or other expensive operations."""
         return 0.0
-
-    @property
-    def output(self) -> Any:
-        """Return the output of this node after it has been run."""
-        if not self._was_run:
-            raise ValueError(f"Node {self.name!r} has not been run yet.")
-        return self._output
 
     def __repr__(self) -> str:
         return f"{self.name!r}: ({self.__class__.__name__})"
@@ -69,12 +53,10 @@ class EvaluatorDAGNode(ABC):
             *[r if isinstance(r, str) else r.name for r in self.routes],
         ]
 
-    def next_nodes(self) -> list[str | Output]:
-        """Given a node output value, return the list of next node names to activate."""
-        if not self._was_run:
-            raise ValueError("Cannot get next nodes before running the node.")
+    def next_nodes(self, output: Any) -> list[str | Output]:
+        """Given the node's output value, return the list of next node names to activate."""
         if isinstance(self, Gate):
-            return self.routes_true if self.output else self.routes_false
+            return self.routes_true if output else self.routes_false
         else:
             return self.routes
 
@@ -116,7 +98,7 @@ class Gate(EvaluatorDAGNode):
     """Binary test node."""
 
     @abstractmethod
-    def _run(self, ctx: EvalContext) -> bool:
+    def run(self, ctx: EvalContext) -> bool:
         """Return True or False to indicate which route to take from this gate."""
 
     def validate(self) -> None:
@@ -128,7 +110,7 @@ class Enricher(EvaluatorDAGNode):
     """Context transformation node."""
 
     @abstractmethod
-    def _run(self, ctx: EvalContext) -> str:
+    def run(self, ctx: EvalContext) -> str:
         """Return a new string representing the enriched context."""
 
     def validate(self) -> None:
@@ -140,7 +122,7 @@ class Scorer(EvaluatorDAGNode):
     """Scoring node.  Produces a float score from the (possibly enriched) context."""
 
     @abstractmethod
-    def _run(self, ctx: EvalContext) -> float:
+    def run(self, ctx: EvalContext) -> float:
         """Return a score for the current context."""
 
     def validate(self) -> None:
@@ -152,7 +134,7 @@ class Arbiter(EvaluatorDAGNode):
     """Takes context and returns an Output indicating the final verdict (based on routes)."""
 
     @abstractmethod
-    def _run(self, ctx: EvalContext) -> Output:
+    def run(self, ctx: EvalContext) -> Output:
         """Return an Output indicating the final verdict."""
 
     def validate(self) -> None:

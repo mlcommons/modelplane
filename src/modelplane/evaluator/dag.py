@@ -51,6 +51,8 @@ class EvaluatorDAG:
         results_df = dag.run_dataframe(df)
     """
 
+    DATAFRAME_OUTPUT_COL = "output"
+
     def __init__(self, name: str, outputs: list[Output]) -> None:
         self.name = name
         self._nodes: dict[str, EvaluatorDAGNode] = {}
@@ -166,7 +168,6 @@ class EvaluatorDAG:
         while active_nodes:
             next_active = []
             for node_name in active_nodes:
-                print("Running node:", node_name)
                 # set parent outputs in context for this node
                 ctx.set_parent_outputs(
                     {
@@ -182,7 +183,7 @@ class EvaluatorDAG:
                     return output
                 outputs[node_name] = output
                 # see which nodes to activate next based on output and routing
-                next_active.extend(node.next_nodes())
+                next_active.extend(node.next_nodes(output))
             active_nodes = next_active
         raise ValueError("DAG execution completed without reaching an Output node.")
 
@@ -204,7 +205,9 @@ class EvaluatorDAG:
 
         records = [_run_row(row) for _, row in df.iterrows()]
 
-        result_df = pd.DataFrame(records, index=df.index)
+        result_df = pd.DataFrame(
+            {self.DATAFRAME_OUTPUT_COL: [r.name for r in records]}, index=df.index
+        )
         return pd.concat([df, result_df], axis=1)
 
     @requires_validate_and_build
