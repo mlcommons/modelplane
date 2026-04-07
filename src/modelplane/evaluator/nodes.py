@@ -47,7 +47,7 @@ class EvaluatorDAGNode(ABC):
     @abstractmethod
     def run(self, ctx: EvalContext) -> Any:
         """Execute the node and return its output."""
-        pass
+        raise NotImplementedError
 
     def cost(self, ctx: EvalContext) -> float:
         """Return the estimated cost of running this node. Default is 0.0;
@@ -56,6 +56,13 @@ class EvaluatorDAGNode(ABC):
 
     def __repr__(self) -> str:
         return f"{self.name!r}: ({self.__class__.__name__})"
+
+    def format_output(self, output: Any) -> str:
+        """Convenience method to format the node's output for debugging/visualization."""
+        if isinstance(output, float):
+            return f"{output:.3g}"
+        s = str(output)
+        return s if len(s) <= 30 else s[:27] + "..."
 
     def all_routes(self) -> list[str]:
         """Return a list of all route targets from this node."""

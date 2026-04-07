@@ -100,9 +100,10 @@ def simple_dag():
             AlwaysTrue(
                 name="always_true",
                 routes_true=["lower_caser", "prompt_parity"],
-                routes_false=[SAFE],
+                routes_false=["always_safe"],
             )
         )
+        .add_node(AlwaysSafe(name="always_safe"))
         .add_node(
             PromptLengthGate(
                 name="prompt_parity",

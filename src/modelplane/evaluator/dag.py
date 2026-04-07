@@ -277,16 +277,12 @@ class EvaluatorDAG:
                         )
 
             base_path = " -> ".join(path)
-            if terminal_outputs:
-                for output_name in terminal_outputs:
-                    path_costs[f"{base_path} -> {output_name}"] = total
-            else:
-                path_costs[base_path] = total
+            for output_name in terminal_outputs:
+                path_costs[f"{base_path} -> {output_name}"] = total
 
         return path_costs
 
-    @requires_validate_and_build
-    def visualize(
+    def _visualize(
         self,
         node_outputs: Optional[dict[str, Any]] = None,
         traversed_edges: Optional[set[tuple[str, str]]] = None,
@@ -301,12 +297,6 @@ class EvaluatorDAG:
         from IPython.display import Image
 
         traced = node_outputs is not None
-
-        def _format_output(value: Any) -> str:
-            if isinstance(value, float):
-                return f"{value:.3g}"
-            s = str(value)
-            return s if len(s) <= 30 else s[:27] + "..."
 
         _NODE_STYLES: dict[type, dict] = {
             Gate: {"shape": "diamond", "style": "filled", "fillcolor": "#d0e8f5"},
@@ -379,11 +369,8 @@ class EvaluatorDAG:
             else:
                 attrs = dict(base_style)
                 if traced:
-                    if node_name in node_outputs:
-                        raw = node_outputs[node_name]  # type: ignore[index]
-                        label = f"{node_name}\n{_format_output(raw)}"
-                    else:
-                        label = node_name
+                    raw = node_outputs[node_name]  # type: ignore[index]
+                    label = f"{node_name}\n{node.format_output(raw)}"
                     attrs["penwidth"] = "2.5"
                 else:
                     label = node_name
@@ -442,19 +429,24 @@ class EvaluatorDAG:
 
         try:
             return Image(dot.pipe(format="png"))
-        except graphviz.ExecutableNotFound:
+        except graphviz.ExecutableNotFound as e:
             raise RuntimeError(
                 "Graphviz system binaries not found. Install them with:\n"
                 "  macOS:  brew install graphviz\n"
                 "  Ubuntu: apt-get install graphviz\n"
                 "  conda:  conda install graphviz"
-            ) from None
+            ) from e
+
+    @requires_validate_and_build
+    def visualize(self):
+        """Visualize the DAG structure without execution."""
+        return self._visualize()
 
     @requires_validate_and_build
     def visualize_run(self, ctx: EvalContext):
-        """Run the DAG on ctx and return a PNG with the executed path highlighted."""
+        """Run the DAG on ctx and return a visualization with the executed path highlighted."""
         final_output, node_outputs, traversed_edges = self._run_traced(ctx)
-        return self.visualize(
+        return self._visualize(
             node_outputs=node_outputs,
             traversed_edges=traversed_edges,
             final_output=final_output,
