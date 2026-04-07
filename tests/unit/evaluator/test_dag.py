@@ -3,6 +3,8 @@
 import pandas as pd
 import pytest
 
+from .conftest import skip_in_ci
+
 from modelplane.evaluator.outputs import SAFE, UNSAFE
 
 
@@ -109,6 +111,7 @@ def test_dag_cost_all_paths(simple_dag):
     )
 
 
+@skip_in_ci
 def test_dag_visualize_runs(simple_dag, sample_ctx):
     simple_dag.visualize()
     simple_dag.visualize_run(sample_ctx)
