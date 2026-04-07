@@ -1,5 +1,11 @@
 """Unit tests for individual EvaluatorDAGNode subclasses."""
 
+import pytest
+
+from modelplane.evaluator.outputs import SAFE, UNSAFE
+
+from .mocks import AlwaysTrue, AlwaysUnsafe, LowerCaser
+
 from .conftest import DEFAULT_BRANCH, FALSE_BRANCH, SCORE1, SCORE2, TRUE_BRANCH
 
 
@@ -46,3 +52,56 @@ def test_threshold_arbiter_false(sample_ctx, threshold_arbiter):
     sample_ctx.set_parent_outputs({"parent0": SCORE1, "parent1": SCORE1})
     output = threshold_arbiter.run(sample_ctx)
     assert output.name == "SAFE"
+
+
+def test_gate_with_two_outputs():
+    with pytest.raises(ValueError, match="has multiple Output routes"):
+        AlwaysTrue(
+            name="bad_gate",
+            routes_true=[SAFE, UNSAFE],
+            routes_false=FALSE_BRANCH,
+        )
+
+
+def test_gate_with_no_true_route():
+    with pytest.raises(ValueError, match="requires both routes_true and routes_false"):
+        AlwaysTrue(
+            name="bad_gate",
+            routes_false=FALSE_BRANCH,
+        )
+
+
+def test_gate_with_routes():
+    with pytest.raises(ValueError, match="should not have routes"):
+        AlwaysTrue(
+            name="bad_gate",
+            routes_true=TRUE_BRANCH,
+            routes_false=FALSE_BRANCH,
+            routes=DEFAULT_BRANCH,
+        )
+
+
+def test_enricher_with_binary_routes():
+    with pytest.raises(
+        ValueError, match="should not have routes_true= / routes_false="
+    ):
+        LowerCaser(
+            name="bad_enricher",
+            routes_true=TRUE_BRANCH,
+            routes=DEFAULT_BRANCH,
+        )
+
+
+def test_enricher_with_no_routes():
+    with pytest.raises(ValueError, match="requires routes="):
+        LowerCaser(
+            name="bad_enricher",
+        )
+
+
+def test_arbiter_with_routes():
+    with pytest.raises(ValueError, match="is terminal and cannot have routing kwargs"):
+        AlwaysUnsafe(
+            name="bad_arbiter",
+            routes=DEFAULT_BRANCH,
+        )
