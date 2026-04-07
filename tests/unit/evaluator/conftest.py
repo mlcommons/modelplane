@@ -4,26 +4,26 @@ import pytest
 
 from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.dag import EvaluatorDAG
-from modelplane.evaluator.outputs import NONVIOLATING, VIOLATING, Output
+from modelplane.evaluator.outputs import SAFE, UNSAFE, Output
+
 from .mocks import (
     AlwaysFalse,
-    AlwaysNonViolating,
+    AlwaysSafe,
     AlwaysTrue,
-    AlwaysViolating,
+    AlwaysUnsafe,
     FixedScorer,
     LLMEnricher,
-    LLMEnricher,
-    LowerCaseScorer,
     LowerCaser,
+    LowerCaseScorer,
     PromptLengthGate,
     ThresholdArbiter,
-    UpperCaseScorer,
     UpperCaser,
+    UpperCaseScorer,
 )
 
-TRUE_BRANCH: list[str | Output] = ["true_branch"]
-FALSE_BRANCH: list[str | Output] = ["false_branch"]
-DEFAULT_BRANCH: list[str | Output] = ["next_node"]
+TRUE_BRANCH: tuple[str | Output] = ("true_branch",)
+FALSE_BRANCH: tuple[str | Output] = ("false_branch",)
+DEFAULT_BRANCH: tuple[str | Output] = ("next_node",)
 SCORE1 = 1.0
 SCORE2 = 2.0
 
@@ -68,13 +68,13 @@ def sample_ctx() -> EvalContext:
 
 
 @pytest.fixture
-def always_violating() -> AlwaysViolating:
-    return AlwaysViolating(name="always_violating")
+def always_unsafe() -> AlwaysUnsafe:
+    return AlwaysUnsafe(name="always_unsafe")
 
 
 @pytest.fixture
-def always_non_violating() -> AlwaysNonViolating:
-    return AlwaysNonViolating(name="always_non_violating")
+def always_safe() -> AlwaysSafe:
+    return AlwaysSafe(name="always_safe")
 
 
 @pytest.fixture
@@ -85,7 +85,7 @@ def threshold_arbiter() -> ThresholdArbiter:
 @pytest.fixture
 def simple_dag():
     return (
-        EvaluatorDAG("simple", outputs=[NONVIOLATING, VIOLATING])
+        EvaluatorDAG("simple", outputs=[SAFE, UNSAFE])
         .add_node(
             PromptLengthGate(
                 name="prompt_parity",

@@ -2,29 +2,24 @@ from abc import abstractmethod
 
 
 class Output:
+    @property
     @abstractmethod
-    def is_safe(self) -> bool:
-        pass
+    def name(self) -> str:
+        """Return a string name for this output, used for routing and debugging."""
+
+    def __repr__(self) -> str:
+        return f"{self.name} ({self.__class__.__name__})"
+
+
+class Safety(Output):
+
+    def __init__(self, is_safe: bool) -> None:
+        self.is_safe = is_safe
 
     @property
     def name(self) -> str:
-        return self.__class__.__name__
-
-    def __repr__(self) -> str:
-        return self.__class__.__name__
+        return "SAFE" if self.is_safe else "UNSAFE"
 
 
-class Violating(Output):
-
-    def is_safe(self) -> bool:
-        return False
-
-
-class NonViolating(Output):
-
-    def is_safe(self) -> bool:
-        return True
-
-
-VIOLATING = Violating()
-NONVIOLATING = NonViolating()
+SAFE = Safety(is_safe=True)
+UNSAFE = Safety(is_safe=False)
