@@ -3,6 +3,7 @@
 import collections
 import functools
 import os
+from itertools import product
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -130,27 +131,18 @@ class EvaluatorDAG:
                     queue.append(child)
 
         if len(ordered) != len(self._nodes):
-            # missing nodes
-            missing = set(self._nodes) - set(ordered)
-            raise ValueError(f"Graph contains a cycle. Missing nodes: {missing}")
+            nodes_in_cycle = set(self._nodes) - set(ordered)
+            raise ValueError(f"DAG contains a cycle. Nodes in cycle: {nodes_in_cycle}")
 
-        # check all terminal nodes are Output nodes
+        # check all terminal Arbiter nodes have correct outputs
         terminal_nodes = [n for n in self._nodes if not all_routes.get(n)]
         for terminal in terminal_nodes:
             entity = all_named_entities[terminal]
-            if isinstance(entity, Output) and terminal not in self._outputs:
-                raise ValueError(
-                    f"Terminal Output node {terminal!r} is not declared as an output in the DAG constructor."
-                )
-            elif isinstance(entity, Arbiter):
+            if isinstance(entity, Arbiter):
                 if any(o.name not in self._outputs for o in entity.outputs()):
                     raise ValueError(
                         f"Terminal Arbiter node {terminal!r} has output(s) that are not declared as outputs in the DAG constructor."
                     )
-            else:
-                raise ValueError(
-                    f"Terminal node {terminal!r} is not an Output or Arbiter node."
-                )
 
         # get predecessors
         for name, node in self._nodes.items():
@@ -165,32 +157,31 @@ class EvaluatorDAG:
         self, ctx: EvalContext
     ) -> tuple[Output, dict[str, Any], set[tuple[str, str]]]:
         """Execute the DAG and return (final output, node outputs, traversed edges)."""
-        active_nodes = self._root_nodes
         node_outputs: dict[str, Any] = {}
         traversed_edges: set[tuple[str, str]] = set()
-        while active_nodes:
-            next_active = []
-            for node_name in active_nodes:
-                ctx.set_parent_outputs(
-                    {
-                        pred: node_outputs[pred]
-                        for pred in self._predecessors[node_name]
-                        if pred in node_outputs
-                    }
-                )
-                node = self._nodes[node_name]
-                output = node.run(ctx)
-                if isinstance(output, Output):
-                    traversed_edges.add((node_name, output.name))
-                    return output, node_outputs, traversed_edges
-                node_outputs[node_name] = output
-                for target in node.next_nodes(output):
-                    t = target if isinstance(target, str) else target.name
-                    traversed_edges.add((node_name, t))
-                    if isinstance(target, Output):
-                        return target, node_outputs, traversed_edges
-                    next_active.append(t)
-            active_nodes = next_active
+        reachable: set[str] = set(self._root_nodes)
+        for node_name in self._ordered:
+            if node_name not in reachable:
+                continue
+            ctx.set_parent_outputs(
+                {
+                    pred: node_outputs[pred]
+                    for pred in self._predecessors[node_name]
+                    if pred in node_outputs
+                }
+            )
+            node = self._nodes[node_name]
+            output = node.run(ctx)
+            node_outputs[node_name] = output
+            if isinstance(output, Output):
+                traversed_edges.add((node_name, output.name))
+                return output, node_outputs, traversed_edges
+            for target in node.next_nodes(output):
+                t = target if isinstance(target, str) else target.name
+                traversed_edges.add((node_name, t))
+                if isinstance(target, Output):
+                    return target, node_outputs, traversed_edges
+                reachable.add(t)
         raise ValueError("DAG execution completed without reaching an Output node.")
 
     @requires_validate_and_build
@@ -234,32 +225,62 @@ class EvaluatorDAG:
         return pd.concat([df, result_df], axis=1)
 
     @requires_validate_and_build
-    def total_cost(
-        self,
-        prompt: Optional[str],
-        response: Optional[str],
-    ) -> dict[str, float]:
-        """Run the DAG on all terminal paths and report total costs per path.
-        If no prompt/response are provided, uses empty strings."""
+    def total_cost(self, ctx: Optional[EvalContext] = None) -> float:
+        """Run the DAG on ctx and return the total cost of the executed path."""
+        if ctx is None:
+            ctx = EvalContext(prompt="", response="")
+        _, node_outputs, _ = self._run_traced(ctx)
+        total = 0.0
+        for node_name in node_outputs:
+            node = self._nodes[node_name]
+            total += node.cost(ctx)
+        return total
 
-        ctx = EvalContext(
-            prompt=prompt or "",
-            response=response or "",
-        )
-
+    @requires_validate_and_build
+    def total_costs(self) -> dict[str, float]:
+        """Run the DAG on all terminal paths and report total costs per path."""
+        ctx = EvalContext(prompt="", response="")
+        gates = [name for name, node in self._nodes.items() if isinstance(node, Gate)]
         path_costs: dict[str, float] = {}
 
-        def _dfs(node_name: str, accumulated: float, path: list[str]) -> None:
-            node = self._nodes[node_name]
-            total = accumulated + node.cost(ctx)
-            if isinstance(node, Output):
-                path_costs[" -> ".join(path + [node_name])] = total
-                return
-            for target in node.all_routes():
-                _dfs(target, total, path + [node_name])
+        for combo in product([True, False], repeat=len(gates)):
+            gate_outcomes = dict(zip(gates, combo))
+            reachable: set[str] = set(self._root_nodes)
+            path: list[str] = []
+            total = 0.0
+            terminal_outputs: list[str] = []
 
-        for root in self._root_nodes:
-            _dfs(root, 0.0, [])
+            for node_name in self._ordered:
+                if node_name not in reachable:
+                    continue
+                node = self._nodes[node_name]
+                total += node.cost(ctx)
+                path.append(node_name)
+                if isinstance(node, Gate):
+                    targets = (
+                        node.routes_true
+                        if gate_outcomes[node_name]
+                        else node.routes_false
+                    )
+                elif isinstance(node, Arbiter):
+                    terminal_outputs = [o.name for o in node.outputs()]
+                    targets = []
+                else:
+                    targets = node.routes
+                for target in targets:
+                    if isinstance(target, Output):
+                        terminal_outputs = [target.name]
+                    else:
+                        reachable.add(
+                            target if isinstance(target, str) else target.name
+                        )
+
+            base_path = " -> ".join(path)
+            if terminal_outputs:
+                for output_name in terminal_outputs:
+                    path_costs[f"{base_path} -> {output_name}"] = total
+            else:
+                path_costs[base_path] = total
 
         return path_costs
 
@@ -345,14 +366,22 @@ class EvaluatorDAG:
                 (s for t, s in _NODE_STYLES.items() if isinstance(node, t)),
                 _DEFAULT_STYLE,
             )
-            if traced and node_name not in node_outputs:
+            node_was_active = (node_outputs is not None and node_name in node_outputs) or (
+                traversed_edges is not None
+                and any(src == node_name for src, _ in traversed_edges)
+            )
+            if traced and not node_was_active:
                 attrs = dict(_DIM, shape=base_style.get("shape", "box"))
                 label = node_name
             else:
                 attrs = dict(base_style)
                 if traced:
-                    raw = node_outputs[node_name]  # type: ignore[index]
-                    label = f"{node_name}\n{_format_output(raw)}"
+                    if node_name in node_outputs:
+                        raw = node_outputs[node_name]  # type: ignore[index]
+                        label = f"{node_name}\n{_format_output(raw)}"
+                    else:
+                        label = node_name
+                    attrs["penwidth"] = "2.5"
                 else:
                     label = node_name
             dot.node(node_name, label, **attrs)

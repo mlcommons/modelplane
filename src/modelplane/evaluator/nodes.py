@@ -12,7 +12,7 @@ Class hierarchy:
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.outputs import Output
@@ -22,9 +22,9 @@ class EvaluatorDAGNode(ABC):
     def __init__(
         self,
         name: str,
-        routes_true: Optional[list[str | Output]] = None,
-        routes_false: Optional[list[str | Output]] = None,
-        routes: Optional[list[str | Output]] = None,
+        routes_true: Optional[Sequence[str | Output]] = None,
+        routes_false: Optional[Sequence[str | Output]] = None,
+        routes: Optional[Sequence[str | Output]] = None,
     ) -> None:
         self.name = name
         self._routes_true: tuple[str | Output] = tuple(routes_true or [])

@@ -13,14 +13,23 @@ class PassthroughGate(Gate):
 class AlwaysTrue(PassthroughGate):
     ROUTE_TO_TAKE = True
 
+    def cost(self, ctx: EvalContext) -> float:
+        return 0.1
+
 
 class AlwaysFalse(PassthroughGate):
     ROUTE_TO_TAKE = False
+
+    def cost(self, ctx: EvalContext) -> float:
+        return 0.2
 
 
 class PromptLengthGate(Gate):
     def run(self, ctx: EvalContext) -> bool:
         return len(ctx.prompt) % 2 == 0
+
+    def cost(self, ctx: EvalContext) -> float:
+        return 0.3
 
 
 class LowerCaser(Enricher):
@@ -29,6 +38,9 @@ class LowerCaser(Enricher):
     def run(self, ctx: EvalContext) -> str:
         return ctx.response.lower()
 
+    def cost(self, ctx: EvalContext) -> float:
+        return 0.4
+
 
 class UpperCaser(Enricher):
     """Enriches by returning the response uppercased."""
@@ -36,14 +48,17 @@ class UpperCaser(Enricher):
     def run(self, ctx: EvalContext) -> str:
         return ctx.response.upper()
 
+    def cost(self, ctx: EvalContext) -> float:
+        return 0.5
+
 
 class LLMEnricher(Enricher):
 
-    def cost(self, ctx: EvalContext) -> float:
-        return len(ctx.prompt) + len(ctx.response)
-
     def run(self, ctx: EvalContext) -> str:
         return ctx.response
+
+    def cost(self, ctx: EvalContext) -> float:
+        return 0.6
 
 
 class FixedScorer(Scorer):
@@ -56,6 +71,9 @@ class FixedScorer(Scorer):
     def run(self, ctx: EvalContext) -> float:
         return self.value
 
+    def cost(self, ctx: EvalContext) -> float:
+        return 0.7
+
 
 class LowerCaseScorer(Scorer):
     """Scores based on the percentage of lowercase characters in the response."""
@@ -65,6 +83,9 @@ class LowerCaseScorer(Scorer):
             return 0.0
         num_lower = sum(1 for c in ctx.response if c.islower())
         return num_lower / len(ctx.response)
+
+    def cost(self, ctx: EvalContext) -> float:
+        return 0.8
 
 
 class UpperCaseScorer(Scorer):
@@ -76,6 +97,9 @@ class UpperCaseScorer(Scorer):
         num_upper = sum(1 for c in ctx.response if c.isupper())
         return num_upper / len(ctx.response)
 
+    def cost(self, ctx: EvalContext) -> float:
+        return 0.9
+
 
 class AlwaysUnsafe(Arbiter):
     def run(self, ctx: EvalContext) -> Output:
@@ -84,6 +108,9 @@ class AlwaysUnsafe(Arbiter):
     def outputs(self) -> list[Output]:
         return [UNSAFE]
 
+    def cost(self, ctx: EvalContext) -> float:
+        return 1.0
+
 
 class AlwaysSafe(Arbiter):
     def run(self, ctx: EvalContext) -> Output:
@@ -91,6 +118,9 @@ class AlwaysSafe(Arbiter):
 
     def outputs(self) -> list[Output]:
         return [SAFE]
+
+    def cost(self, ctx: EvalContext) -> float:
+        return 1.1
 
 
 class ThresholdArbiter(Arbiter):
@@ -105,3 +135,38 @@ class ThresholdArbiter(Arbiter):
 
     def outputs(self) -> list[Output]:
         return [UNSAFE, SAFE]
+
+    def cost(self, ctx: EvalContext) -> float:
+        return 1.2
+
+
+class UnexpectedOutput(Output):
+    @property
+    def name(self) -> str:
+        return "UNEXPECTED_OUTPUT"
+
+
+class UnexpectedArbiter(Arbiter):
+    """An arbiter that returns an output not declared in outputs()."""
+
+    def run(self, ctx: EvalContext) -> Output:
+        return UnexpectedOutput()
+
+    def outputs(self) -> list[Output]:
+        return [UnexpectedOutput()]
+
+    def cost(self, ctx: EvalContext) -> float:
+        return 1.3
+
+
+class BadArbiter(Arbiter):
+    """An arbiter that violates the contract by returning a non-Output value."""
+
+    def run(self, ctx: EvalContext) -> str:
+        return "safe"
+
+    def outputs(self) -> list[Output]:
+        return [SAFE]
+
+    def cost(self, ctx: EvalContext) -> float:
+        return 1.4
