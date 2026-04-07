@@ -1,5 +1,7 @@
 """Shared mock node implementations and helpers for evaluator tests."""
 
+import os
+
 import pytest
 
 from modelplane.evaluator.context import EvalContext
@@ -29,6 +31,8 @@ DEFAULT_BRANCH: tuple[str | Output] = ("next_node",)
 BAD_BRANCH: tuple[str | Output] = ("undefined_node",)
 SCORE1 = 1.0
 SCORE2 = 2.0
+
+skip_in_ci = pytest.mark.skipif(os.getenv("CI") == "true", reason="skipped in CI")
 
 
 @pytest.fixture
