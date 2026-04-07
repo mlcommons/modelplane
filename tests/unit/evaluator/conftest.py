@@ -11,12 +11,14 @@ from .mocks import (
     AlwaysSafe,
     AlwaysTrue,
     AlwaysUnsafe,
+    BadArbiter,
     FixedScorer,
     LLMEnricher,
     LowerCaser,
     LowerCaseScorer,
     PromptLengthGate,
     ThresholdArbiter,
+    UnexpectedArbiter,
     UpperCaser,
     UpperCaseScorer,
 )
@@ -24,6 +26,7 @@ from .mocks import (
 TRUE_BRANCH: tuple[str | Output] = ("true_branch",)
 FALSE_BRANCH: tuple[str | Output] = ("false_branch",)
 DEFAULT_BRANCH: tuple[str | Output] = ("next_node",)
+BAD_BRANCH: tuple[str | Output] = ("undefined_node",)
 SCORE1 = 1.0
 SCORE2 = 2.0
 
@@ -32,6 +35,13 @@ SCORE2 = 2.0
 def always_true_gate() -> AlwaysTrue:
     return AlwaysTrue(
         name="always_true", routes_true=TRUE_BRANCH, routes_false=FALSE_BRANCH
+    )
+
+
+@pytest.fixture
+def bad_gate() -> AlwaysTrue:
+    return AlwaysTrue(
+        name="bad_gate", routes_true=BAD_BRANCH, routes_false=FALSE_BRANCH
     )
 
 
@@ -64,7 +74,7 @@ def costly_enricher() -> LLMEnricher:
 
 @pytest.fixture
 def sample_ctx() -> EvalContext:
-    return EvalContext(prompt="Hello, world!", response="This is a response.")
+    return EvalContext(prompt="Hello, world", response="This is a response.")
 
 
 @pytest.fixture
@@ -87,9 +97,16 @@ def simple_dag():
     return (
         EvaluatorDAG("simple", outputs=[SAFE, UNSAFE])
         .add_node(
+            AlwaysTrue(
+                name="always_true",
+                routes_true=["lower_caser", "prompt_parity"],
+                routes_false=[SAFE],
+            )
+        )
+        .add_node(
             PromptLengthGate(
                 name="prompt_parity",
-                routes_true=["lower_caser"],
+                routes_true=[UNSAFE],
                 routes_false=["upper_caser"],
             )
         )
@@ -103,3 +120,45 @@ def simple_dag():
         .add_node(UpperCaseScorer(name="upper_scorer", routes=["threshold_arbiter"]))
         .add_node(ThresholdArbiter(name="threshold_arbiter", threshold=0.5))
     )
+
+
+@pytest.fixture()
+def bad_dag_with_cycle():
+    return (
+        EvaluatorDAG("cyclic", outputs=[SAFE, UNSAFE])
+        .add_node(
+            AlwaysTrue(
+                name="node1",
+                routes_true=["node2"],
+                routes_false=["node3"],
+            )
+        )
+        .add_node(
+            AlwaysTrue(
+                name="node2",
+                routes_true=["node3"],
+                routes_false=["node1"],
+            )
+        )
+        .add_node(
+            AlwaysTrue(
+                name="node3",
+                routes_true=[SAFE],
+                routes_false=[UNSAFE],
+            )
+        )
+    )
+
+
+@pytest.fixture
+def bad_dag_with_undefined_output(simple_dag):
+    bad_arbiter = UnexpectedArbiter(name="arbiter")
+    simple_dag.add_node(bad_arbiter)
+    return simple_dag
+
+
+@pytest.fixture
+def bad_dag_with_bad_arbiter():
+    dag = EvaluatorDAG("test", outputs=[SAFE, UNSAFE])
+    dag.add_node(BadArbiter(name="bad_arbiter"))
+    return dag
