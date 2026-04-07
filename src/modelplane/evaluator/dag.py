@@ -34,10 +34,10 @@ class EvaluatorDAG:
 
         refusal_gate     = MyRefusalGate("RefusalGate", routes_true=[NONVIOLATING], routes_false=["NonRefusal"])
         eval_non_refusal = MyNonRefusalEvaluator("NonRefusal", routes=["Arbiter"])
-        arbiter          = MyArbiter("Arbiter", routes_true=[VIOLATING], routes_false=[NONVIOLATING])
+        arbiter          = MyArbiter("Arbiter")
 
         dag = (
-            EvaluatorDAG("refusal_evaluator", outputs=[NONVIOLATING, VIOLATING])
+            EvaluatorDAG("refusal_gated_safety_evaluator", outputs=[NONVIOLATING, VIOLATING])
             .add_node(refusal_gate)
             .add_node(eval_non_refusal)
             .add_node(arbiter)
@@ -67,7 +67,7 @@ class EvaluatorDAG:
 
         if node.name in self._all_names():
             raise ValueError(
-                f"A different node named {node.name!r} is already registered."
+                f"A different node named {node.name} is already registered."
             )
         self._nodes[node.name] = node
         self._validated = False
