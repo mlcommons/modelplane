@@ -5,7 +5,7 @@ import pandas as pd
 
 def test_dag_run(simple_dag, sample_ctx):
     result = simple_dag.run(sample_ctx)
-    assert result.is_safe()
+    assert result.name == "SAFE"
 
 
 def test_dag_run_with_dataframe(simple_dag):
@@ -24,5 +24,5 @@ def test_dag_run_with_dataframe(simple_dag):
     assert "prompt" in result_df.columns
     assert "response" in result_df.columns
     verdicts = result_df[simple_dag.DATAFRAME_OUTPUT_COL].tolist()
-    expected_verdicts = ["NonViolating", "Violating", "NonViolating", "Violating"]
+    expected_verdicts = ["SAFE", "UNSAFE", "SAFE", "UNSAFE"]
     assert verdicts == expected_verdicts

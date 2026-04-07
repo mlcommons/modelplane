@@ -1,6 +1,6 @@
 from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.nodes import Arbiter, Enricher, Gate, Scorer
-from modelplane.evaluator.outputs import NONVIOLATING, VIOLATING, Output
+from modelplane.evaluator.outputs import SAFE, UNSAFE, Output
 
 
 class PassthroughGate(Gate):
@@ -77,20 +77,20 @@ class UpperCaseScorer(Scorer):
         return num_upper / len(ctx.response)
 
 
-class AlwaysViolating(Arbiter):
+class AlwaysUnsafe(Arbiter):
     def run(self, ctx: EvalContext) -> Output:
-        return VIOLATING
+        return UNSAFE
 
     def outputs(self) -> list[Output]:
-        return [VIOLATING]
+        return [UNSAFE]
 
 
-class AlwaysNonViolating(Arbiter):
+class AlwaysSafe(Arbiter):
     def run(self, ctx: EvalContext) -> Output:
-        return NONVIOLATING
+        return SAFE
 
     def outputs(self) -> list[Output]:
-        return [NONVIOLATING]
+        return [SAFE]
 
 
 class ThresholdArbiter(Arbiter):
@@ -101,7 +101,7 @@ class ThresholdArbiter(Arbiter):
     def run(self, ctx: EvalContext) -> Output:
         scores = ctx.parent_outputs()
         score = sum(scores) / len(scores)
-        return VIOLATING if score >= self.threshold else NONVIOLATING
+        return UNSAFE if score >= self.threshold else SAFE
 
     def outputs(self) -> list[Output]:
-        return [VIOLATING, NONVIOLATING]
+        return [UNSAFE, SAFE]

@@ -59,6 +59,11 @@ class EvaluatorDAG:
         self._predecessors: dict[str, list[str]] = collections.defaultdict(list)
         self._outputs = {output.name: output for output in outputs}
 
+    @property
+    def outputs(self) -> list[Output]:
+        """Return the list of Output nodes declared in the DAG constructor."""
+        return list(self._outputs.values())
+
     def add_node(
         self,
         node: EvaluatorDAGNode,
@@ -447,6 +452,14 @@ class DAGAnnotator(Annotator):
     def annotate(self, annotation_request: EvalContext) -> Output:
         return self.dag.run(annotation_request)
 
+
+def SafetyDAGAnnotator(DAGAnnotator):
+
+    def __init__(self, uid: str, dag: EvaluatorDAG) -> None:
+        super().__init__(uid, dag)
+        if not all(isinstance(o, Safety) for o in dag.outputs):
+            raise ValueError("All outputs of the DAG must be of type Safety.")
+
     def translate_response(
         self,
         request: EvalContext,
@@ -454,4 +467,4 @@ class DAGAnnotator(Annotator):
     ) -> SafetyAnnotation:
         """Map DAGResult verdict to a SafetyAnnotation (is_safe bool)."""
         # TODO: unclear whether SafetyAnnotation is the right standardized output
-        return SafetyAnnotation(is_safe=response.is_safe())
+        return SafetyAnnotation(is_safe=response.is_safe)
