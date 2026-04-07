@@ -122,8 +122,8 @@ class Enricher(EvaluatorDAGNode):
     """Context transformation node."""
 
     @abstractmethod
-    def run(self, ctx: EvalContext) -> str:
-        """Return a new string representing the enriched context."""
+    def run(self, ctx: EvalContext) -> Any:
+        """Return data representing the enriched context."""
 
     def validate(self) -> None:
         super().validate()

@@ -17,6 +17,7 @@ from modelgauge.sut import SUTResponse
 
 from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.nodes import Arbiter, EvaluatorDAGNode, Gate, Output
+from modelplane.evaluator.outputs import Safety
 
 
 def requires_validate_and_build(method):
@@ -366,7 +367,9 @@ class EvaluatorDAG:
                 (s for t, s in _NODE_STYLES.items() if isinstance(node, t)),
                 _DEFAULT_STYLE,
             )
-            node_was_active = (node_outputs is not None and node_name in node_outputs) or (
+            node_was_active = (
+                node_outputs is not None and node_name in node_outputs
+            ) or (
                 traversed_edges is not None
                 and any(src == node_name for src, _ in traversed_edges)
             )
@@ -482,7 +485,7 @@ class DAGAnnotator(Annotator):
         return self.dag.run(annotation_request)
 
 
-def SafetyDAGAnnotator(DAGAnnotator):
+class SafetyDAGAnnotator(DAGAnnotator):
 
     def __init__(self, uid: str, dag: EvaluatorDAG) -> None:
         super().__init__(uid, dag)
@@ -492,8 +495,7 @@ def SafetyDAGAnnotator(DAGAnnotator):
     def translate_response(
         self,
         request: EvalContext,
-        response: Output,
+        response: Safety,
     ) -> SafetyAnnotation:
         """Map DAGResult verdict to a SafetyAnnotation (is_safe bool)."""
-        # TODO: unclear whether SafetyAnnotation is the right standardized output
         return SafetyAnnotation(is_safe=response.is_safe)
