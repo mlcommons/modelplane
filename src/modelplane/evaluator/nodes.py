@@ -27,10 +27,22 @@ class EvaluatorDAGNode(ABC):
         routes: Optional[list[str | Output]] = None,
     ) -> None:
         self.name = name
-        self.routes_true = routes_true or []
-        self.routes_false = routes_false or []
-        self.routes = routes or []
+        self._routes_true: tuple[str | Output] = tuple(routes_true or [])
+        self._routes_false: tuple[str | Output] = tuple(routes_false or [])
+        self._routes: tuple[str | Output] = tuple(routes or [])
         self.validate()
+
+    @property
+    def routes_true(self) -> tuple[str | Output]:
+        return self._routes_true
+
+    @property
+    def routes_false(self) -> tuple[str | Output]:
+        return self._routes_false
+
+    @property
+    def routes(self) -> tuple[str | Output]:
+        return self._routes
 
     @abstractmethod
     def run(self, ctx: EvalContext) -> Any:
@@ -53,8 +65,8 @@ class EvaluatorDAGNode(ABC):
             *[r if isinstance(r, str) else r.name for r in self.routes],
         ]
 
-    def next_nodes(self, output: Any) -> list[str | Output]:
-        """Given the node's output value, return the list of next node names to activate."""
+    def next_nodes(self, output: Any) -> tuple[str | Output]:
+        """Given the node's output value, return the tuple of next node names to activate."""
         if isinstance(self, Gate):
             return self.routes_true if output else self.routes_false
         else:
