@@ -1,6 +1,7 @@
 from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.nodes import Arbiter, Enricher, Gate, Scorer
-from modelplane.evaluator.outputs import SAFE, UNSAFE, Output
+from modelplane.evaluator.outputs import Output
+from modelplane.evaluator.safety import SAFE, UNSAFE
 
 
 class PassthroughGate(Gate):

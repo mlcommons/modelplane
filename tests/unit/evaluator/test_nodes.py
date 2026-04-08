@@ -2,11 +2,10 @@
 
 import pytest
 
-from modelplane.evaluator.outputs import SAFE, UNSAFE
-
-from .mocks import AlwaysTrue, AlwaysUnsafe, LowerCaser
+from modelplane.evaluator.safety import SAFE, UNSAFE
 
 from .conftest import DEFAULT_BRANCH, FALSE_BRANCH, SCORE1, SCORE2, TRUE_BRANCH
+from .mocks import AlwaysTrue, AlwaysUnsafe, LowerCaser
 
 
 def test_true_routes_to_true_branch(sample_ctx, always_true_gate):
