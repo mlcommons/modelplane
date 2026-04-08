@@ -3,9 +3,9 @@
 import pandas as pd
 import pytest
 
-from .conftest import skip_in_ci
+from modelplane.evaluator.safety import SAFE, UNSAFE
 
-from modelplane.evaluator.outputs import SAFE, UNSAFE
+from .conftest import skip_in_ci
 
 
 def test_dag_outputs(simple_dag):

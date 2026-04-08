@@ -6,7 +6,8 @@ import pytest
 
 from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.dag import EvaluatorDAG
-from modelplane.evaluator.outputs import SAFE, UNSAFE, Output
+from modelplane.evaluator.outputs import Output
+from modelplane.evaluator.safety import SAFE, UNSAFE
 
 from .mocks import (
     AlwaysFalse,
