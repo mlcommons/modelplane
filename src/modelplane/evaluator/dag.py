@@ -3,21 +3,14 @@
 import collections
 import functools
 import os
-from itertools import product
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
+from itertools import product
 from typing import Any, Optional
 
 import pandas as pd
-from modelgauge.annotation import SafetyAnnotation
-from modelgauge.annotator import Annotator
-from modelgauge.prompt import ChatPrompt, TextPrompt
-from modelgauge.prompt_formatting import format_chat
-from modelgauge.sut import SUTResponse
 
 from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.nodes import Arbiter, EvaluatorDAGNode, Gate, Output
-from modelplane.evaluator.outputs import Safety
 
 
 def requires_validate_and_build(method):
@@ -451,43 +444,3 @@ class EvaluatorDAG:
             traversed_edges=traversed_edges,
             final_output=final_output,
         )
-
-
-class DAGAnnotator(Annotator):
-    """Annotator that executes a DAG."""
-
-    def __init__(self, uid: str, dag: EvaluatorDAG) -> None:
-        super().__init__(uid)
-        self.dag = dag
-
-    def translate_prompt(
-        self,
-        prompt: TextPrompt | ChatPrompt,
-        response: SUTResponse,
-    ) -> EvalContext:
-        prompt_str = (
-            prompt.text if isinstance(prompt, TextPrompt) else format_chat(prompt)
-        )
-        return EvalContext(
-            prompt=prompt_str,
-            response=response.text,
-        )
-
-    def annotate(self, annotation_request: EvalContext) -> Output:
-        return self.dag.run(annotation_request)
-
-
-class SafetyDAGAnnotator(DAGAnnotator):
-
-    def __init__(self, uid: str, dag: EvaluatorDAG) -> None:
-        super().__init__(uid, dag)
-        if not all(isinstance(o, Safety) for o in dag.outputs):
-            raise ValueError("All outputs of the DAG must be of type Safety.")
-
-    def translate_response(
-        self,
-        request: EvalContext,
-        response: Safety,
-    ) -> SafetyAnnotation:
-        """Map DAGResult verdict to a SafetyAnnotation (is_safe bool)."""
-        return SafetyAnnotation(is_safe=response.is_safe)
