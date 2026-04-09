@@ -46,8 +46,11 @@ class AnnotatorArbiter(Arbiter):
         super().__init__(name=name)
         self.annotator = annotator
 
-    def run(self, ctx: EvalContext) -> Output:
+    def run(self, ctx: EvalContext) -> Safety:
         prompt = TextPrompt(text=ctx.prompt)
         response = SUTResponse(text=ctx.response)
         annotation = self.annotator.process(prompt, response)
         return SAFE if annotation.is_safe else UNSAFE
+
+    def outputs(self) -> list[Safety]:
+        return [SAFE, UNSAFE]
