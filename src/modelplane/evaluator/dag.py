@@ -91,8 +91,14 @@ class EvaluatorDAG:
         if self._validated:
             return
 
-        # check that all route targets reference registered nodes or instances of the output type
+        # check that all route targets reference registered nodes or instances
+        # of the output type, and that all Arbiters have compatible output types
         for node_name, node in self._nodes.items():
+            if isinstance(node, Arbiter):
+                if not issubclass(node.output_type, self.output_type):
+                    raise ValueError(
+                        f"Node {node_name} is an Arbiter with output_type {node.output_type.__name__}, which is not compatible with the DAG's output_type {self.output_type.__name__}."
+                    )
             for target in node.all_routes():
                 if target not in self._nodes and not isinstance(
                     target, self.output_type
@@ -126,16 +132,6 @@ class EvaluatorDAG:
         if len(ordered) != len(self._nodes):
             nodes_in_cycle = set(self._nodes) - set(ordered)
             raise ValueError(f"DAG contains a cycle. Nodes in cycle: {nodes_in_cycle}")
-
-        # check all terminal Arbiter nodes have correct output types
-        terminal_nodes = [n for n in self._nodes if not all_routes.get(n)]
-        for terminal in terminal_nodes:
-            node = self._nodes[terminal]
-            if isinstance(node, Arbiter):
-                if not issubclass(node.output_type, self.output_type):
-                    raise ValueError(
-                        f"Terminal node {terminal} has output_type {node.output_type.__name__}, which is not compatible with the DAG's output_type {self.output_type.__name__}."
-                    )
 
         # build predecessors
         for name, node in self._nodes.items():
