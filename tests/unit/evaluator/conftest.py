@@ -7,7 +7,7 @@ import pytest
 from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.dag import EvaluatorDAG
 from modelplane.evaluator.outputs import Output
-from modelplane.evaluator.safety import SAFE, UNSAFE
+from modelplane.evaluator.safety import Safety
 
 from .mocks import (
     AlwaysFalse,
@@ -98,9 +98,24 @@ def threshold_arbiter() -> ThresholdArbiter:
 
 
 @pytest.fixture
+def one_step_dag():
+    return (
+        EvaluatorDAG("one_step", output_type=Safety)
+        .add_node(
+            AlwaysFalse(
+                name="gate",
+                routes_true=[Safety(is_safe=True)],
+                routes_false=["always_unsafe"],
+            )
+        )
+        .add_node(AlwaysUnsafe(name="always_unsafe"))
+    )
+
+
+@pytest.fixture
 def simple_dag():
     return (
-        EvaluatorDAG("simple", outputs=[SAFE, UNSAFE])
+        EvaluatorDAG("simple", output_type=Safety)
         .add_node(
             AlwaysTrue(
                 name="always_true",
@@ -112,7 +127,7 @@ def simple_dag():
         .add_node(
             PromptLengthGate(
                 name="prompt_parity",
-                routes_true=[UNSAFE],
+                routes_true=[Safety(is_safe=False)],
                 routes_false=["upper_caser"],
             )
         )
@@ -131,7 +146,7 @@ def simple_dag():
 @pytest.fixture()
 def bad_dag_with_cycle():
     return (
-        EvaluatorDAG("cyclic", outputs=[SAFE, UNSAFE])
+        EvaluatorDAG("cyclic", output_type=Safety)
         .add_node(
             AlwaysTrue(
                 name="node1",
@@ -149,8 +164,8 @@ def bad_dag_with_cycle():
         .add_node(
             AlwaysTrue(
                 name="node3",
-                routes_true=[SAFE],
-                routes_false=[UNSAFE],
+                routes_true=[Safety(is_safe=True)],
+                routes_false=[Safety(is_safe=False)],
             )
         )
     )
@@ -165,6 +180,6 @@ def bad_dag_with_undefined_output(simple_dag):
 
 @pytest.fixture
 def bad_dag_with_bad_arbiter():
-    dag = EvaluatorDAG("test", outputs=[SAFE, UNSAFE])
+    dag = EvaluatorDAG("test", output_type=Safety)
     dag.add_node(BadArbiter(name="bad_arbiter"))
     return dag
