@@ -95,7 +95,7 @@ class EvaluatorDAG:
         for node_name, node in self._nodes.items():
             for target in node.all_routes():
                 if target not in self._nodes and not isinstance(
-                    target, self._output_type
+                    target, self.output_type
                 ):
                     raise ValueError(
                         f"Node {node_name} routes to unregistered node {target} or incompatible output."
@@ -132,9 +132,9 @@ class EvaluatorDAG:
         for terminal in terminal_nodes:
             node = self._nodes[terminal]
             if isinstance(node, Arbiter):
-                if not issubclass(node.output_type, self._output_type):
+                if not issubclass(node.output_type, self.output_type):
                     raise ValueError(
-                        f"Terminal node {terminal} has output_type {node.output_type.__name__}, which is not compatible with the DAG's output_type {self._output_type.__name__}."
+                        f"Terminal node {terminal} has output_type {node.output_type.__name__}, which is not compatible with the DAG's output_type {self.output_type.__name__}."
                     )
 
         # build predecessors
@@ -267,7 +267,7 @@ class EvaluatorDAG:
                         )
 
             base_path = " -> ".join(path)
-            path_costs[f"{base_path} -> Out ({self._output_type.__name__})"] = total
+            path_costs[f"{base_path} -> Out ({self.output_type.__name__})"] = total
 
         return path_costs
 
@@ -282,6 +282,8 @@ class EvaluatorDAG:
 
         When node_outputs/traversed_edges/final_output are provided (via visualize_run),
         the hot path is highlighted and each node shows its output value.
+
+        NOTE: this helper method is vibe-coded and provided as-is.
         """
         import graphviz
         from IPython.display import Image
@@ -302,7 +304,11 @@ class EvaluatorDAG:
             "style": "filled,rounded,dashed",
             "fillcolor": "#dcedc8",
         }
-        _DEFAULT_STYLE = {"shape": "rectangle", "style": "filled", "fillcolor": "#eeeeee"}
+        _DEFAULT_STYLE = {
+            "shape": "rectangle",
+            "style": "filled",
+            "fillcolor": "#eeeeee",
+        }
         _DIM = {
             "style": "filled",
             "fillcolor": "#f0f0f0",
@@ -392,12 +398,14 @@ class EvaluatorDAG:
                     attrs["penwidth"] = "2.5"
                 else:
                     attrs = dict(_DIM, shape="rectangle", style="filled,rounded")
-            bottom.node(out_name, repr(out_inst), fontsize=_fontsize(repr(out_inst)), **attrs)
+            bottom.node(
+                out_name, repr(out_inst), fontsize=_fontsize(repr(out_inst)), **attrs
+            )
 
         # synthetic output type node for Arbiters
         if has_arbiter:
-            output_node_id = f"__output_{self._output_type.__name__}__"
-            output_label = f"{self._output_type.__name__} (?)"
+            output_node_id = f"__output_{self.output_type.__name__}__"
+            output_label = f"{self.output_type.__name__} (?)"
             attrs = dict(_OUTPUT_TYPE_STYLE)
             if traced:
                 if not final_from_direct and final_output is not None:
@@ -406,7 +414,9 @@ class EvaluatorDAG:
                     output_label = repr(final_output)
                 elif final_from_direct:
                     attrs = dict(_DIM, shape="rectangle", style="filled,rounded")
-            bottom.node(output_node_id, output_label, fontsize=_fontsize(output_label), **attrs)
+            bottom.node(
+                output_node_id, output_label, fontsize=_fontsize(output_label), **attrs
+            )
 
         dot.subgraph(bottom)
 
@@ -433,7 +443,11 @@ class EvaluatorDAG:
                     attrs["penwidth"] = "2.5"
                 else:
                     label = node_name
-            _fill = 0.45 if isinstance(node, Gate) else 0.65 if isinstance(node, Arbiter) else 0.8
+            _fill = (
+                0.45
+                if isinstance(node, Gate)
+                else 0.65 if isinstance(node, Arbiter) else 0.8
+            )
             dot.node(node_name, label, fontsize=_fontsize(label, fill=_fill), **attrs)
 
         # edges from implicit input to root nodes
@@ -466,7 +480,7 @@ class EvaluatorDAG:
                         penwidth="2" if hot and traced else "1",
                     )
             elif isinstance(node, Arbiter):
-                output_node_id = f"__output_{self._output_type.__name__}__"
+                output_node_id = f"__output_{self.output_type.__name__}__"
                 hot = not traced or node_name in (node_outputs or {})
                 dot.edge(
                     node_name,
