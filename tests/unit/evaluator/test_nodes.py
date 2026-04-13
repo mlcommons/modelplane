@@ -2,7 +2,7 @@
 
 import pytest
 
-from modelplane.evaluator.safety import SAFE, UNSAFE
+from modelplane.evaluator.safety import Safety
 
 from .conftest import DEFAULT_BRANCH, FALSE_BRANCH, SCORE1, SCORE2, TRUE_BRANCH
 from .mocks import AlwaysTrue, AlwaysUnsafe, LowerCaser
@@ -57,7 +57,7 @@ def test_gate_with_two_outputs():
     with pytest.raises(ValueError, match="has multiple Output routes"):
         AlwaysTrue(
             name="bad_gate",
-            routes_true=[SAFE, UNSAFE],
+            routes_true=[Safety(is_safe=True), Safety(is_safe=False)],
             routes_false=FALSE_BRANCH,
         )
 

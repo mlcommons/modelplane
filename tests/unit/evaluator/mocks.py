@@ -1,7 +1,7 @@
 from modelplane.evaluator.context import EvalContext
-from modelplane.evaluator.nodes import Arbiter, Enricher, Gate, Scorer
+from modelplane.evaluator.nodes import Arbiter, Enricher, Gate
 from modelplane.evaluator.outputs import Output
-from modelplane.evaluator.safety import SAFE, UNSAFE
+from modelplane.evaluator.safety import Safety
 
 
 class PassthroughGate(Gate):
@@ -62,7 +62,7 @@ class LLMEnricher(Enricher):
         return 0.6
 
 
-class FixedScorer(Scorer):
+class FixedScorer(Enricher):
     """Returns a fixed float score regardless of context."""
 
     def __init__(self, name: str, value: float, **kwargs):
@@ -76,7 +76,7 @@ class FixedScorer(Scorer):
         return 0.7
 
 
-class LowerCaseScorer(Scorer):
+class LowerCaseScorer(Enricher):
     """Scores based on the percentage of lowercase characters in the response."""
 
     def run(self, ctx: EvalContext) -> float:
@@ -89,7 +89,7 @@ class LowerCaseScorer(Scorer):
         return 0.8
 
 
-class UpperCaseScorer(Scorer):
+class UpperCaseScorer(Enricher):
     """Scores based on the percentage of uppercase characters in the response."""
 
     def run(self, ctx: EvalContext) -> float:
@@ -104,24 +104,26 @@ class UpperCaseScorer(Scorer):
 
 class AlwaysUnsafe(Arbiter):
     def run(self, ctx: EvalContext) -> Output:
-        return UNSAFE
-
-    def outputs(self) -> list[Output]:
-        return [UNSAFE]
+        return Safety(is_safe=False)
 
     def cost(self, ctx: EvalContext) -> float:
         return 1.0
 
+    @property
+    def output_type(self) -> type:
+        return Safety
+
 
 class AlwaysSafe(Arbiter):
     def run(self, ctx: EvalContext) -> Output:
-        return SAFE
-
-    def outputs(self) -> list[Output]:
-        return [SAFE]
+        return Safety(is_safe=True)
 
     def cost(self, ctx: EvalContext) -> float:
         return 1.1
+
+    @property
+    def output_type(self) -> type:
+        return Safety
 
 
 class ThresholdArbiter(Arbiter):
@@ -132,13 +134,14 @@ class ThresholdArbiter(Arbiter):
     def run(self, ctx: EvalContext) -> Output:
         scores = ctx.parent_outputs()
         score = sum(scores) / len(scores)
-        return UNSAFE if score >= self.threshold else SAFE
-
-    def outputs(self) -> list[Output]:
-        return [UNSAFE, SAFE]
+        return Safety(is_safe=score < self.threshold)
 
     def cost(self, ctx: EvalContext) -> float:
         return 1.2
+
+    @property
+    def output_type(self) -> type:
+        return Safety
 
 
 class UnexpectedOutput(Output):
@@ -153,11 +156,12 @@ class UnexpectedArbiter(Arbiter):
     def run(self, ctx: EvalContext) -> Output:
         return UnexpectedOutput()
 
-    def outputs(self) -> list[Output]:
-        return [UnexpectedOutput()]
-
     def cost(self, ctx: EvalContext) -> float:
         return 1.3
+
+    @property
+    def output_type(self) -> type:
+        return UnexpectedOutput
 
 
 class BadArbiter(Arbiter):
@@ -166,8 +170,9 @@ class BadArbiter(Arbiter):
     def run(self, ctx: EvalContext) -> str:
         return "safe"
 
-    def outputs(self) -> list[Output]:
-        return [SAFE]
-
     def cost(self, ctx: EvalContext) -> float:
         return 1.4
+
+    @property
+    def output_type(self) -> type:
+        return Safety

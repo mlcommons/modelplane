@@ -1,27 +1,32 @@
 """Unit tests for EvaluatorDAG construction, validation, execution, and visualization."""
 
+from unittest.mock import patch
+
 import pandas as pd
 import pytest
 
-from modelplane.evaluator.safety import SAFE, UNSAFE
+from modelplane.evaluator.dag import EvaluatorDAG
+from modelplane.evaluator.safety import Safety
 
 from .conftest import skip_in_ci
 
 
 def test_dag_outputs(simple_dag):
-    assert simple_dag.outputs == [SAFE, UNSAFE]
+    assert simple_dag.output_type == Safety
+
+
+def test_dag_with_bad_output_type():
+    with pytest.raises(
+        ValueError,
+        match="output_type must be a subclass of Output",
+    ):
+        EvaluatorDAG(name="bad_dag", output_type=str)
 
 
 def test_add_node_with_same_name_as_existing_node(simple_dag, always_true_gate):
     always_true_gate.name = next(iter(simple_dag._nodes))
     with pytest.raises(ValueError, match="is already registered"):
         simple_dag.add_node(always_true_gate)  # same name as existing node
-
-
-def test_add_node_with_same_name_as_output(simple_dag, always_true_gate):
-    always_true_gate.name = SAFE.name
-    with pytest.raises(ValueError, match="is already registered"):
-        simple_dag.add_node(always_true_gate)  # same name as existing output
 
 
 def test_add_node_with_undefined_target_node(simple_dag, bad_gate):
@@ -36,7 +41,9 @@ def test_dag_with_cycle(bad_dag_with_cycle):
 
 
 def test_dag_with_undefined_output(bad_dag_with_undefined_output):
-    with pytest.raises(ValueError, match=r"has output\(s\) that are not declared"):
+    with pytest.raises(
+        ValueError, match=r"which is not compatible with the DAG\'s output_type"
+    ):
         bad_dag_with_undefined_output._validate_and_build()
 
 
@@ -102,16 +109,31 @@ def test_dag_cost_all_paths(simple_dag):
     costs = simple_dag.total_costs()
     assert costs == pytest.approx(
         {
-            "always_true -> always_safe -> SAFE": 1.2,
-            "always_true -> lower_caser -> prompt_parity -> lower_scorer -> upper_scorer -> threshold_arbiter -> SAFE": 3.7,
-            "always_true -> lower_caser -> prompt_parity -> lower_scorer -> upper_scorer -> threshold_arbiter -> UNSAFE": 3.7,
-            "always_true -> lower_caser -> prompt_parity -> upper_caser -> lower_scorer -> upper_scorer -> threshold_arbiter -> SAFE": 4.2,
-            "always_true -> lower_caser -> prompt_parity -> upper_caser -> lower_scorer -> upper_scorer -> threshold_arbiter -> UNSAFE": 4.2,
+            "always_true -> always_safe -> Out (Safety)": 1.2,
+            "always_true -> lower_caser -> prompt_parity -> lower_scorer -> upper_scorer -> threshold_arbiter -> Out (Safety)": 3.7,
+            "always_true -> lower_caser -> prompt_parity -> upper_caser -> lower_scorer -> upper_scorer -> threshold_arbiter -> Out (Safety)": 4.2,
         }
     )
 
 
 @skip_in_ci
-def test_dag_visualize_runs(simple_dag, sample_ctx):
+def test_dag_visualize_runs(simple_dag, one_step_dag, sample_ctx):
     simple_dag.visualize()
     simple_dag.visualize_run(sample_ctx)
+    one_step_dag.visualize()
+    one_step_dag.visualize_run(sample_ctx)
+
+
+def test_visualize_raises_when_graphviz_binary_missing(simple_dag):
+    import graphviz
+
+    with patch.object(
+        graphviz.Digraph,
+        "pipe",
+        side_effect=graphviz.ExecutableNotFound(["dot"]),
+    ):
+        with pytest.raises(
+            RuntimeError,
+            match="Graphviz system binaries not found",
+        ):
+            simple_dag.visualize()
