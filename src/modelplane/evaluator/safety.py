@@ -18,12 +18,18 @@ class Safety(Output):
         return "SAFE" if self.is_safe else "UNSAFE"
 
 
+class SafetyArbiter(Arbiter):
+    @property
+    def output_type(self) -> type:
+        return Safety
+
+
 class SafetyDAGAnnotator(DAGAnnotator):
     """Implementation of DAGAnnotator that produces a SafetyAnnotation."""
 
     def __init__(self, uid: str, dag: EvaluatorDAG) -> None:
         super().__init__(uid, dag)
-        if not all(isinstance(o, Safety) for o in dag.outputs):
+        if not issubclass(dag.output_type, Safety):
             raise ValueError("All outputs of the DAG must be of type Safety.")
 
     def translate_response(
@@ -35,7 +41,7 @@ class SafetyDAGAnnotator(DAGAnnotator):
         return SafetyAnnotation(is_safe=response.is_safe)
 
 
-class AnnotatorArbiter(Arbiter):
+class AnnotatorArbiter(SafetyArbiter):
     """Arbiter that outputs SAFE or UNSAFE based on the output of a (safety) Annotator."""
 
     def __init__(self, name: str, annotator: Annotator) -> None:

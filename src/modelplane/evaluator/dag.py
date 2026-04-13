@@ -57,6 +57,10 @@ class EvaluatorDAG:
             raise ValueError("output_type must be a subclass of Output.")
         self._output_type = output_type
 
+    @property
+    def output_type(self) -> type:
+        return self._output_type
+
     def add_node(
         self,
         node: EvaluatorDAGNode,
@@ -130,7 +134,7 @@ class EvaluatorDAG:
             if isinstance(node, Arbiter):
                 if not issubclass(node.output_type, self._output_type):
                     raise ValueError(
-                        f"Terminal Arbiter node {terminal} has output_type {node.output_type}, which is not compatible with the DAG's output_type {self._output_type}."
+                        f"Terminal node {terminal} has output_type {node.output_type.__name__}, which is not compatible with the DAG's output_type {self._output_type.__name__}."
                     )
 
         # build predecessors
@@ -263,7 +267,7 @@ class EvaluatorDAG:
                         )
 
             base_path = " -> ".join(path)
-            path_costs[f"{base_path} -> {self._output_type}"] = total
+            path_costs[f"{base_path} -> Out ({self._output_type.__name__})"] = total
 
         return path_costs
 
@@ -272,6 +276,7 @@ class EvaluatorDAG:
         node_outputs: Optional[dict[str, Any]] = None,
         traversed_edges: Optional[set[tuple[str, str]]] = None,
         final_output: Optional[Output] = None,
+        ctx: Optional[EvalContext] = None,
     ):
         """Render the DAG as a PNG image. In a Jupyter notebook the image is displayed inline.
 
@@ -284,11 +289,20 @@ class EvaluatorDAG:
         traced = node_outputs is not None
 
         _NODE_STYLES: dict[type, dict] = {
-            Gate: {"shape": "diamond", "style": "filled", "fillcolor": "#d0e8f5"},
-            Arbiter: {"shape": "box", "style": "filled", "fillcolor": "#c8e6c9"},
-            Output: {"shape": "ellipse", "style": "filled", "fillcolor": "#fff9c4"},
+            Gate: {"shape": "diamond", "style": "filled", "fillcolor": "#ffe082"},
+            Arbiter: {"shape": "hexagon", "style": "filled", "fillcolor": "#e1bee7"},
+            Output: {
+                "shape": "rectangle",
+                "style": "filled,rounded",
+                "fillcolor": "#dcedc8",
+            },
         }
-        _DEFAULT_STYLE = {"shape": "box", "style": "filled", "fillcolor": "#ffe0b2"}
+        _OUTPUT_TYPE_STYLE = {
+            "shape": "rectangle",
+            "style": "filled,rounded,dashed",
+            "fillcolor": "#dcedc8",
+        }
+        _DEFAULT_STYLE = {"shape": "rectangle", "style": "filled", "fillcolor": "#eeeeee"}
         _DIM = {
             "style": "filled",
             "fillcolor": "#f0f0f0",
@@ -296,44 +310,104 @@ class EvaluatorDAG:
             "fontcolor": "#aaaaaa",
         }
 
+        _NODE_W, _NODE_H = 1.5, 0.5  # inches, fixed for all nodes
+
+        def _fontsize(
+            label: str, max_fs: float = 11.0, min_fs: float = 7.0, fill: float = 0.8
+        ) -> str:
+            """Scale font size so the longest line fits within _NODE_W.
+
+            fill: fraction of the node width usable for text. Shapes like diamonds,
+            hexagons, and parallelograms have less usable area than rectangles, so
+            pass a smaller fill value for those.
+            """
+            longest = max((len(line) for line in label.split("\n")), default=1)
+            # approx: each char ≈ 0.55 × fontsize points
+            fs = (_NODE_W * 72 * fill) / (longest * 0.55)
+            return f"{max(min_fs, min(max_fs, fs)):.1f}"
+
         dot = graphviz.Digraph(name=self.name)
         dot.attr(
             label=self.name,
             labelloc="t",
             fontsize="13",
             fontname="Helvetica",
-            rankdir="TB",
+            rankdir="LR",
             ranksep="0.5",
             nodesep="0.4",
         )
-        dot.attr("node", fontname="Helvetica", fontsize="11")
-        dot.attr("edge", fontname="Helvetica", fontsize="10")
+        dot.attr(
+            "node",
+            fontname="Helvetica",
+            fontsize="11",
+            width=str(_NODE_W),
+            height=str(_NODE_H),
+            fixedsize="true",
+        )
+        dot.attr("edge", fontname="Helvetica", fontsize="9")
 
-        # implicit input node pinned to the top
+        # implicit input node pinned to the left
         top = graphviz.Digraph()
         top.attr(rank="min")
+
+        def _truncate(s: str, n: int = 24) -> str:
+            return s if len(s) <= n else s[: n - 1] + "…"
+
+        if ctx is not None:
+            input_label = f"p: {_truncate(ctx.prompt)}\nr: {_truncate(ctx.response)}"
+        else:
+            input_label = "prompt\nresponse"
         top.node(
             "__input__",
-            "prompt\nresponse",
-            shape="box",
-            style="dashed",
-            fillcolor="white",
-            color="#888888",
-            fontcolor="#555555",
+            input_label,
+            shape="parallelogram",
+            style="filled",
+            fillcolor="#b2dfdb",
+            color="#4db6ac",
+            fontcolor="#00695c",
+            fontsize=_fontsize(input_label, fill=0.45),
         )
         dot.subgraph(top)
 
-        # output terminal nodes pinned to the bottom
+        # collect Output instances directly referenced in routes (from non-Arbiter nodes)
+        direct_outputs: dict[str, Output] = {}
+        has_arbiter = any(isinstance(n, Arbiter) for n in self._nodes.values())
+        for node in self._nodes.values():
+            if not isinstance(node, Arbiter):
+                for target in node.all_routes():
+                    if isinstance(target, Output):
+                        direct_outputs[target.name] = target
+
+        # whether the final output came from a direct route or an arbiter
+        final_from_direct = traced and final_output in direct_outputs.values()
+
         bottom = graphviz.Digraph()
         bottom.attr(rank="max")
-        for output_name, output_node in self._outputs.items():
+
+        # individual nodes for directly-routed Output instances, shown with their repr
+        for out_name, out_inst in direct_outputs.items():
             attrs = dict(_NODE_STYLES[Output])
             if traced:
-                if output_node is final_output:
+                if out_inst is final_output:
                     attrs["penwidth"] = "2.5"
                 else:
-                    attrs = dict(_DIM, shape="ellipse")
-            bottom.node(output_name, **attrs)
+                    attrs = dict(_DIM, shape="rectangle", style="filled,rounded")
+            bottom.node(out_name, repr(out_inst), fontsize=_fontsize(repr(out_inst)), **attrs)
+
+        # synthetic output type node for Arbiters
+        if has_arbiter:
+            output_node_id = f"__output_{self._output_type.__name__}__"
+            output_label = f"{self._output_type.__name__} (?)"
+            attrs = dict(_OUTPUT_TYPE_STYLE)
+            if traced:
+                if not final_from_direct and final_output is not None:
+                    attrs = dict(_NODE_STYLES[Output])
+                    attrs["penwidth"] = "2.5"
+                    output_label = repr(final_output)
+                elif final_from_direct:
+                    attrs = dict(_DIM, shape="rectangle", style="filled,rounded")
+            bottom.node(output_node_id, output_label, fontsize=_fontsize(output_label), **attrs)
+
         dot.subgraph(bottom)
 
         # processing nodes
@@ -359,13 +433,12 @@ class EvaluatorDAG:
                     attrs["penwidth"] = "2.5"
                 else:
                     label = node_name
-            dot.node(node_name, label, **attrs)
+            _fill = 0.45 if isinstance(node, Gate) else 0.65 if isinstance(node, Arbiter) else 0.8
+            dot.node(node_name, label, fontsize=_fontsize(label, fill=_fill), **attrs)
 
-        # dashed edges from implicit input to root nodes
+        # edges from implicit input to root nodes
         for root in self._root_nodes:
-            dot.edge(
-                "__input__", root, style="dashed", color="#888888", arrowhead="open"
-            )
+            dot.edge("__input__", root, color="#888888")
 
         # edges between processing nodes
         for node_name, node in self._nodes.items():
@@ -393,22 +466,27 @@ class EvaluatorDAG:
                         penwidth="2" if hot and traced else "1",
                     )
             elif isinstance(node, Arbiter):
-                for output in node.outputs():
-                    hot = not traced or (node_name, output.name) in traversed_edges  # type: ignore[operator]
-                    dot.edge(
-                        node_name,
-                        output.name,
-                        color="#555555" if hot else "#cccccc",
-                        penwidth="2" if hot and traced else "1",
-                    )
+                output_node_id = f"__output_{self._output_type.__name__}__"
+                hot = not traced or node_name in (node_outputs or {})
+                dot.edge(
+                    node_name,
+                    output_node_id,
+                    color="#555555" if hot else "#cccccc",
+                    penwidth="2" if hot and traced else "1",
+                )
             else:
                 for target in node.routes:
                     t = target if isinstance(target, str) else target.name
                     hot = not traced or (node_name, t) in traversed_edges  # type: ignore[operator]
+                    edge_label = ""
+                    if traced and hot and node_name in (node_outputs or {}):
+                        edge_label = f" {node.format_output(node_outputs[node_name])}"  # type: ignore[index]
                     dot.edge(
                         node_name,
                         t,
+                        label=edge_label,
                         color="#555555" if hot else "#cccccc",
+                        fontcolor="#555555" if hot else "#cccccc",
                         penwidth="2" if hot and traced else "1",
                     )
 
@@ -424,15 +502,36 @@ class EvaluatorDAG:
 
     @requires_validate_and_build
     def visualize(self):
-        """Visualize the DAG structure without execution."""
+        """Render the DAG structure as a PNG image (inline in Jupyter notebooks).
+
+        The graph flows left to right. Node shapes and colors:
+          - Input          — teal parallelogram (implicit; represents the prompt/response pair)
+          - Gate           — amber diamond; edges labelled "True" (green) / "False" (red)
+          - Enricher       — light grey rectangle; edges are unlabelled
+          - Arbiter        — light purple hexagon; edge labelled with the output type name
+          - Output (direct instance)   — soft green rounded rectangle, solid border;
+                                         label is repr(output)
+          - Output (type placeholder)  — soft green rounded rectangle, dashed border;
+                                         label is the class name; shown when the DAG contains
+                                         an Arbiter whose concrete value is only known at runtime
+
+        Raises:
+            RuntimeError: if the Graphviz system binaries are not installed.
+        """
         return self._visualize()
 
     @requires_validate_and_build
     def visualize_run(self, ctx: EvalContext):
-        """Run the DAG on ctx and return a visualization with the executed path highlighted."""
+        """Run the DAG on ctx and return a visualization with the executed path highlighted.
+
+        Identical layout to visualize(), with the following additions:
+          - Active nodes are bolded and show their output value beneath the node name.
+          - Inactive nodes are greyed out.
+        """
         final_output, node_outputs, traversed_edges = self._run_traced(ctx)
         return self._visualize(
             node_outputs=node_outputs,
             traversed_edges=traversed_edges,
             final_output=final_output,
+            ctx=ctx,
         )
