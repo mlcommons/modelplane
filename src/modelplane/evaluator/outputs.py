@@ -8,4 +8,4 @@ class Output:
         """Return a string name for this output, used for routing and debugging."""
 
     def __repr__(self) -> str:
-        return f"{self.name} ({self.__class__.__name__})"
+        return f"{self.__class__.__name__} ({self.name})"
