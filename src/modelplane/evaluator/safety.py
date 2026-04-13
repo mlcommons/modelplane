@@ -18,10 +18,6 @@ class Safety(Output):
         return "SAFE" if self.is_safe else "UNSAFE"
 
 
-SAFE = Safety(is_safe=True)
-UNSAFE = Safety(is_safe=False)
-
-
 class SafetyDAGAnnotator(DAGAnnotator):
     """Implementation of DAGAnnotator that produces a SafetyAnnotation."""
 
@@ -50,7 +46,4 @@ class AnnotatorArbiter(Arbiter):
         prompt = TextPrompt(text=ctx.prompt)
         response = SUTResponse(text=ctx.response)
         annotation = self.annotator.process(prompt, response)
-        return SAFE if annotation.is_safe else UNSAFE
-
-    def outputs(self) -> list[Safety]:
-        return [SAFE, UNSAFE]
+        return Safety(is_safe=annotation.is_safe)

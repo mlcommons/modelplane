@@ -27,16 +27,17 @@ class EvaluatorDAG:
 
     Usage:
 
-        refusal_gate     = MyRefusalGate("RefusalGate", routes_true=[NONVIOLATING], routes_false=["NonRefusal"])
+        refusal_gate     = MyRefusalGate("RefusalGate", routes_true=[Score(value=1)], routes_false=["NonRefusal"])
         eval_non_refusal = MyNonRefusalEvaluator("NonRefusal", routes=["Arbiter"])
         arbiter          = MyArbiter("Arbiter")
 
         dag = (
-            EvaluatorDAG("refusal_gated_safety_evaluator", outputs=[NONVIOLATING, VIOLATING])
+            EvaluatorDAG("refusal_gated_safety_evaluator", output_type=Safety)
             .add_node(refusal_gate)
             .add_node(eval_non_refusal)
             .add_node(arbiter)
         )
+
         # run single
         result = dag.run(prompt_uid="123", prompt="...", response="...")
         # run batch
@@ -45,19 +46,16 @@ class EvaluatorDAG:
 
     DATAFRAME_OUTPUT_COL = "output"
 
-    def __init__(self, name: str, outputs: list[Output]) -> None:
+    def __init__(self, name: str, output_type: type) -> None:
         self.name = name
         self._nodes: dict[str, EvaluatorDAGNode] = {}
         self._root_nodes: list[str] = []
         self._ordered: list[str] = []
         self._validated: bool = False
         self._predecessors: dict[str, list[str]] = collections.defaultdict(list)
-        self._outputs = {output.name: output for output in outputs}
-
-    @property
-    def outputs(self) -> list[Output]:
-        """Return the list of Output nodes declared in the DAG constructor."""
-        return list(self._outputs.values())
+        if not issubclass(output_type, Output):
+            raise ValueError("output_type must be a subclass of Output.")
+        self._output_type = output_type
 
     def add_node(
         self,
@@ -65,7 +63,7 @@ class EvaluatorDAG:
     ) -> "EvaluatorDAG":
         """Register a node with its routes."""
 
-        if node.name in self._all_names():
+        if node.name in self._nodes:
             raise ValueError(
                 f"A different node named {node.name} is already registered."
             )
@@ -73,16 +71,12 @@ class EvaluatorDAG:
         self._validated = False
         return self
 
-    def _all_names(self) -> dict[str, EvaluatorDAGNode | Output]:
-        return {**self._nodes, **self._outputs}
-
     def _validate_and_build(self) -> None:
         """
         Validate the DAG:
-        - All routes reference registered nodes.
+        - All routes reference registered nodes or instances of the output type.
         - No cycles.
-        - All paths lead to an Output node.
-        - All Output nodes are declared as outputs in the DAG constructor.
+        - All paths lead to an instance of the output type.
 
         Build:
         - _predecessors: dict mapping node name to list of parent node names (for context during execution)
@@ -93,23 +87,24 @@ class EvaluatorDAG:
         if self._validated:
             return
 
-        all_named_entities = self._all_names()
-        # check that all route targets reference registered nodes
+        # check that all route targets reference registered nodes or instances of the output type
         for node_name, node in self._nodes.items():
             for target in node.all_routes():
-                if target not in all_named_entities:
+                if target not in self._nodes and not isinstance(
+                    target, self._output_type
+                ):
                     raise ValueError(
-                        f"Node {node_name!r} routes to unregistered node {target!r}."
+                        f"Node {node_name} routes to unregistered node {target} or incompatible output."
                     )
 
         # check for cycles (kahn's algorithm)
         all_routes = {name: node.all_routes() for name, node in self._nodes.items()}
         in_degree: dict[str, int] = {n: 0 for n in self._nodes}
-        for route in all_routes.values():
-            for t in route:
-                if t in self._outputs:
+        for routes in all_routes.values():
+            for route in routes:
+                if isinstance(route, Output):
                     continue
-                in_degree[t] += 1
+                in_degree[route] += 1
 
         root_nodes = [n for n in self._nodes if in_degree[n] == 0]
         queue = collections.deque(root_nodes)
@@ -118,7 +113,7 @@ class EvaluatorDAG:
             current = queue.popleft()
             ordered.append(current)
             for child in all_routes.get(current, []):
-                if child in self._outputs:
+                if isinstance(child, Output):
                     continue
                 in_degree[child] -= 1
                 if in_degree[child] == 0:
@@ -128,19 +123,21 @@ class EvaluatorDAG:
             nodes_in_cycle = set(self._nodes) - set(ordered)
             raise ValueError(f"DAG contains a cycle. Nodes in cycle: {nodes_in_cycle}")
 
-        # check all terminal Arbiter nodes have correct outputs
+        # check all terminal Arbiter nodes have correct output types
         terminal_nodes = [n for n in self._nodes if not all_routes.get(n)]
         for terminal in terminal_nodes:
-            entity = all_named_entities[terminal]
-            if isinstance(entity, Arbiter):
-                if any(o.name not in self._outputs for o in entity.outputs()):
+            node = self._nodes[terminal]
+            if isinstance(node, Arbiter):
+                if not issubclass(node.output_type, self._output_type):
                     raise ValueError(
-                        f"Terminal Arbiter node {terminal!r} has output(s) that are not declared as outputs in the DAG constructor."
+                        f"Terminal Arbiter node {terminal} has output_type {node.output_type}, which is not compatible with the DAG's output_type {self._output_type}."
                     )
 
-        # get predecessors
+        # build predecessors
         for name, node in self._nodes.items():
             for target in node.all_routes():
+                if isinstance(target, Output):
+                    continue
                 self._predecessors[target].append(name)
 
         self._validated = True
@@ -242,7 +239,6 @@ class EvaluatorDAG:
             reachable: set[str] = set(self._root_nodes)
             path: list[str] = []
             total = 0.0
-            terminal_outputs: list[str] = []
 
             for node_name in self._ordered:
                 if node_name not in reachable:
@@ -257,21 +253,17 @@ class EvaluatorDAG:
                         else node.routes_false
                     )
                 elif isinstance(node, Arbiter):
-                    terminal_outputs = [o.name for o in node.outputs()]
                     targets = []
                 else:
                     targets = node.routes
                 for target in targets:
-                    if isinstance(target, Output):
-                        terminal_outputs = [target.name]
-                    else:
+                    if not isinstance(target, Output):
                         reachable.add(
                             target if isinstance(target, str) else target.name
                         )
 
             base_path = " -> ".join(path)
-            for output_name in terminal_outputs:
-                path_costs[f"{base_path} -> {output_name}"] = total
+            path_costs[f"{base_path} -> {self._output_type}"] = total
 
         return path_costs
 
