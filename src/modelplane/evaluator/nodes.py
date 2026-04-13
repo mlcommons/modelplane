@@ -5,10 +5,9 @@ Class hierarchy:
 
     EvaluatorNode (ABC)
     ├── Gate       (binary test; routes on True/False)
-    ├── Enricher   (transforms context; routes unconditionally)
-    ├── Scorer     (produces a float score; routes unconditionally)
-    └── Arbiter    (produces output)
-    Output         (terminal node; carries a verdict value)
+    ├── Enricher   (produces arbitary output; routes forward unconditionally)
+    ├── Arbiter    (produces output; routes to outputs only)
+    └── Output     (terminal node; carries a verdict value)
 """
 
 from abc import ABC, abstractmethod
@@ -27,21 +26,21 @@ class EvaluatorDAGNode(ABC):
         routes: Optional[Sequence[str | Output]] = None,
     ) -> None:
         self.name = name
-        self._routes_true: tuple[str | Output] = tuple(routes_true or [])
-        self._routes_false: tuple[str | Output] = tuple(routes_false or [])
-        self._routes: tuple[str | Output] = tuple(routes or [])
+        self._routes_true: tuple[str | Output, ...] = tuple(routes_true or [])
+        self._routes_false: tuple[str | Output, ...] = tuple(routes_false or [])
+        self._routes: tuple[str | Output, ...] = tuple(routes or [])
         self.validate()
 
     @property
-    def routes_true(self) -> tuple[str | Output]:
+    def routes_true(self) -> tuple[str | Output, ...]:
         return self._routes_true
 
     @property
-    def routes_false(self) -> tuple[str | Output]:
+    def routes_false(self) -> tuple[str | Output, ...]:
         return self._routes_false
 
     @property
-    def routes(self) -> tuple[str | Output]:
+    def routes(self) -> tuple[str | Output, ...]:
         return self._routes
 
     @abstractmethod
@@ -64,15 +63,11 @@ class EvaluatorDAGNode(ABC):
         s = str(output)
         return s if len(s) <= 30 else s[:27] + "..."
 
-    def all_routes(self) -> list[str]:
+    def all_routes(self) -> list[str | Output]:
         """Return a list of all route targets from this node."""
-        return [
-            *[r if isinstance(r, str) else r.name for r in self.routes_true],
-            *[r if isinstance(r, str) else r.name for r in self.routes_false],
-            *[r if isinstance(r, str) else r.name for r in self.routes],
-        ]
+        return [*self.routes_true, *self.routes_false, *self.routes]
 
-    def next_nodes(self, output: Any) -> tuple[str | Output]:
+    def next_nodes(self, output: Any) -> tuple[str | Output, ...]:
         """Given the node's output value, return the tuple of next node names to activate."""
         if isinstance(self, Gate):
             return self.routes_true if output else self.routes_false
@@ -137,18 +132,6 @@ class Enricher(EvaluatorDAGNode):
         _validate_unary_routes(self)
 
 
-class Scorer(EvaluatorDAGNode):
-    """Scoring node.  Produces a float score from the (possibly enriched) context."""
-
-    @abstractmethod
-    def run(self, ctx: EvalContext) -> float:
-        """Return a score for the current context."""
-
-    def validate(self) -> None:
-        super().validate()
-        _validate_unary_routes(self)
-
-
 class Arbiter(EvaluatorDAGNode):
     """Takes context and returns an Output indicating the final verdict (based on routes)."""
 
@@ -160,6 +143,8 @@ class Arbiter(EvaluatorDAGNode):
         super().validate()
         _validate_terminal(self)
 
+    @property
     @abstractmethod
-    def outputs(self) -> list[Output]:
-        """Return the list of possible Output verdicts this Arbiter can return."""
+    def output_type(self) -> type:
+        """Return the expected type of the Output's value for validation."""
+        raise NotImplementedError
