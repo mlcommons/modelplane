@@ -55,6 +55,14 @@ def test_dag_with_bad_arbiter(bad_dag_with_bad_arbiter, sample_ctx):
         bad_dag_with_bad_arbiter.run(sample_ctx)
 
 
+def test_dag_with_bad_output_route(bad_one_step_dag, sample_ctx):
+    with pytest.raises(
+        ValueError,
+        match=r"incompatible output",
+    ):
+        bad_one_step_dag.run(sample_ctx)
+
+
 def test_dag_run(simple_dag, sample_ctx):
     result = simple_dag.run(sample_ctx)
     assert result.name == "UNSAFE"

@@ -22,6 +22,7 @@ from .mocks import (
     PromptLengthGate,
     ThresholdArbiter,
     UnexpectedArbiter,
+    UnexpectedOutput,
     UpperCaser,
     UpperCaseScorer,
 )
@@ -183,3 +184,18 @@ def bad_dag_with_bad_arbiter():
     dag = EvaluatorDAG("test", output_type=Safety)
     dag.add_node(BadArbiter(name="bad_arbiter"))
     return dag
+
+
+@pytest.fixture
+def bad_one_step_dag():
+    return (
+        EvaluatorDAG("one_step", output_type=Safety)
+        .add_node(
+            AlwaysFalse(
+                name="gate",
+                routes_true=[UnexpectedOutput()],
+                routes_false=["always_unsafe"],
+            )
+        )
+        .add_node(AlwaysUnsafe(name="always_unsafe"))
+    )
