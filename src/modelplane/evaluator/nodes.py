@@ -6,8 +6,8 @@ Class hierarchy:
     EvaluatorNode (ABC)
     ├── Gate       (binary test; routes on True/False)
     ├── Enricher   (produces arbitary output; routes forward unconditionally)
-    ├── Arbiter    (produces output; routes to outputs only)
-    └── Output     (terminal node; carries a verdict value)
+    └── Arbiter    (produces Output)
+    Output         (terminal; carries a verdict value)
 """
 
 from abc import ABC, abstractmethod
