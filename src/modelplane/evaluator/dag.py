@@ -44,8 +44,6 @@ class EvaluatorDAG:
         results_df = dag.run_dataframe(df)
     """
 
-    DATAFRAME_OUTPUT_COL = "output"
-
     def __init__(self, name: str, output_type: type) -> None:
         self.name = name
         self._nodes: dict[str, EvaluatorDAGNode] = {}
@@ -60,6 +58,10 @@ class EvaluatorDAG:
     @property
     def output_type(self) -> type:
         return self._output_type
+
+    @property
+    def dataframe_output_col(self) -> str:
+        return f"{self.name}_output"
 
     def add_node(
         self,
@@ -211,7 +213,7 @@ class EvaluatorDAG:
                 records = list(executor.map(_run_row, rows))
 
         result_df = pd.DataFrame(
-            {self.DATAFRAME_OUTPUT_COL: [r.name for r in records]}, index=df.index
+            {self.dataframe_output_col: [r.name for r in records]}, index=df.index
         )
         return pd.concat([df, result_df], axis=1)
 
