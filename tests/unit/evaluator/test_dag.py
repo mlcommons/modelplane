@@ -1,10 +1,12 @@
 """Unit tests for EvaluatorDAG construction, validation, execution, and visualization."""
 
+import pprint
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
 
+from modelplane.evaluator.cost import CostInfo, RealizedCost
 from modelplane.evaluator.dag import EvaluatorDAG
 from modelplane.evaluator.safety import Safety
 
@@ -83,7 +85,7 @@ def test_dag_run_with_dataframe(simple_dag):
     assert len(result_df) == len(df)
     assert "prompt" in result_df.columns
     assert "response" in result_df.columns
-    verdicts = result_df[simple_dag.DATAFRAME_OUTPUT_COL].tolist()
+    verdicts = result_df[simple_dag.dataframe_output_col].tolist()
     expected_verdicts = ["SAFE", "UNSAFE", "SAFE", "UNSAFE"]
     assert verdicts == expected_verdicts
 
@@ -100,28 +102,63 @@ def test_dag_run_with_dataframe_parallel(simple_dag):
     assert len(result_df) == len(df)
     assert "prompt" in result_df.columns
     assert "response" in result_df.columns
-    verdicts = result_df[simple_dag.DATAFRAME_OUTPUT_COL].tolist()
+    verdicts = result_df[simple_dag.dataframe_output_col].tolist()
     expected_verdicts = ["SAFE", "UNSAFE", "SAFE", "UNSAFE"]
     assert verdicts == expected_verdicts
 
 
-def test_dag_cost_one_path(simple_dag, sample_ctx):
-    cost = simple_dag.total_cost(sample_ctx)
+def test_dag_realized_cost(simple_dag, sample_ctx):
+    cost = simple_dag.realized_costs(sample_ctx)
     # lower_caser and prompt_parity are at the same level from always_true
-    assert cost == 0.8
-    cost = simple_dag.total_cost()
-    assert cost == 0.8
+    assert cost.input_token_cost == pytest.approx(
+        1.2
+    )  # (lower_caser - 4 * 0.3) + (prompt_parity - 4 * 0)
+    assert cost.output_token_cost == pytest.approx(
+        1.6
+    )  # (lower_caser - 4 * 0.4) + (prompt_parity - 4 * 0)
+    assert cost.fixed_cost == pytest.approx(
+        0.5
+    )  # (lower_caser - 0.3) + (prompt_parity - 0.2)
+    assert cost.latency_seconds == pytest.approx(
+        0.5
+    )  # (lower_caser - 0.3) + (prompt_parity - 0.2)
+    assert cost.total_token_cost == pytest.approx(2.8)
+    assert cost.total_cost == pytest.approx(3.3)
 
 
 def test_dag_cost_all_paths(simple_dag):
-    costs = simple_dag.total_costs()
-    assert costs == pytest.approx(
-        {
-            "always_true -> always_safe -> Out (Safety)": 1.2,
-            "always_true -> lower_caser -> prompt_parity -> lower_scorer -> upper_scorer -> threshold_arbiter -> Out (Safety)": 3.7,
-            "always_true -> lower_caser -> prompt_parity -> upper_caser -> lower_scorer -> upper_scorer -> threshold_arbiter -> Out (Safety)": 4.2,
-        }
-    )
+    costs = simple_dag.potential_costs()
+    assert costs.keys() == {
+        "always_true -> always_safe -> Out (Safety)",
+        "always_true -> lower_caser -> prompt_parity -> lower_scorer -> upper_scorer -> threshold_arbiter -> Out (Safety)",
+        "always_true -> lower_caser -> prompt_parity -> upper_caser -> lower_scorer -> upper_scorer -> threshold_arbiter -> Out (Safety)",
+    }
+
+    key = "always_true -> always_safe -> Out (Safety)"
+    assert costs[key].input_cost_per_token == pytest.approx(0.0)
+    assert costs[key].output_cost_per_token == pytest.approx(0.0)
+    assert costs[key].fixed_cost == pytest.approx(1.0)
+    assert costs[key].latency_seconds == pytest.approx(1.0)
+
+    key = "always_true -> lower_caser -> prompt_parity -> lower_scorer -> upper_scorer -> threshold_arbiter -> Out (Safety)"
+    # 0.3 (lower_caser) + 0.0 (prompt_parity) + 0.0 (lower_scorer) + 0.0 (upper_scorer) + 0.0 (threshold_arbiter)
+    assert costs[key].input_cost_per_token == pytest.approx(0.3)
+    # 0.4 (lower_caser) + 0.0 (prompt_parity) + 0.0 (lower_scorer) + 0.0 (upper_scorer) + 0.0 (threshold_arbiter)
+    assert costs[key].output_cost_per_token == pytest.approx(0.4)
+    # 0.3 (lower_caser) + 0.2 (prompt_parity) + 0.7 (lower_scorer) + 0.8 (upper_scorer) + 1.1 (threshold_arbiter)
+    assert costs[key].fixed_cost == pytest.approx(3.1)
+    # 0.3 (lower_caser) + 0.2 (prompt_parity) + 0.7 (lower_scorer) + 0.8 (upper_scorer) + 1.1 (threshold_arbiter)
+    assert costs[key].latency_seconds == pytest.approx(3.1)
+
+    key = "always_true -> lower_caser -> prompt_parity -> upper_caser -> lower_scorer -> upper_scorer -> threshold_arbiter -> Out (Safety)"
+    # above + 0.4 (upper_caser)
+    assert costs[key].input_cost_per_token == pytest.approx(0.7)
+    # above + 0.5 (upper_caser)
+    assert costs[key].output_cost_per_token == pytest.approx(0.9)
+    # above + 0.4 (upper_caser)
+    assert costs[key].fixed_cost == pytest.approx(3.5)
+    # above + 0.4 (upper_caser)
+    assert costs[key].latency_seconds == pytest.approx(3.5)
 
 
 @skip_in_ci

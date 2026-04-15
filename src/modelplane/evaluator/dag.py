@@ -10,6 +10,7 @@ from typing import Any, Optional
 import pandas as pd
 
 from modelplane.evaluator.context import EvalContext
+from modelplane.evaluator.cost import CostInfo, RealizedCost
 from modelplane.evaluator.nodes import Arbiter, EvaluatorDAGNode, Gate, Output
 
 
@@ -218,35 +219,35 @@ class EvaluatorDAG:
         return pd.concat([df, result_df], axis=1)
 
     @requires_validate_and_build
-    def total_cost(self, ctx: Optional[EvalContext] = None) -> float:
+    def realized_costs(self, ctx: EvalContext) -> RealizedCost:
         """Run the DAG on ctx and return the total cost of the executed path."""
-        if ctx is None:
-            ctx = EvalContext(prompt="", response="")
         _, node_outputs, _ = self._run_traced(ctx)
-        total = 0.0
+        total = RealizedCost()
         for node_name in node_outputs:
             node = self._nodes[node_name]
-            total += node.cost(ctx)
+            print(
+                f"Adding cost for node {node_name}: {node.realized_cost(ctx)}"
+            )  # debug
+            total += node.realized_cost(ctx)
         return total
 
     @requires_validate_and_build
-    def total_costs(self) -> dict[str, float]:
+    def potential_costs(self) -> dict[str, CostInfo]:
         """Run the DAG on all terminal paths and report total costs per path."""
-        ctx = EvalContext(prompt="", response="")
         gates = [name for name, node in self._nodes.items() if isinstance(node, Gate)]
-        path_costs: dict[str, float] = {}
+        path_costs: dict[str, CostInfo] = {}
 
         for combo in product([True, False], repeat=len(gates)):
             gate_outcomes = dict(zip(gates, combo))
             reachable: set[str] = set(self._root_nodes)
             path: list[str] = []
-            total = 0.0
+            total = CostInfo()
 
             for node_name in self._ordered:
                 if node_name not in reachable:
                     continue
                 node = self._nodes[node_name]
-                total += node.cost(ctx)
+                total += node.cost
                 path.append(node_name)
                 if isinstance(node, Gate):
                     targets = (
