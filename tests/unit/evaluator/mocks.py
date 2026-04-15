@@ -53,15 +53,9 @@ class PromptLengthGate(Gate):
 
 class Caser(Enricher):
     def input_tokens(self, ctx: EvalContext) -> int:
-        print(
-            f"Calculating input tokens for response: '{ctx.response}': {len(ctx.response.split())}"
-        )  # debug
         return len(ctx.response.split())
 
     def output_tokens(self, ctx: EvalContext) -> int:
-        print(
-            f"Calculating output tokens for response: '{ctx.response}': {len(ctx.response.split())}"
-        )  # debug
         return len(ctx.response.split())
 
 
