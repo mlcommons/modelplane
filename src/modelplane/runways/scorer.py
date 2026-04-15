@@ -131,17 +131,19 @@ def score_annotator(annotator: str, annotation_data, ground_truth_data):
     matching_annotations = matching_annotations.sort_values("sample_uid")
     matching_ground_truth = matching_ground_truth.sort_values("sample_uid")
 
-    # Get predictions and ground truth for unsafe classification.
-    y_pred_is_unsafe = matching_annotations["is_unsafe"].astype(bool)
-    y_true_is_unsafe = matching_ground_truth["is_unsafe"].astype(bool)
+    annotations = matching_annotations["is_unsafe"].astype(bool)
+    ground_truth = matching_ground_truth["is_unsafe"].astype(bool)
+    scores = score_sorted_annotations(annotations, ground_truth)
+    scores["num_annotator_samples"] = len(annotations_df)
+    scores["num_samples_scored"] = len(matching_annotations)
+    return scores
 
+
+def score_sorted_annotations(y_pred_is_unsafe: pd.Series, y_true_is_unsafe: pd.Series):
     confusion_matrix = metrics.confusion_matrix(y_true_is_unsafe, y_pred_is_unsafe)
     true_safe, false_unsafe, false_safe, true_unsafe = confusion_matrix.ravel()
 
-    # TODO: Add invalid count. But what if not all annotators have an "invalid" label?
     return {
-        "num_annotator_samples": len(annotations_df),
-        "num_samples_scored": len(matching_annotations),
         "peters_metric": false_safe / (false_safe + true_safe),
         "false_safe_rate": false_safe / (false_safe + true_unsafe),
         "false_unsafe_rate": false_unsafe / (false_unsafe + true_safe),
