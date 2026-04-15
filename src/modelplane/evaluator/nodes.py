@@ -14,6 +14,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional, Sequence
 
 from modelplane.evaluator.context import EvalContext
+from modelplane.evaluator.cost import CostInfo, RealizedCost
 from modelplane.evaluator.outputs import Output
 
 
@@ -48,10 +49,26 @@ class EvaluatorDAGNode(ABC):
         """Execute the node and return its output."""
         raise NotImplementedError
 
-    def cost(self, ctx: EvalContext) -> float:
-        """Return the estimated cost of running this node. Default is 0.0;
-        override for LLM calls or other expensive operations."""
-        return 0.0
+    @property
+    def cost(self) -> CostInfo:
+        """Override this to represent the cost of running this node."""
+        return CostInfo()
+
+    def realized_cost(self, ctx: EvalContext) -> RealizedCost:
+        return RealizedCost(
+            input_token_cost=self.input_tokens(ctx) * self.cost.input_cost_per_token,
+            output_token_cost=self.output_tokens(ctx) * self.cost.output_cost_per_token,
+            fixed_cost=self.cost.fixed_cost,
+            latency_seconds=self.cost.latency_seconds,
+        )
+
+    def input_tokens(self, ctx: EvalContext) -> int:
+        """Compute the number of LLM input tokens for this node given ctx."""
+        return 0
+
+    def output_tokens(self, ctx: EvalContext) -> int:
+        """Compute the number of LLM output tokens for this node given ctx."""
+        return 0
 
     def __repr__(self) -> str:
         return f"{self.name!r}: ({self.__class__.__name__})"
