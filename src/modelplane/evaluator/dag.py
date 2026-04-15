@@ -228,9 +228,6 @@ class EvaluatorDAG:
         total = RealizedCost()
         for node_name in node_outputs:
             node = self._nodes[node_name]
-            print(
-                f"Adding cost for node {node_name}: {node.realized_cost(ctx)}"
-            )  # debug
             total += node.realized_cost(ctx)
         return total
 
