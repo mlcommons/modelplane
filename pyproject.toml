@@ -34,7 +34,7 @@ dev = [
     "ipython<10",
 ]
 test = [
-    "pytest>=8,<10",
+    "pytest>=9.0.3,<10",
     "pytest-cov>=6,<8",
 ]
 mlflow = [
