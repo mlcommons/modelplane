@@ -1,3 +1,7 @@
+from pathlib import Path
+from typing import Optional
+
+from modelbench.cache import DiskCache, NullCache
 from modelgauge.annotation import SafetyAnnotation
 from modelgauge.annotator import Annotator, SUTResponse, TextPrompt
 
@@ -42,14 +46,33 @@ class SafetyDAGAnnotator(DAGAnnotator):
 
 
 class AnnotatorArbiter(SafetyArbiter):
-    """Arbiter that outputs SAFE or UNSAFE based on the output of a (safety) Annotator."""
+    """Arbiter that outputs SAFE or UNSAFE based on the output of a (safety) Annotator.
 
-    def __init__(self, name: str, annotator: Annotator) -> None:
+    Optionally caches annotations."""
+
+    def __init__(
+        self,
+        name: str,
+        annotator: Annotator,
+        cache_path: Optional[Path] = None,
+    ) -> None:
         super().__init__(name=name)
         self.annotator = annotator
+        self._cache = DiskCache(cache_path) if cache_path else NullCache()
 
-    def run(self, ctx: EvalContext) -> Safety:
+    def _run(self, ctx: EvalContext) -> Safety:
         prompt = TextPrompt(text=ctx.prompt)
         response = SUTResponse(text=ctx.response)
         annotation = self.annotator.process(prompt, response)
         return Safety(is_safe=annotation.is_safe)
+
+    def run(self, ctx: EvalContext) -> Safety:
+        key = (ctx.prompt, ctx.response)
+        if key in self._cache:
+            val = self._cache[key]
+            assert isinstance(val, Safety)
+            return val
+        else:
+            val = self._run(ctx)
+            self._cache[key] = val
+            return val
