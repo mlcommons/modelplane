@@ -8,6 +8,7 @@ from itertools import product
 from typing import Any, Optional
 
 import pandas as pd
+from tqdm import tqdm
 
 from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.cost import CostInfo, RealizedCost
@@ -207,11 +208,13 @@ class EvaluatorDAG:
         rows = [row for _, row in df.iterrows()]
 
         if n_jobs == 1:
-            records = [_run_row(row) for row in rows]
+            records = [_run_row(row) for row in tqdm(rows, desc=self.name)]
         else:
             max_workers = os.cpu_count() if n_jobs == -1 else n_jobs
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                records = list(executor.map(_run_row, rows))
+                records = list(
+                    tqdm(executor.map(_run_row, rows), total=len(rows), desc=self.name)
+                )
 
         result_df = pd.DataFrame(
             {self.dataframe_output_col: [r.name for r in records]}, index=df.index
