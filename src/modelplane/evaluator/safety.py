@@ -67,7 +67,7 @@ class AnnotatorArbiter(SafetyArbiter):
         return Safety(is_safe=annotation.is_safe)
 
     def run(self, ctx: EvalContext) -> Safety:
-        key = (ctx.prompt, ctx.response)
+        key = (self.name, ctx.prompt, ctx.response)
         if key in self._cache:
             val = self._cache[key]
             assert isinstance(val, Safety)
