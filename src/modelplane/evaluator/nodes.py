@@ -98,7 +98,7 @@ class EvaluatorDAGNode(ABC):
                 )
 
 
-class LLMNodeMixin(EvaluatorDAGNode):
+class LLMCostMixin(EvaluatorDAGNode):
     """Mixin for nodes that involve LLM calls, to simplify cost calculation."""
 
     @abstractmethod
