@@ -6,7 +6,7 @@ import pytest
 
 from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.dag import EvaluatorDAG
-from modelplane.evaluator.outputs import Output
+from modelplane.evaluator.outputs import Verdict
 from modelplane.evaluator.safety import Safety
 
 from .mocks import (
@@ -27,10 +27,10 @@ from .mocks import (
     UpperCaseScorer,
 )
 
-TRUE_BRANCH: tuple[str | Output] = ("true_branch",)
-FALSE_BRANCH: tuple[str | Output] = ("false_branch",)
-DEFAULT_BRANCH: tuple[str | Output] = ("next_node",)
-BAD_BRANCH: tuple[str | Output] = ("undefined_node",)
+TRUE_BRANCH: tuple[str | Verdict] = ("true_branch",)
+FALSE_BRANCH: tuple[str | Verdict] = ("false_branch",)
+DEFAULT_BRANCH: tuple[str | Verdict] = ("next_node",)
+BAD_BRANCH: tuple[str | Verdict] = ("undefined_node",)
 SCORE1 = 1.0
 SCORE2 = 2.0
 
@@ -101,7 +101,7 @@ def threshold_arbiter() -> ThresholdArbiter:
 @pytest.fixture
 def one_step_dag():
     return (
-        EvaluatorDAG("one_step", output_type=Safety)
+        EvaluatorDAG("one_step", verdict_type=Safety)
         .add_node(
             AlwaysFalse(
                 name="gate",
@@ -116,7 +116,7 @@ def one_step_dag():
 @pytest.fixture
 def simple_dag():
     return (
-        EvaluatorDAG("simple", output_type=Safety)
+        EvaluatorDAG("simple", verdict_type=Safety)
         .add_node(
             AlwaysTrue(
                 name="always_true",
@@ -147,7 +147,7 @@ def simple_dag():
 @pytest.fixture()
 def bad_dag_with_cycle():
     return (
-        EvaluatorDAG("cyclic", output_type=Safety)
+        EvaluatorDAG("cyclic", verdict_type=Safety)
         .add_node(
             AlwaysTrue(
                 name="node1",
@@ -181,7 +181,7 @@ def bad_dag_with_undefined_output(simple_dag):
 
 @pytest.fixture
 def bad_dag_with_bad_arbiter():
-    dag = EvaluatorDAG("test", output_type=Safety)
+    dag = EvaluatorDAG("test", verdict_type=Safety)
     dag.add_node(BadArbiter(name="bad_arbiter"))
     return dag
 
@@ -189,7 +189,7 @@ def bad_dag_with_bad_arbiter():
 @pytest.fixture
 def bad_one_step_dag():
     return (
-        EvaluatorDAG("one_step", output_type=Safety)
+        EvaluatorDAG("one_step", verdict_type=Safety)
         .add_node(
             AlwaysFalse(
                 name="gate",

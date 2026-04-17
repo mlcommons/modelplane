@@ -5,7 +5,7 @@ from modelgauge.sut import SUTResponse
 
 from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.dag import EvaluatorDAG
-from modelplane.evaluator.outputs import Output
+from modelplane.evaluator.outputs import Verdict
 
 
 class DAGAnnotator(Annotator):
@@ -28,5 +28,5 @@ class DAGAnnotator(Annotator):
             response=response.text,
         )
 
-    def annotate(self, annotation_request: EvalContext) -> Output:
-        return self.dag.run(annotation_request)
+    def annotate(self, annotation_request: EvalContext) -> Verdict:
+        return self.dag.run(annotation_request).verdict

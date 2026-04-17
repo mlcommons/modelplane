@@ -2,6 +2,7 @@
 
 import collections
 import functools
+import json
 import os
 from concurrent.futures import ThreadPoolExecutor
 from itertools import product
@@ -12,7 +13,8 @@ from tqdm import tqdm
 
 from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.cost import CostInfo, RealizedCost
-from modelplane.evaluator.nodes import Arbiter, EvaluatorDAGNode, Gate, Output
+from modelplane.evaluator.nodes import Arbiter, EvaluatorDAGNode, Gate
+from modelplane.evaluator.outputs import DAGOutput, NodeOutput, Verdict
 
 
 def requires_validate_and_build(method):
@@ -46,24 +48,32 @@ class EvaluatorDAG:
         results_df = dag.run_dataframe(df)
     """
 
-    def __init__(self, name: str, output_type: type) -> None:
+    def __init__(self, name: str, verdict_type: type) -> None:
         self.name = name
         self._nodes: dict[str, EvaluatorDAGNode] = {}
         self._root_nodes: list[str] = []
         self._ordered: list[str] = []
         self._validated: bool = False
         self._predecessors: dict[str, list[str]] = collections.defaultdict(list)
-        if not issubclass(output_type, Output):
-            raise ValueError("output_type must be a subclass of Output.")
-        self._output_type = output_type
+        if not issubclass(verdict_type, Verdict):
+            raise ValueError("verdict_type must be a subclass of Verdict.")
+        self._verdict_type = verdict_type
 
     @property
-    def output_type(self) -> type:
-        return self._output_type
+    def verdict_type(self) -> type:
+        return self._verdict_type
 
     @property
-    def dataframe_output_col(self) -> str:
+    def df_output_col(self) -> str:
         return f"{self.name}_output"
+
+    @property
+    def df_dag_run_col(self) -> str:
+        return f"{self.name}_dag_run"
+
+    @property
+    def df_cost_col(self) -> str:
+        return f"{self.name}_dag_cost"
 
     def add_node(
         self,
@@ -99,13 +109,13 @@ class EvaluatorDAG:
         # of the output type, and that all Arbiters have compatible output types
         for node_name, node in self._nodes.items():
             if isinstance(node, Arbiter):
-                if not issubclass(node.output_type, self.output_type):
+                if not issubclass(node.verdict_type, self.verdict_type):
                     raise ValueError(
-                        f"Node {node_name} is an Arbiter with output_type {node.output_type.__name__}, which is not compatible with the DAG's output_type {self.output_type.__name__}."
+                        f"Node {node_name} is an Arbiter with verdict_type {node.verdict_type.__name__}, which is not compatible with the DAG's verdict_type {self.verdict_type.__name__}."
                     )
             for target in node.all_routes():
                 if target not in self._nodes and not isinstance(
-                    target, self.output_type
+                    target, self.verdict_type
                 ):
                     raise ValueError(
                         f"Node {node_name} routes to unregistered node {target} or incompatible output."
@@ -116,7 +126,7 @@ class EvaluatorDAG:
         in_degree: dict[str, int] = {n: 0 for n in self._nodes}
         for routes in all_routes.values():
             for route in routes:
-                if isinstance(route, Output):
+                if isinstance(route, Verdict):
                     continue
                 in_degree[route] += 1
 
@@ -127,7 +137,7 @@ class EvaluatorDAG:
             current = queue.popleft()
             ordered.append(current)
             for child in all_routes.get(current, []):
-                if isinstance(child, Output):
+                if isinstance(child, Verdict):
                     continue
                 in_degree[child] -= 1
                 if in_degree[child] == 0:
@@ -140,7 +150,7 @@ class EvaluatorDAG:
         # build predecessors
         for name, node in self._nodes.items():
             for target in node.all_routes():
-                if isinstance(target, Output):
+                if isinstance(target, Verdict):
                     continue
                 self._predecessors[target].append(name)
 
@@ -148,12 +158,11 @@ class EvaluatorDAG:
         self._root_nodes = root_nodes
         self._ordered = ordered
 
-    def _run_traced(
-        self, ctx: EvalContext
-    ) -> tuple[Output, dict[str, Any], set[tuple[str, str]]]:
-        """Execute the DAG and return (final output, node outputs, traversed edges)."""
-        node_outputs: dict[str, Any] = {}
+    def _run_traced(self, ctx: EvalContext) -> tuple[DAGOutput, set[tuple[str, str]]]:
+        """Execute the DAG and return (final verdict, node outputs, realized costs, traversed edges)."""
+        node_outputs: dict[str, NodeOutput] = {}
         traversed_edges: set[tuple[str, str]] = set()
+        total_cost = RealizedCost()
         reachable: set[str] = set(self._root_nodes)
         for node_name in self._ordered:
             if node_name not in reachable:
@@ -168,25 +177,36 @@ class EvaluatorDAG:
             node = self._nodes[node_name]
             output = node.run(ctx)
             node_outputs[node_name] = output
-            if isinstance(output, Output):
-                traversed_edges.add((node_name, output.name))
-                return output, node_outputs, traversed_edges
-            for target in node.next_nodes(output):
+            total_cost += output.realized_cost
+            if isinstance(output.value, Verdict):
+                traversed_edges.add((node_name, output.value.name))
+                dag_output = DAGOutput(
+                    verdict=output.value,
+                    node_outputs=node_outputs,
+                    total_cost=total_cost,
+                )
+                return dag_output, traversed_edges
+            for target in node.next_nodes(output.value):
                 t = target if isinstance(target, str) else target.name
                 traversed_edges.add((node_name, t))
-                if isinstance(target, Output):
-                    return target, node_outputs, traversed_edges
+                if isinstance(target, Verdict):
+                    return (
+                        DAGOutput(
+                            verdict=target,
+                            node_outputs=node_outputs,
+                            total_cost=total_cost,
+                        ),
+                        traversed_edges,
+                    )
                 reachable.add(t)
-        raise ValueError("DAG execution completed without reaching an Output node.")
+        raise ValueError("DAG execution completed without reaching a Verdict node.")
 
     @requires_validate_and_build
-    def run(
-        self,
-        ctx: EvalContext,
-    ) -> Output:
-        """Execute the DAG on a single prompt/response."""
-        output, _, _ = self._run_traced(ctx)
-        return output
+    def run(self, ctx: EvalContext) -> DAGOutput:
+        """Execute the DAG on a single prompt/response and get the output,
+        node outputs, and overall realized cost."""
+        dag_output, _ = self._run_traced(ctx)
+        return dag_output
 
     @requires_validate_and_build
     def run_dataframe(
@@ -198,7 +218,7 @@ class EvaluatorDAG:
     ) -> pd.DataFrame:
         """Run the DAG over every row of a DataFrame."""
 
-        def _run_row(row: Any) -> Output:
+        def _run_row(row: Any) -> DAGOutput:
             ctx = EvalContext(
                 prompt=str(row[prompt_col]),
                 response=str(row[response_col]),
@@ -217,19 +237,19 @@ class EvaluatorDAG:
                 )
 
         result_df = pd.DataFrame(
-            {self.dataframe_output_col: [r.name for r in records]}, index=df.index
+            {
+                self.df_output_col: [r.verdict.name for r in records],
+                self.df_dag_run_col: json.dumps(
+                    [
+                        {k: v.to_dict() for k, v in r.node_outputs.items()}
+                        for r in records
+                    ]
+                ),
+                self.df_cost_col: [json.dumps(r.total_cost.to_dict()) for r in records],
+            },
+            index=df.index,
         )
         return pd.concat([df, result_df], axis=1)
-
-    @requires_validate_and_build
-    def realized_costs(self, ctx: EvalContext) -> RealizedCost:
-        """Run the DAG on ctx and return the total cost of the executed path."""
-        _, node_outputs, _ = self._run_traced(ctx)
-        total = RealizedCost()
-        for node_name in node_outputs:
-            node = self._nodes[node_name]
-            total += node.realized_cost(ctx)
-        return total
 
     @requires_validate_and_build
     def potential_costs(self) -> dict[str, CostInfo]:
@@ -260,13 +280,13 @@ class EvaluatorDAG:
                 else:
                     targets = node.routes
                 for target in targets:
-                    if not isinstance(target, Output):
+                    if not isinstance(target, Verdict):
                         reachable.add(
                             target if isinstance(target, str) else target.name
                         )
 
             base_path = " -> ".join(path)
-            path_costs[f"{base_path} -> Out ({self.output_type.__name__})"] = total
+            path_costs[f"{base_path} -> Out ({self.verdict_type.__name__})"] = total
 
         return path_costs
 
@@ -274,7 +294,7 @@ class EvaluatorDAG:
         self,
         node_outputs: Optional[dict[str, Any]] = None,
         traversed_edges: Optional[set[tuple[str, str]]] = None,
-        final_output: Optional[Output] = None,
+        final_output: Optional[Verdict] = None,
         ctx: Optional[EvalContext] = None,
     ):
         """Render the DAG as a PNG image. In a Jupyter notebook the image is displayed inline.
@@ -292,7 +312,7 @@ class EvaluatorDAG:
         _NODE_STYLES: dict[type, dict] = {
             Gate: {"shape": "diamond", "style": "filled", "fillcolor": "#ffe082"},
             Arbiter: {"shape": "hexagon", "style": "filled", "fillcolor": "#e1bee7"},
-            Output: {
+            Verdict: {
                 "shape": "rectangle",
                 "style": "filled,rounded",
                 "fillcolor": "#dcedc8",
@@ -374,24 +394,24 @@ class EvaluatorDAG:
         )
         dot.subgraph(top)
 
-        # collect Output instances directly referenced in routes (from non-Arbiter nodes)
-        direct_outputs: dict[str, Output] = {}
+        # collect Verdict instances directly referenced in routes (from non-Arbiter nodes)
+        direct_verdicts: dict[str, Verdict] = {}
         has_arbiter = any(isinstance(n, Arbiter) for n in self._nodes.values())
         for node in self._nodes.values():
             if not isinstance(node, Arbiter):
                 for target in node.all_routes():
-                    if isinstance(target, Output):
-                        direct_outputs[target.name] = target
+                    if isinstance(target, Verdict):
+                        direct_verdicts[target.name] = target
 
         # whether the final output came from a direct route or an arbiter
-        final_from_direct = traced and final_output in direct_outputs.values()
+        final_from_direct = traced and final_output in direct_verdicts.values()
 
         bottom = graphviz.Digraph()
         bottom.attr(rank="max")
 
-        # individual nodes for directly-routed Output instances, shown with their repr
-        for out_name, out_inst in direct_outputs.items():
-            attrs = dict(_NODE_STYLES[Output])
+        # individual nodes for directly-routed Verdict instances, shown with their repr
+        for out_name, out_inst in direct_verdicts.items():
+            attrs = dict(_NODE_STYLES[Verdict])
             if traced:
                 if out_inst is final_output:
                     attrs["penwidth"] = "2.5"
@@ -403,12 +423,12 @@ class EvaluatorDAG:
 
         # synthetic output type node for Arbiters
         if has_arbiter:
-            output_node_id = f"__output_{self.output_type.__name__}__"
-            output_label = f"{self.output_type.__name__} (?)"
+            output_node_id = f"__output_{self.verdict_type.__name__}__"
+            output_label = f"{self.verdict_type.__name__} (?)"
             attrs = dict(_OUTPUT_TYPE_STYLE)
             if traced:
                 if not final_from_direct and final_output is not None:
-                    attrs = dict(_NODE_STYLES[Output])
+                    attrs = dict(_NODE_STYLES[Verdict])
                     attrs["penwidth"] = "2.5"
                     output_label = repr(final_output)
                 elif final_from_direct:
@@ -479,7 +499,7 @@ class EvaluatorDAG:
                         penwidth="2" if hot and traced else "1",
                     )
             elif isinstance(node, Arbiter):
-                output_node_id = f"__output_{self.output_type.__name__}__"
+                output_node_id = f"__output_{self.verdict_type.__name__}__"
                 hot = not traced or node_name in (node_outputs or {})
                 dot.edge(
                     node_name,
@@ -541,10 +561,10 @@ class EvaluatorDAG:
           - Active nodes are bolded and show their output value beneath the node name.
           - Inactive nodes are greyed out.
         """
-        final_output, node_outputs, traversed_edges = self._run_traced(ctx)
+        dag_output, traversed_edges = self._run_traced(ctx)
         return self._visualize(
-            node_outputs=node_outputs,
+            node_outputs=dag_output.node_outputs,
             traversed_edges=traversed_edges,
-            final_output=final_output,
+            final_output=dag_output.verdict,
             ctx=ctx,
         )

@@ -1,5 +1,7 @@
 from typing import Any, Optional
 
+from modelplane.evaluator.outputs import NodeOutput
+
 
 class EvalContext:
     """Context state passed around during DAG execution."""
@@ -12,9 +14,9 @@ class EvalContext:
         self.metadata = metadata or {}
         self._parent_outputs = {}
 
-    def set_parent_outputs(self, outputs: dict[str, Any]) -> None:
+    def set_parent_outputs(self, outputs: dict[str, NodeOutput]) -> None:
         self._parent_outputs = outputs
 
-    def parent_outputs(self) -> list[Any]:
+    def parent_outputs(self) -> list[NodeOutput]:
         """Return the NodeOutput for a specific node, or None if it was skipped."""
         return list(self._parent_outputs.values())
