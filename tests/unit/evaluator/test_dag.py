@@ -104,12 +104,6 @@ def test_dag_run_with_dataframe(simple_dag, tmp_path):
     verdicts = result_df[simple_dag.df_output_col].tolist()
     expected_verdicts = ["SAFE", "UNSAFE", "SAFE", "UNSAFE"]
     assert verdicts == expected_verdicts
-    costs = result_df[simple_dag.df_cost_col].tolist()
-    print(costs)
-    # test writing to csv
-    csv_path = "output.csv"
-    result_df.to_csv(csv_path, index=False)
-    # assert csv_path.exists()
 
 
 def test_dag_run_with_dataframe_parallel(simple_dag):
