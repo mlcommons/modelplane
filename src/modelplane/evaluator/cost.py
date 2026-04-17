@@ -40,3 +40,13 @@ class RealizedCost:
             fixed_cost=self.fixed_cost + other.fixed_cost,
             latency_seconds=self.latency_seconds + other.latency_seconds,
         )
+
+    def to_dict(self) -> dict:
+        return {
+            "input_token_cost": self.input_token_cost,
+            "output_token_cost": self.output_token_cost,
+            "fixed_cost": self.fixed_cost,
+            "latency_seconds": self.latency_seconds,
+            "total_token_cost": self.total_token_cost,
+            "total_cost": self.total_cost,
+        }

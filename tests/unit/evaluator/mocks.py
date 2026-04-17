@@ -1,7 +1,7 @@
 from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.cost import CostInfo
-from modelplane.evaluator.nodes import Arbiter, Enricher, Gate
-from modelplane.evaluator.outputs import Output
+from modelplane.evaluator.nodes import Arbiter, Enricher, Gate, LLMNodeMixin
+from modelplane.evaluator.outputs import NodeOutput, Verdict
 from modelplane.evaluator.safety import Safety
 
 
@@ -9,11 +9,11 @@ def context_token_count(ctx: EvalContext) -> int:
     return len(ctx.prompt.split() + ctx.response.split())
 
 
-class PassthroughGate(Gate):
+class PassthroughGate(Gate, LLMNodeMixin):
     ROUTE_TO_TAKE: bool
 
-    def run(self, ctx: EvalContext) -> bool:
-        return self.ROUTE_TO_TAKE
+    def run(self, ctx: EvalContext) -> NodeOutput:
+        return self.build_output(self.ROUTE_TO_TAKE, ctx)
 
     def input_tokens(self, ctx: EvalContext) -> int:
         return context_token_count(ctx)
@@ -40,8 +40,8 @@ class AlwaysFalse(PassthroughGate):
 
 
 class PromptLengthGate(Gate):
-    def run(self, ctx: EvalContext) -> bool:
-        return len(ctx.prompt) % 2 == 0
+    def run(self, ctx: EvalContext) -> NodeOutput:
+        return self.build_output(len(ctx.prompt) % 2 == 0, ctx)
 
     @property
     def cost(self) -> CostInfo:
@@ -51,7 +51,7 @@ class PromptLengthGate(Gate):
         )
 
 
-class Caser(Enricher):
+class Caser(Enricher, LLMNodeMixin):
     def input_tokens(self, ctx: EvalContext) -> int:
         return len(ctx.response.split())
 
@@ -62,8 +62,8 @@ class Caser(Enricher):
 class LowerCaser(Caser):
     """Enriches by returning the response lowercased."""
 
-    def run(self, ctx: EvalContext) -> str:
-        return ctx.response.lower()
+    def run(self, ctx: EvalContext) -> NodeOutput:
+        return self.build_output(ctx.response.lower(), ctx)
 
     @property
     def cost(self) -> CostInfo:
@@ -78,8 +78,8 @@ class LowerCaser(Caser):
 class UpperCaser(Caser):
     """Enriches by returning the response uppercased."""
 
-    def run(self, ctx: EvalContext) -> str:
-        return ctx.response.upper()
+    def run(self, ctx: EvalContext) -> NodeOutput:
+        return self.build_output(ctx.response.upper(), ctx)
 
     @property
     def cost(self) -> CostInfo:
@@ -91,10 +91,10 @@ class UpperCaser(Caser):
         )
 
 
-class LLMEnricher(Enricher):
+class LLMEnricher(Enricher, LLMNodeMixin):
 
-    def run(self, ctx: EvalContext) -> str:
-        return ctx.response
+    def run(self, ctx: EvalContext) -> NodeOutput:
+        return self.build_output(ctx.response, ctx)
 
     @property
     def cost(self) -> CostInfo:
@@ -119,8 +119,8 @@ class FixedScorer(Enricher):
         super().__init__(name, **kwargs)
         self.value = value
 
-    def run(self, ctx: EvalContext) -> float:
-        return self.value
+    def run(self, ctx: EvalContext) -> NodeOutput:
+        return self.build_output(self.value, ctx)
 
     @property
     def cost(self) -> CostInfo:
@@ -133,11 +133,11 @@ class FixedScorer(Enricher):
 class LowerCaseScorer(Enricher):
     """Scores based on the percentage of lowercase characters in the response."""
 
-    def run(self, ctx: EvalContext) -> float:
+    def run(self, ctx: EvalContext) -> NodeOutput:
         if not ctx.response:
-            return 0.0
+            return self.build_output(0.0, ctx)
         num_lower = sum(1 for c in ctx.response if c.islower())
-        return num_lower / len(ctx.response)
+        return self.build_output(num_lower / len(ctx.response), ctx)
 
     @property
     def cost(self) -> CostInfo:
@@ -150,11 +150,11 @@ class LowerCaseScorer(Enricher):
 class UpperCaseScorer(Enricher):
     """Scores based on the percentage of uppercase characters in the response."""
 
-    def run(self, ctx: EvalContext) -> float:
+    def run(self, ctx: EvalContext) -> NodeOutput:
         if not ctx.response:
-            return 0.0
+            return self.build_output(0.0, ctx)
         num_upper = sum(1 for c in ctx.response if c.isupper())
-        return num_upper / len(ctx.response)
+        return self.build_output(num_upper / len(ctx.response), ctx)
 
     @property
     def cost(self) -> CostInfo:
@@ -165,8 +165,8 @@ class UpperCaseScorer(Enricher):
 
 
 class AlwaysUnsafe(Arbiter):
-    def run(self, ctx: EvalContext) -> Output:
-        return Safety(is_safe=False)
+    def run(self, ctx: EvalContext) -> NodeOutput:
+        return self.build_output(Safety(is_safe=False), ctx)
 
     @property
     def cost(self) -> CostInfo:
@@ -176,13 +176,13 @@ class AlwaysUnsafe(Arbiter):
         )
 
     @property
-    def output_type(self) -> type:
+    def verdict_type(self) -> type:
         return Safety
 
 
 class AlwaysSafe(Arbiter):
-    def run(self, ctx: EvalContext) -> Output:
-        return Safety(is_safe=True)
+    def run(self, ctx: EvalContext) -> NodeOutput:
+        return self.build_output(Safety(is_safe=True), ctx)
 
     @property
     def cost(self) -> CostInfo:
@@ -192,7 +192,7 @@ class AlwaysSafe(Arbiter):
         )
 
     @property
-    def output_type(self) -> type:
+    def verdict_type(self) -> type:
         return Safety
 
 
@@ -201,10 +201,11 @@ class ThresholdArbiter(Arbiter):
         super().__init__(name, **kwargs)
         self.threshold = threshold
 
-    def run(self, ctx: EvalContext) -> Output:
-        scores = ctx.parent_outputs()
+    def run(self, ctx: EvalContext) -> NodeOutput:
+        score_outputs = ctx.parent_outputs()
+        scores = [output.value for output in score_outputs]
         score = sum(scores) / len(scores)
-        return Safety(is_safe=score < self.threshold)
+        return self.build_output(Safety(is_safe=score < self.threshold), ctx)
 
     @property
     def cost(self) -> CostInfo:
@@ -214,11 +215,11 @@ class ThresholdArbiter(Arbiter):
         )
 
     @property
-    def output_type(self) -> type:
+    def verdict_type(self) -> type:
         return Safety
 
 
-class UnexpectedOutput(Output):
+class UnexpectedOutput(Verdict):
     @property
     def name(self) -> str:
         return "UNEXPECTED_OUTPUT"
@@ -227,8 +228,8 @@ class UnexpectedOutput(Output):
 class UnexpectedArbiter(Arbiter):
     """An arbiter that returns an output not declared in outputs()."""
 
-    def run(self, ctx: EvalContext) -> Output:
-        return UnexpectedOutput()
+    def run(self, ctx: EvalContext) -> NodeOutput:
+        return self.build_output(UnexpectedOutput(), ctx)
 
     @property
     def cost(self) -> CostInfo:
@@ -238,15 +239,15 @@ class UnexpectedArbiter(Arbiter):
         )
 
     @property
-    def output_type(self) -> type:
+    def verdict_type(self) -> type:
         return UnexpectedOutput
 
 
 class BadArbiter(Arbiter):
     """An arbiter that violates the contract by returning a non-Output value."""
 
-    def run(self, ctx: EvalContext) -> str:
-        return "safe"
+    def run(self, ctx: EvalContext) -> NodeOutput:
+        return self.build_output("safe", ctx)
 
     @property
     def cost(self) -> CostInfo:
@@ -256,5 +257,5 @@ class BadArbiter(Arbiter):
         )
 
     @property
-    def output_type(self) -> type:
+    def verdict_type(self) -> type:
         return Safety

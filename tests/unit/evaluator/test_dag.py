@@ -1,6 +1,5 @@
 """Unit tests for EvaluatorDAG construction, validation, execution, and visualization."""
 
-import pprint
 from unittest.mock import patch
 
 import pandas as pd
@@ -14,15 +13,15 @@ from .conftest import skip_in_ci
 
 
 def test_dag_outputs(simple_dag):
-    assert simple_dag.output_type == Safety
+    assert simple_dag.verdict_type == Safety
 
 
-def test_dag_with_bad_output_type():
+def test_dag_with_bad_verdict_type():
     with pytest.raises(
         ValueError,
-        match="output_type must be a subclass of Output",
+        match="verdict_type must be a subclass of Verdict",
     ):
-        EvaluatorDAG(name="bad_dag", output_type=str)
+        EvaluatorDAG(name="bad_dag", verdict_type=str)
 
 
 def test_add_node_with_same_name_as_existing_node(simple_dag, always_true_gate):
@@ -44,7 +43,7 @@ def test_dag_with_cycle(bad_dag_with_cycle):
 
 def test_dag_with_undefined_output(bad_dag_with_undefined_output):
     with pytest.raises(
-        ValueError, match=r"which is not compatible with the DAG\'s output_type"
+        ValueError, match=r"which is not compatible with the DAG\'s verdict_type"
     ):
         bad_dag_with_undefined_output._validate_and_build()
 
@@ -52,7 +51,7 @@ def test_dag_with_undefined_output(bad_dag_with_undefined_output):
 def test_dag_with_bad_arbiter(bad_dag_with_bad_arbiter, sample_ctx):
     with pytest.raises(
         ValueError,
-        match=r"DAG execution completed without reaching an Output node",
+        match=r"DAG execution completed without reaching a Verdict node",
     ):
         bad_dag_with_bad_arbiter.run(sample_ctx)
 
@@ -66,11 +65,28 @@ def test_dag_with_bad_output_route(bad_one_step_dag, sample_ctx):
 
 
 def test_dag_run(simple_dag, sample_ctx):
-    result = simple_dag.run(sample_ctx)
-    assert result.name == "UNSAFE"
+    dag_output = simple_dag.run(sample_ctx)
+
+    # lower_caser and prompt_parity are at the same level from always_true
+    assert dag_output.total_cost.input_token_cost == pytest.approx(
+        1.2
+    )  # (lower_caser - 4 * 0.3) + (prompt_parity - 4 * 0)
+    assert dag_output.total_cost.output_token_cost == pytest.approx(
+        1.6
+    )  # (lower_caser - 4 * 0.4) + (prompt_parity - 4 * 0)
+    assert dag_output.total_cost.fixed_cost == pytest.approx(
+        0.5
+    )  # (lower_caser - 0.3) + (prompt_parity - 0.2)
+    assert dag_output.total_cost.latency_seconds == pytest.approx(
+        0.5
+    )  # (lower_caser - 0.3) + (prompt_parity - 0.2)
+    assert dag_output.total_cost.total_token_cost == pytest.approx(2.8)
+    assert dag_output.total_cost.total_cost == pytest.approx(3.3)
+
+    assert dag_output.verdict.name == "UNSAFE"
 
 
-def test_dag_run_with_dataframe(simple_dag):
+def test_dag_run_with_dataframe(simple_dag, tmp_path):
     # "hello world" (space lowers avg below threshold) → safe
     # "helloworld"  (no space, avg = 0.5 = threshold)  → unsafe
     # Alternate even/odd prompt lengths to exercise both enricher paths.
@@ -85,9 +101,15 @@ def test_dag_run_with_dataframe(simple_dag):
     assert len(result_df) == len(df)
     assert "prompt" in result_df.columns
     assert "response" in result_df.columns
-    verdicts = result_df[simple_dag.dataframe_output_col].tolist()
+    verdicts = result_df[simple_dag.df_output_col].tolist()
     expected_verdicts = ["SAFE", "UNSAFE", "SAFE", "UNSAFE"]
     assert verdicts == expected_verdicts
+    costs = result_df[simple_dag.df_cost_col].tolist()
+    print(costs)
+    # test writing to csv
+    csv_path = "output.csv"
+    result_df.to_csv(csv_path, index=False)
+    # assert csv_path.exists()
 
 
 def test_dag_run_with_dataframe_parallel(simple_dag):
@@ -102,28 +124,9 @@ def test_dag_run_with_dataframe_parallel(simple_dag):
     assert len(result_df) == len(df)
     assert "prompt" in result_df.columns
     assert "response" in result_df.columns
-    verdicts = result_df[simple_dag.dataframe_output_col].tolist()
+    verdicts = result_df[simple_dag.df_output_col].tolist()
     expected_verdicts = ["SAFE", "UNSAFE", "SAFE", "UNSAFE"]
     assert verdicts == expected_verdicts
-
-
-def test_dag_realized_cost(simple_dag, sample_ctx):
-    cost = simple_dag.realized_costs(sample_ctx)
-    # lower_caser and prompt_parity are at the same level from always_true
-    assert cost.input_token_cost == pytest.approx(
-        1.2
-    )  # (lower_caser - 4 * 0.3) + (prompt_parity - 4 * 0)
-    assert cost.output_token_cost == pytest.approx(
-        1.6
-    )  # (lower_caser - 4 * 0.4) + (prompt_parity - 4 * 0)
-    assert cost.fixed_cost == pytest.approx(
-        0.5
-    )  # (lower_caser - 0.3) + (prompt_parity - 0.2)
-    assert cost.latency_seconds == pytest.approx(
-        0.5
-    )  # (lower_caser - 0.3) + (prompt_parity - 0.2)
-    assert cost.total_token_cost == pytest.approx(2.8)
-    assert cost.total_cost == pytest.approx(3.3)
 
 
 def test_dag_cost_all_paths(simple_dag):
