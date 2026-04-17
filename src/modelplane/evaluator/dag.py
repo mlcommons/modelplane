@@ -214,6 +214,7 @@ class EvaluatorDAG:
         df: pd.DataFrame,
         prompt_col: str = "prompt",
         response_col: str = "response",
+        metadata_col: Optional[str] = None,
         n_jobs: int = 1,
     ) -> pd.DataFrame:
         """Run the DAG over every row of a DataFrame."""
@@ -222,6 +223,7 @@ class EvaluatorDAG:
             ctx = EvalContext(
                 prompt=str(row[prompt_col]),
                 response=str(row[response_col]),
+                metadata=row[metadata_col] if metadata_col else None,
             )
             return self.run(ctx)
 
