@@ -1,6 +1,6 @@
 from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.cost import CostInfo
-from modelplane.evaluator.nodes import Arbiter, Enricher, Gate, LLMNodeMixin
+from modelplane.evaluator.nodes import Arbiter, Enricher, Gate, LLMCostMixin
 from modelplane.evaluator.outputs import NodeOutput, Verdict
 from modelplane.evaluator.safety import Safety
 
@@ -9,7 +9,7 @@ def context_token_count(ctx: EvalContext) -> int:
     return len(ctx.prompt.split() + ctx.response.split())
 
 
-class PassthroughGate(Gate, LLMNodeMixin):
+class PassthroughGate(Gate, LLMCostMixin):
     ROUTE_TO_TAKE: bool
 
     def run(self, ctx: EvalContext) -> NodeOutput:
@@ -51,7 +51,7 @@ class PromptLengthGate(Gate):
         )
 
 
-class Caser(Enricher, LLMNodeMixin):
+class Caser(Enricher, LLMCostMixin):
     def input_tokens(self, ctx: EvalContext) -> int:
         return len(ctx.response.split())
 
@@ -91,7 +91,7 @@ class UpperCaser(Caser):
         )
 
 
-class LLMEnricher(Enricher, LLMNodeMixin):
+class LLMEnricher(Enricher, LLMCostMixin):
 
     def run(self, ctx: EvalContext) -> NodeOutput:
         return self.build_output(ctx.response, ctx)
