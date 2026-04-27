@@ -90,14 +90,14 @@ class EvalContext:
 
     def with_updates(
         self,
-        new_prompt: Optional[str] = None,
-        new_response: Optional[str] = None,
-        new_metadata: Optional[dict[str, Any]] = None,
+        prompt: Optional[str] = None,
+        response: Optional[str] = None,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> EvalContext:
         return EvalContext(
-            prompt=new_prompt or self.prompt,
-            response=new_response or self.response,
-            metadata=new_metadata or self.metadata,
+            prompt=prompt or self.prompt,
+            response=response or self.response,
+            metadata=metadata or self.metadata,
         )
 
     def __eq__(self, value: EvalContext) -> bool:
