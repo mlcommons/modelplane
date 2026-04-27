@@ -32,9 +32,9 @@ def test_with_updates(sample_ctx):
     new_response = "Updated response"
     new_metadata = {"updated": True}
     new_ctx = sample_ctx.with_updates(
-        new_prompt=new_prompt,
-        new_response=new_response,
-        new_metadata=new_metadata,
+        prompt=new_prompt,
+        response=new_response,
+        metadata=new_metadata,
     )
     assert new_ctx.prompt == new_prompt
     assert new_ctx.response == new_response
