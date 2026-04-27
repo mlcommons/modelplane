@@ -35,27 +35,30 @@ def test_fixed_scorer(sample_ctx, score_1):
 
 
 def test_consistent_arbiters(sample_ctx, score_1, score_2, always_unsafe, always_safe):
-    parent_outputs = {score_1.name: SCORE1, score_2.name: SCORE2}
-    sample_ctx.set_parent_outputs(parent_outputs)
-    output = always_unsafe.run(sample_ctx)
+    parent_outputs = {
+        score_1.name: NodeOutput(value=SCORE1),
+        score_2.name: NodeOutput(value=SCORE2),
+    }
+    run_ctx = sample_ctx.with_parent_outputs(parent_outputs)
+    output = always_unsafe.run(run_ctx)
     assert output.value.name == "UNSAFE"
-    output = always_safe.run(sample_ctx)
+    output = always_safe.run(run_ctx)
     assert output.value.name == "SAFE"
 
 
 def test_threshold_arbiter_true(sample_ctx, threshold_arbiter):
-    sample_ctx.set_parent_outputs(
+    run_ctx = sample_ctx.with_parent_outputs(
         {"parent0": NodeOutput(value=SCORE2), "parent1": NodeOutput(value=SCORE2)}
     )
-    output = threshold_arbiter.run(sample_ctx)
+    output = threshold_arbiter.run(run_ctx)
     assert output.value.name == "UNSAFE"
 
 
 def test_threshold_arbiter_false(sample_ctx, threshold_arbiter):
-    sample_ctx.set_parent_outputs(
+    run_ctx = sample_ctx.with_parent_outputs(
         {"parent0": NodeOutput(value=SCORE1), "parent1": NodeOutput(value=SCORE1)}
     )
-    output = threshold_arbiter.run(sample_ctx)
+    output = threshold_arbiter.run(run_ctx)
     assert output.value.name == "SAFE"
 
 

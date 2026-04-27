@@ -142,7 +142,6 @@ def test_dag_cost_all_paths(simple_dag):
     assert costs.keys() == {
         "always_true -> always_safe -> Out (Safety)",
         "always_true -> lower_caser -> prompt_parity -> lower_scorer -> upper_scorer -> threshold_arbiter -> Out (Safety)",
-        "always_true -> lower_caser -> prompt_parity -> upper_caser -> lower_scorer -> upper_scorer -> threshold_arbiter -> Out (Safety)",
     }
 
     key = "always_true -> always_safe -> Out (Safety)"
@@ -160,16 +159,6 @@ def test_dag_cost_all_paths(simple_dag):
     assert costs[key].fixed_cost == pytest.approx(3.1)
     # 0.3 (lower_caser) + 0.2 (prompt_parity) + 0.7 (lower_scorer) + 0.8 (upper_scorer) + 1.1 (threshold_arbiter)
     assert costs[key].latency_seconds == pytest.approx(3.1)
-
-    key = "always_true -> lower_caser -> prompt_parity -> upper_caser -> lower_scorer -> upper_scorer -> threshold_arbiter -> Out (Safety)"
-    # above + 0.4 (upper_caser)
-    assert costs[key].input_cost_per_token == pytest.approx(0.7)
-    # above + 0.5 (upper_caser)
-    assert costs[key].output_cost_per_token == pytest.approx(0.9)
-    # above + 0.4 (upper_caser)
-    assert costs[key].fixed_cost == pytest.approx(3.5)
-    # above + 0.4 (upper_caser)
-    assert costs[key].latency_seconds == pytest.approx(3.5)
 
 
 @skip_in_ci

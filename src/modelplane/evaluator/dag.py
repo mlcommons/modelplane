@@ -175,7 +175,7 @@ class EvaluatorDAG:
         for node_name in self._ordered:
             if node_name not in reachable:
                 continue
-            ctx.set_parent_outputs(
+            run_ctx = ctx.with_parent_outputs(
                 {
                     pred: node_outputs[pred]
                     for pred in self._predecessors[node_name]
@@ -183,9 +183,7 @@ class EvaluatorDAG:
                 }
             )
             node = self._nodes[node_name]
-            output = node.run(ctx)
-            if output.updated_ctx:
-                ctx = output.updated_ctx
+            output = node.run(run_ctx)
             node_outputs[node_name] = output
             total_cost += output.realized_cost
             if isinstance(output.value, Verdict):
