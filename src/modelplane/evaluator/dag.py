@@ -468,7 +468,7 @@ class EvaluatorDAG:
                 attrs = dict(base_style)
                 if traced:
                     raw = node_outputs[node_name]  # type: ignore[index]
-                    label = f"{node_name}\n{node.format_output(raw)}"
+                    label = f"{node_name}\n{node.format_output(raw.value)}"
                     attrs["penwidth"] = "2.5"
                 else:
                     label = node_name
@@ -523,7 +523,7 @@ class EvaluatorDAG:
                     hot = not traced or (node_name, t) in traversed_edges  # type: ignore[operator]
                     edge_label = ""
                     if traced and hot and node_name in (node_outputs or {}):
-                        edge_label = f" {node.format_output(node_outputs[node_name])}"  # type: ignore[index]
+                        edge_label = f" {node.format_output(node_outputs[node_name].value)}"  # type: ignore[index]
                     dot.edge(
                         node_name,
                         t,
