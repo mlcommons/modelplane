@@ -1,6 +1,7 @@
 """DAGAnnotator and EvaluatorDAG implementation."""
 
 import collections
+from dataclasses import dataclass
 import functools
 import json
 import os
@@ -11,10 +12,10 @@ from typing import Any, Optional
 import pandas as pd
 from tqdm import tqdm
 
-from modelplane.evaluator.context import EvalContext
+from modelplane.evaluator.context import EvalContext, NodeOutput
 from modelplane.evaluator.cost import CostInfo, RealizedCost
 from modelplane.evaluator.nodes import Arbiter, EvaluatorDAGNode, Gate
-from modelplane.evaluator.outputs import DAGOutput, NodeOutput, Verdict
+from modelplane.evaluator.verdict import Verdict
 
 
 def requires_validate_and_build(method):
@@ -24,6 +25,13 @@ def requires_validate_and_build(method):
         return method(self, *args, **kwargs)
 
     return wrapper
+
+
+@dataclass
+class DAGOutput:
+    verdict: Verdict
+    node_outputs: dict[str, NodeOutput]
+    total_cost: RealizedCost
 
 
 class EvaluatorDAG:
@@ -176,6 +184,8 @@ class EvaluatorDAG:
             )
             node = self._nodes[node_name]
             output = node.run(ctx)
+            if output.updated_ctx:
+                ctx = output.updated_ctx
             node_outputs[node_name] = output
             total_cost += output.realized_cost
             if isinstance(output.value, Verdict):

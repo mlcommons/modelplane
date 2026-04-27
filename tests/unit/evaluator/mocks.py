@@ -1,7 +1,7 @@
-from modelplane.evaluator.context import EvalContext
+from modelplane.evaluator.context import EvalContext, NodeOutput
 from modelplane.evaluator.cost import CostInfo
 from modelplane.evaluator.nodes import Arbiter, Enricher, Gate, LLMCostMixin
-from modelplane.evaluator.outputs import NodeOutput, Verdict
+from modelplane.evaluator.verdict import Verdict
 from modelplane.evaluator.safety import Safety
 
 
@@ -63,7 +63,12 @@ class LowerCaser(Caser):
     """Enriches by returning the response lowercased."""
 
     def run(self, ctx: EvalContext) -> NodeOutput:
-        return self.build_output(ctx.response.lower(), ctx)
+        output = ctx.response.lower()
+        return self.build_output(
+            output,
+            ctx,
+            updated_ctx=ctx.with_response(output),
+        )
 
     @property
     def cost(self) -> CostInfo:
@@ -79,7 +84,12 @@ class UpperCaser(Caser):
     """Enriches by returning the response uppercased."""
 
     def run(self, ctx: EvalContext) -> NodeOutput:
-        return self.build_output(ctx.response.upper(), ctx)
+        output = ctx.response.upper()
+        return self.build_output(
+            output,
+            ctx,
+            updated_ctx=ctx.with_response(output),
+        )
 
     @property
     def cost(self) -> CostInfo:

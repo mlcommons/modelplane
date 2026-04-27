@@ -1,6 +1,23 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
-from modelplane.evaluator.outputs import NodeOutput
+from modelplane.evaluator.cost import RealizedCost
+
+
+@dataclass
+class NodeOutput:
+    value: Any
+    realized_cost: RealizedCost = field(default_factory=RealizedCost)
+    updated_ctx: Optional[EvalContext] = None
+
+    def to_dict(self) -> dict:
+        return {
+            "value": str(self.value),
+            "realized_cost": self.realized_cost.to_dict(),
+            "updated_ctx": self.updated_ctx.to_dict() if self.updated_ctx else None,
+        }
 
 
 class EvalContext:
@@ -20,3 +37,43 @@ class EvalContext:
     def parent_outputs(self) -> list[NodeOutput]:
         """Return the NodeOutput for a specific node, or None if it was skipped."""
         return list(self._parent_outputs.values())
+
+    def to_dict(self) -> dict:
+        return {
+            "prompt": self.prompt,
+            "response": self.response,
+            "metadata": self.metadata,
+        }
+
+    def with_prompt(self, new_prompt: str) -> EvalContext:
+        return EvalContext(
+            prompt=new_prompt,
+            response=self.response,
+            metadata=self.metadata,
+        )
+
+    def with_response(self, new_response: str) -> EvalContext:
+        return EvalContext(
+            prompt=self.prompt,
+            response=new_response,
+            metadata=self.metadata,
+        )
+
+    def with_metadata(self, new_metadata: dict[str, Any]) -> EvalContext:
+        return EvalContext(
+            prompt=self.prompt,
+            response=self.response,
+            metadata=new_metadata,
+        )
+
+    def with_updates(
+        self,
+        new_prompt: Optional[str] = None,
+        new_response: Optional[str] = None,
+        new_metadata: Optional[dict[str, Any]] = None,
+    ) -> EvalContext:
+        return EvalContext(
+            prompt=new_prompt or self.prompt,
+            response=new_response or self.response,
+            metadata=new_metadata or self.metadata,
+        )

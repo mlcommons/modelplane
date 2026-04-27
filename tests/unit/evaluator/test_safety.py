@@ -2,8 +2,11 @@ from modelgauge.annotation import SafetyAnnotation
 from modelgauge.annotators.demo_annotator import DemoYBadAnnotator
 from modelgauge.prompt import TextPrompt
 from modelgauge.sut import SUTResponse
+import pytest
 
+from modelplane.evaluator.dag import EvaluatorDAG
 from modelplane.evaluator.safety import AnnotatorArbiter, Safety, SafetyDAGAnnotator
+from modelplane.evaluator.verdict import Verdict
 
 
 def test_safety_annotator_arbiter(sample_ctx):
@@ -38,3 +41,11 @@ def test_safety_dag_run(simple_dag, sample_ctx):
     )
     assert not output.is_safe
     assert isinstance(output, SafetyAnnotation)
+
+
+def test_safety_dag_with_bad_verdict_type():
+    with pytest.raises(
+        ValueError,
+        match="All outputs of the DAG must be of type Safety.",
+    ):
+        SafetyDAGAnnotator("bad_dag", EvaluatorDAG("bad_dag", verdict_type=Verdict))

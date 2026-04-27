@@ -9,7 +9,7 @@ from modelplane.evaluator.annotator import DAGAnnotator
 from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.dag import EvaluatorDAG
 from modelplane.evaluator.nodes import Arbiter, NodeOutput
-from modelplane.evaluator.outputs import Verdict
+from modelplane.evaluator.verdict import Verdict
 
 
 class Safety(Verdict):
