@@ -1,5 +1,6 @@
 """Unit tests for EvaluatorDAG construction, validation, execution, and visualization."""
 
+import json
 from unittest.mock import patch
 
 import pandas as pd
@@ -104,6 +105,19 @@ def test_dag_run_with_dataframe(simple_dag, tmp_path):
     verdicts = result_df[simple_dag.df_output_col].tolist()
     expected_verdicts = ["SAFE", "UNSAFE", "SAFE", "UNSAFE"]
     assert verdicts == expected_verdicts
+
+    for cost_json in result_df[simple_dag.df_cost_col]:
+        cost = json.loads(cost_json)
+        assert "input_token_cost" in cost
+        assert "output_token_cost" in cost
+        assert "fixed_cost" in cost
+        assert "latency_seconds" in cost
+        assert "total_token_cost" in cost
+        assert "total_cost" in cost
+
+    for dag_run_json in result_df[simple_dag.df_dag_run_col]:
+        dag_run = json.loads(dag_run_json)
+        assert "always_true" in dag_run
 
 
 def test_dag_run_with_dataframe_parallel(simple_dag):

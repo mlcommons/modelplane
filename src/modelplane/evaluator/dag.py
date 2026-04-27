@@ -241,12 +241,10 @@ class EvaluatorDAG:
         result_df = pd.DataFrame(
             {
                 self.df_output_col: [r.verdict.name for r in records],
-                self.df_dag_run_col: json.dumps(
-                    [
-                        {k: v.to_dict() for k, v in r.node_outputs.items()}
-                        for r in records
-                    ]
-                ),
+                self.df_dag_run_col: [
+                    json.dumps({k: v.to_dict() for k, v in r.node_outputs.items()})
+                    for r in records
+                ],
                 self.df_cost_col: [json.dumps(r.total_cost.to_dict()) for r in records],
             },
             index=df.index,
