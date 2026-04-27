@@ -129,14 +129,11 @@ def simple_dag():
             PromptLengthGate(
                 name="prompt_parity",
                 routes_true=[Safety(is_safe=False)],
-                routes_false=["upper_caser"],
+                routes_false=["upper_scorer"],
             )
         )
         .add_node(
             LowerCaser(name="lower_caser", routes=["lower_scorer", "upper_scorer"])
-        )
-        .add_node(
-            UpperCaser(name="upper_caser", routes=["lower_scorer", "upper_scorer"])
         )
         .add_node(LowerCaseScorer(name="lower_scorer", routes=["threshold_arbiter"]))
         .add_node(UpperCaseScorer(name="upper_scorer", routes=["threshold_arbiter"]))

@@ -31,8 +31,30 @@ class EvalContext:
         self.metadata = metadata or {}
         self._parent_outputs = {}
 
-    def set_parent_outputs(self, outputs: dict[str, NodeOutput]) -> None:
-        self._parent_outputs = outputs
+    def with_parent_outputs(self, outputs: dict[str, NodeOutput]) -> EvalContext:
+        updated_ctx = None
+        for node_output in outputs.values():
+            if node_output.updated_ctx:
+                if updated_ctx and node_output.updated_ctx != updated_ctx:
+                    raise ValueError(
+                        "If context is updated, all parent outputs must have the same updated context."
+                    )
+                elif not updated_ctx:
+                    updated_ctx = node_output.updated_ctx
+        if updated_ctx:
+            ctx = EvalContext(
+                prompt=updated_ctx.prompt,
+                response=updated_ctx.response,
+                metadata=updated_ctx.metadata,
+            )
+        else:
+            ctx = EvalContext(
+                prompt=self.prompt,
+                response=self.response,
+                metadata=self.metadata,
+            )
+        ctx._parent_outputs = outputs
+        return ctx
 
     def parent_outputs(self) -> list[NodeOutput]:
         """Return the NodeOutput for a specific node, or None if it was skipped."""
@@ -76,4 +98,13 @@ class EvalContext:
             prompt=new_prompt or self.prompt,
             response=new_response or self.response,
             metadata=new_metadata or self.metadata,
+        )
+
+    def __eq__(self, value: EvalContext) -> bool:
+        if not isinstance(value, EvalContext):
+            return False
+        return (
+            self.prompt == value.prompt
+            and self.response == value.response
+            and self.metadata == value.metadata
         )

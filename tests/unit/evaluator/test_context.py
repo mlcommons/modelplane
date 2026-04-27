@@ -1,3 +1,8 @@
+import pytest
+
+from modelplane.evaluator.context import NodeOutput
+
+
 def test_prompt_replacement(sample_ctx):
     new_prompt = "New prompt"
     new_ctx = sample_ctx.with_prompt(new_prompt)
@@ -34,3 +39,25 @@ def test_with_updates(sample_ctx):
     assert new_ctx.prompt == new_prompt
     assert new_ctx.response == new_response
     assert new_ctx.metadata == new_metadata
+
+
+def test_with_different_parent_outputs(sample_ctx):
+    parent_outputs = {
+        "parent1": NodeOutput(
+            value="output1",
+            updated_ctx=sample_ctx.with_response("Updated response for parent1"),
+        ),
+        "parent2": NodeOutput(
+            value="output2",
+            updated_ctx=sample_ctx.with_prompt("Updated prompt for parent2"),
+        ),
+    }
+    with pytest.raises(
+        ValueError,
+        match="all parent outputs must have the same updated context",
+    ):
+        sample_ctx.with_parent_outputs(parent_outputs)
+
+
+def test_eq_with_non_eval_context(sample_ctx):
+    assert sample_ctx != "not an EvalContext"
