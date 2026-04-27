@@ -2,7 +2,8 @@
 
 import pytest
 
-from modelplane.evaluator.outputs import NodeOutput
+from modelplane.evaluator.context import NodeOutput
+from modelplane.evaluator.nodes import EvaluatorDAGNode
 from modelplane.evaluator.safety import Safety
 
 from .conftest import DEFAULT_BRANCH, FALSE_BRANCH, SCORE1, SCORE2, TRUE_BRANCH
@@ -109,3 +110,10 @@ def test_arbiter_with_routes():
             name="bad_arbiter",
             routes=DEFAULT_BRANCH,
         )
+
+
+def test_note_format_output():
+    assert EvaluatorDAGNode.format_output(3.1415926535) == "3.14"
+    assert EvaluatorDAGNode.format_output("short string") == "short string"
+    long_string = "x" * 50
+    assert EvaluatorDAGNode.format_output(long_string) == "x" * 27 + "..."

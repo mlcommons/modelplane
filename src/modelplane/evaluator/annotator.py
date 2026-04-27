@@ -5,7 +5,7 @@ from modelgauge.sut import SUTResponse
 
 from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.dag import EvaluatorDAG
-from modelplane.evaluator.outputs import Verdict
+from modelplane.evaluator.verdict import Verdict
 
 
 class DAGAnnotator(Annotator):

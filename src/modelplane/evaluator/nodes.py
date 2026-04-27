@@ -13,9 +13,9 @@ Class hierarchy:
 from abc import ABC, abstractmethod
 from typing import Any, Optional, Sequence
 
-from modelplane.evaluator.context import EvalContext
+from modelplane.evaluator.context import EvalContext, NodeOutput
 from modelplane.evaluator.cost import CostInfo, RealizedCost
-from modelplane.evaluator.outputs import NodeOutput, Verdict
+from modelplane.evaluator.verdict import Verdict
 
 
 class EvaluatorDAGNode(ABC):
@@ -47,12 +47,24 @@ class EvaluatorDAGNode(ABC):
     @abstractmethod
     def run(self, ctx: EvalContext) -> NodeOutput:
         """Execute the node and return its output and realized cost."""
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
-    def build_output(self, value: Any, ctx: EvalContext) -> NodeOutput:
+    def build_output(
+        self,
+        value: Any,
+        ctx: EvalContext,
+        updated_ctx: Optional[EvalContext] = None,
+    ) -> NodeOutput:
         """Helper method for building a NodeOutput with the node's realized cost
-        when the cost doesn't have to be computed concurrently with the output value."""
-        return NodeOutput(value=value, realized_cost=self.realized_cost(ctx))
+        when the cost doesn't have to be computed concurrently with the output value.
+
+        This helper assumes the context is not updated.
+        """
+        return NodeOutput(
+            value=value,
+            realized_cost=self.realized_cost(ctx),
+            updated_ctx=updated_ctx,
+        )
 
     @property
     def cost(self) -> CostInfo:
@@ -69,7 +81,8 @@ class EvaluatorDAGNode(ABC):
     def __repr__(self) -> str:
         return f"{self.name!r}: ({self.__class__.__name__})"
 
-    def format_output(self, output: Any) -> str:
+    @staticmethod
+    def format_output(output: Any) -> str:
         """Convenience method to format the node's output for debugging/visualization."""
         if isinstance(output, float):
             return f"{output:.3g}"
@@ -103,11 +116,11 @@ class LLMCostMixin(EvaluatorDAGNode):
 
     @abstractmethod
     def input_tokens(self, ctx: EvalContext) -> int:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     @abstractmethod
     def output_tokens(self, ctx: EvalContext) -> int:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def realized_cost(self, ctx: EvalContext) -> RealizedCost:
         return RealizedCost(
@@ -168,4 +181,4 @@ class Arbiter(EvaluatorDAGNode):
     @abstractmethod
     def verdict_type(self) -> type:
         """Return the expected type of the Verdict's value for validation."""
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
