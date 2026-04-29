@@ -4,7 +4,7 @@ from modelgauge.prompt import TextPrompt
 from modelgauge.sut import SUTResponse
 import pytest
 
-from modelplane.evaluator.dag import EvaluatorDAG
+from modelplane.evaluator.dag import Composer
 from modelplane.evaluator.safety import AnnotatorArbiter, Safety, SafetyDAGAnnotator
 from modelplane.evaluator.verdict import Verdict
 
@@ -48,4 +48,4 @@ def test_safety_dag_with_bad_verdict_type():
         ValueError,
         match="All outputs of the DAG must be of type Safety.",
     ):
-        SafetyDAGAnnotator("bad_dag", EvaluatorDAG("bad_dag", verdict_type=Verdict))
+        SafetyDAGAnnotator("bad_dag", Composer("bad_dag", verdict_type=Verdict))

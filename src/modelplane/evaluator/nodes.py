@@ -1,9 +1,9 @@
 """
-Node types for the EvaluatorDAG pipeline.
+Node types for the Composer pipeline.
 
 Class hierarchy:
 
-    EvaluatorNode (ABC)
+    ComposerNode (ABC)
     ├── Gate       (binary test; routes on True/False)
     ├── Enricher   (produces arbitary output; routes forward unconditionally)
     └── Arbiter    (produces Output)
@@ -18,7 +18,7 @@ from modelplane.evaluator.cost import CostInfo, RealizedCost
 from modelplane.evaluator.verdict import Verdict
 
 
-class EvaluatorDAGNode(ABC):
+class ComposerNode(ABC):
     def __init__(
         self,
         name: str,
@@ -111,7 +111,7 @@ class EvaluatorDAGNode(ABC):
                 )
 
 
-class LLMCostMixin(EvaluatorDAGNode):
+class LLMCostMixin(ComposerNode):
     """Mixin for nodes that involve LLM calls, to simplify cost calculation."""
 
     @abstractmethod
@@ -131,7 +131,7 @@ class LLMCostMixin(EvaluatorDAGNode):
         )
 
 
-def _validate_binary_routes(node: EvaluatorDAGNode) -> None:
+def _validate_binary_routes(node: ComposerNode) -> None:
     if not node.routes_true or not node.routes_false:
         raise ValueError(f"{node!r} requires both routes_true and routes_false")
     if node.routes:
@@ -140,7 +140,7 @@ def _validate_binary_routes(node: EvaluatorDAGNode) -> None:
         )
 
 
-def _validate_unary_routes(node: EvaluatorDAGNode) -> None:
+def _validate_unary_routes(node: ComposerNode) -> None:
     if not node.routes:
         raise ValueError(f"{node!r} requires routes=")
     if node.routes_true or node.routes_false:
@@ -149,12 +149,12 @@ def _validate_unary_routes(node: EvaluatorDAGNode) -> None:
         )
 
 
-def _validate_terminal(node: EvaluatorDAGNode) -> None:
+def _validate_terminal(node: ComposerNode) -> None:
     if node.routes_true or node.routes_false or node.routes:
         raise ValueError(f"{node!r} is terminal and cannot have routing kwargs")
 
 
-class Gate(EvaluatorDAGNode):
+class Gate(ComposerNode):
     """Binary test node."""
 
     def validate(self) -> None:
@@ -162,7 +162,7 @@ class Gate(EvaluatorDAGNode):
         _validate_binary_routes(self)
 
 
-class Enricher(EvaluatorDAGNode):
+class Enricher(ComposerNode):
     """Context transformation node."""
 
     def validate(self) -> None:
@@ -170,7 +170,7 @@ class Enricher(EvaluatorDAGNode):
         _validate_unary_routes(self)
 
 
-class Arbiter(EvaluatorDAGNode):
+class Arbiter(ComposerNode):
     """Takes context and returns a Verdict indicating the final verdict (based on routes)."""
 
     def validate(self) -> None:

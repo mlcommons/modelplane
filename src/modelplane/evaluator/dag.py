@@ -1,4 +1,4 @@
-"""DAGAnnotator and EvaluatorDAG implementation."""
+"""DAGAnnotator and Composer implementation."""
 
 import collections
 from dataclasses import dataclass
@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 from modelplane.evaluator.context import EvalContext, NodeOutput
 from modelplane.evaluator.cost import CostInfo, RealizedCost
-from modelplane.evaluator.nodes import Arbiter, EvaluatorDAGNode, Gate
+from modelplane.evaluator.nodes import Arbiter, ComposerNode, Gate
 from modelplane.evaluator.verdict import Verdict
 
 
@@ -34,8 +34,8 @@ class DAGOutput:
     total_cost: RealizedCost
 
 
-class EvaluatorDAG:
-    """DAG of EvaluatorNodes.
+class Composer:
+    """DAG of ComposerNodes.
 
     Usage:
 
@@ -44,7 +44,7 @@ class EvaluatorDAG:
         arbiter          = MyArbiter("Arbiter")
 
         dag = (
-            EvaluatorDAG("refusal_gated_safety_evaluator", output_type=Safety)
+            Composer("refusal_gated_safety_evaluator", verdict_type=Safety)
             .add_node(refusal_gate)
             .add_node(eval_non_refusal)
             .add_node(arbiter)
@@ -58,7 +58,7 @@ class EvaluatorDAG:
 
     def __init__(self, name: str, verdict_type: type) -> None:
         self.name = name
-        self._nodes: dict[str, EvaluatorDAGNode] = {}
+        self._nodes: dict[str, ComposerNode] = {}
         self._root_nodes: list[str] = []
         self._ordered: list[str] = []
         self._validated: bool = False
@@ -85,8 +85,8 @@ class EvaluatorDAG:
 
     def add_node(
         self,
-        node: EvaluatorDAGNode,
-    ) -> "EvaluatorDAG":
+        node: ComposerNode,
+    ) -> "Composer":
         """Register a node with its routes."""
 
         if node.name in self._nodes:

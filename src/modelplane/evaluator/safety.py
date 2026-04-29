@@ -7,7 +7,7 @@ from modelgauge.annotator import Annotator, SUTResponse, TextPrompt
 
 from modelplane.evaluator.annotator import DAGAnnotator
 from modelplane.evaluator.context import EvalContext
-from modelplane.evaluator.dag import EvaluatorDAG
+from modelplane.evaluator.dag import Composer
 from modelplane.evaluator.nodes import Arbiter, NodeOutput
 from modelplane.evaluator.verdict import Verdict
 
@@ -31,7 +31,7 @@ class SafetyArbiter(Arbiter):
 class SafetyDAGAnnotator(DAGAnnotator):
     """Implementation of DAGAnnotator that produces a SafetyAnnotation."""
 
-    def __init__(self, uid: str, dag: EvaluatorDAG) -> None:
+    def __init__(self, uid: str, dag: Composer) -> None:
         super().__init__(uid, dag)
         if not issubclass(dag.verdict_type, Safety):
             raise ValueError("All outputs of the DAG must be of type Safety.")
