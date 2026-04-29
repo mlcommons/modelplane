@@ -71,8 +71,8 @@ class AnnotatorArbiter(SafetyArbiter):
         if key in self._cache:
             val = self._cache[key]
             assert isinstance(val, Safety)
-            return NodeOutput(value=val)
+            return NodeOutput(value=val, original_ctx=ctx)
         else:
             val = self._run(ctx)
             self._cache[key] = val
-            return NodeOutput(value=val)
+            return NodeOutput(value=val, original_ctx=ctx)

@@ -9,6 +9,7 @@ from modelplane.evaluator.cost import RealizedCost
 @dataclass
 class NodeOutput:
     value: Any
+    original_ctx: EvalContext
     realized_cost: RealizedCost = field(default_factory=RealizedCost)
     updated_ctx: Optional[EvalContext] = None
 
@@ -17,6 +18,7 @@ class NodeOutput:
             "value": str(self.value),
             "realized_cost": self.realized_cost.to_dict(),
             "updated_ctx": self.updated_ctx.to_dict() if self.updated_ctx else None,
+            "original_ctx": self.original_ctx.to_dict(),
         }
 
 
