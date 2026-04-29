@@ -5,7 +5,7 @@ import os
 import pytest
 
 from modelplane.evaluator.context import EvalContext
-from modelplane.evaluator.dag import EvaluatorDAG
+from modelplane.evaluator.dag import Composer
 from modelplane.evaluator.verdict import Verdict
 from modelplane.evaluator.safety import Safety
 
@@ -101,7 +101,7 @@ def threshold_arbiter() -> ThresholdArbiter:
 @pytest.fixture
 def one_step_dag():
     return (
-        EvaluatorDAG("one_step", verdict_type=Safety)
+        Composer("one_step", verdict_type=Safety)
         .add_node(
             AlwaysFalse(
                 name="gate",
@@ -116,7 +116,7 @@ def one_step_dag():
 @pytest.fixture
 def simple_dag():
     return (
-        EvaluatorDAG("simple", verdict_type=Safety)
+        Composer("simple", verdict_type=Safety)
         .add_node(
             AlwaysTrue(
                 name="always_true",
@@ -144,7 +144,7 @@ def simple_dag():
 @pytest.fixture()
 def bad_dag_with_cycle():
     return (
-        EvaluatorDAG("cyclic", verdict_type=Safety)
+        Composer("cyclic", verdict_type=Safety)
         .add_node(
             AlwaysTrue(
                 name="node1",
@@ -178,7 +178,7 @@ def bad_dag_with_undefined_output(simple_dag):
 
 @pytest.fixture
 def bad_dag_with_bad_arbiter():
-    dag = EvaluatorDAG("test", verdict_type=Safety)
+    dag = Composer("test", verdict_type=Safety)
     dag.add_node(BadArbiter(name="bad_arbiter"))
     return dag
 
@@ -186,7 +186,7 @@ def bad_dag_with_bad_arbiter():
 @pytest.fixture
 def bad_one_step_dag():
     return (
-        EvaluatorDAG("one_step", verdict_type=Safety)
+        Composer("one_step", verdict_type=Safety)
         .add_node(
             AlwaysFalse(
                 name="gate",

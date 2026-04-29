@@ -1,4 +1,4 @@
-"""Unit tests for EvaluatorDAG construction, validation, execution, and visualization."""
+"""Unit tests for Composer construction, validation, execution, and visualization."""
 
 import json
 from unittest.mock import patch
@@ -6,8 +6,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from modelplane.evaluator.cost import CostInfo, RealizedCost
-from modelplane.evaluator.dag import EvaluatorDAG
+from modelplane.evaluator.dag import Composer
 from modelplane.evaluator.safety import Safety
 
 from .conftest import skip_in_ci
@@ -22,7 +21,7 @@ def test_dag_with_bad_verdict_type():
         ValueError,
         match="verdict_type must be a subclass of Verdict",
     ):
-        EvaluatorDAG(name="bad_dag", verdict_type=str)
+        Composer(name="bad_dag", verdict_type=str)
 
 
 def test_add_node_with_same_name_as_existing_node(simple_dag, always_true_gate):

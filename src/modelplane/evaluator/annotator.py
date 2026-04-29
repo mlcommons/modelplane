@@ -4,14 +4,14 @@ from modelgauge.prompt_formatting import format_chat
 from modelgauge.sut import SUTResponse
 
 from modelplane.evaluator.context import EvalContext
-from modelplane.evaluator.dag import EvaluatorDAG
+from modelplane.evaluator.dag import Composer
 from modelplane.evaluator.verdict import Verdict
 
 
 class DAGAnnotator(Annotator):
     """Annotator that executes a DAG."""
 
-    def __init__(self, uid: str, dag: EvaluatorDAG) -> None:
+    def __init__(self, uid: str, dag: Composer) -> None:
         super().__init__(uid)
         self.dag = dag
 
