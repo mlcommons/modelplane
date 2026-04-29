@@ -45,10 +45,12 @@ def test_with_different_parent_outputs(sample_ctx):
     parent_outputs = {
         "parent1": NodeOutput(
             value="output1",
+            original_ctx=sample_ctx,
             updated_ctx=sample_ctx.with_response("Updated response for parent1"),
         ),
         "parent2": NodeOutput(
             value="output2",
+            original_ctx=sample_ctx,
             updated_ctx=sample_ctx.with_prompt("Updated prompt for parent2"),
         ),
     }

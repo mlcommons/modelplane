@@ -93,7 +93,7 @@ def test_dag_run_with_dataframe(simple_dag, tmp_path):
     df = pd.DataFrame(
         {
             "prompt": ["a", "ab", "abc", "abcd"],  # odd, even, odd, even
-            "response": ["hello world", "helloworld", "hello world", "helloworld"],
+            "response": ["Hello world", "Helloworld", "Hello world", "Helloworld"],
         }
     )
     result_df = simple_dag.run_dataframe(df)
@@ -117,6 +117,12 @@ def test_dag_run_with_dataframe(simple_dag, tmp_path):
     for dag_run_json in result_df[simple_dag.df_dag_run_col]:
         dag_run = json.loads(dag_run_json)
         assert "always_true" in dag_run
+        if "lower_caser" in dag_run:
+            # confirm original ctx is present and different from updated ctx
+            assert (
+                dag_run["lower_caser"]["original_ctx"]["response"].lower()
+                == dag_run["lower_caser"]["updated_ctx"]["response"]
+            )
 
 
 def test_dag_run_with_dataframe_parallel(simple_dag):

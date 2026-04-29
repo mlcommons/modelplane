@@ -63,6 +63,7 @@ class ComposerNode(ABC):
         return NodeOutput(
             value=value,
             realized_cost=self.realized_cost(ctx),
+            original_ctx=ctx,
             updated_ctx=updated_ctx,
         )
 
