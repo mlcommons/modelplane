@@ -1,13 +1,15 @@
 """Shared mock node implementations and helpers for evaluator tests."""
 
 import os
+import string
 
 import pytest
 
 from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.dag import Composer
-from modelplane.evaluator.verdict import Verdict
+from modelplane.evaluator.prompt_enricher import PromptEngineeredNode
 from modelplane.evaluator.safety import Safety
+from modelplane.evaluator.verdict import Verdict
 
 from .mocks import (
     AlwaysFalse,
@@ -195,4 +197,14 @@ def bad_one_step_dag():
             )
         )
         .add_node(AlwaysUnsafe(name="always_unsafe"))
+    )
+
+
+@pytest.fixture
+def prompt_enricher() -> PromptEngineeredNode:
+    return PromptEngineeredNode(
+        name="prompt_enricher",
+        routes=["next_node"],
+        prompt_template=string.Template("$prompt\n$response"),
+        sut_id="demo_yes_no",
     )
