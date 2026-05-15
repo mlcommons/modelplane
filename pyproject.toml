@@ -40,6 +40,7 @@ dev = [
 test = [
     "pytest>=8,<10",
     "pytest-cov>=6,<8",
+    "pytest-mock>=3,<4",
 ]
 mlflow = [
     "psycopg2-binary>=2.9.10,<3",
