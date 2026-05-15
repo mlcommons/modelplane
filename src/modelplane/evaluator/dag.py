@@ -231,7 +231,7 @@ class Composer:
             ctx = EvalContext(
                 prompt=str(row[prompt_col]),
                 response=str(row[response_col]),
-                metadata=row[metadata_col] if metadata_col else None,
+                metadata=json.loads(row[metadata_col]) if metadata_col else None,
             )
             return self.run(ctx)
 
