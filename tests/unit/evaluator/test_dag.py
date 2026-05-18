@@ -141,18 +141,22 @@ def test_dag_cacheable_node_without_cache_path_runs_each_time(sample_ctx):
 
 def test_dag_run_with_cached_simple_dag(cached_simple_dag, sample_ctx):
     AlwaysTrueCacheable.run_count = 0
-    dag_output = cached_simple_dag.run(sample_ctx)
 
-    assert dag_output.total_cost.input_token_cost == pytest.approx(1.2)
-    assert dag_output.total_cost.output_token_cost == pytest.approx(1.6)
-    assert dag_output.total_cost.fixed_cost == pytest.approx(0.5)
-    assert dag_output.total_cost.latency_seconds == pytest.approx(0.5)
-    assert dag_output.total_cost.total_token_cost == pytest.approx(2.8)
-    assert dag_output.total_cost.total_cost == pytest.approx(3.3)
-    assert dag_output.verdict.name == "UNSAFE"
+    def assert_output(dag_output):
+        assert dag_output.total_cost.input_token_cost == pytest.approx(1.2)
+        assert dag_output.total_cost.output_token_cost == pytest.approx(1.6)
+        assert dag_output.total_cost.fixed_cost == pytest.approx(0.5)
+        assert dag_output.total_cost.latency_seconds == pytest.approx(0.5)
+        assert dag_output.total_cost.total_token_cost == pytest.approx(2.8)
+        assert dag_output.total_cost.total_cost == pytest.approx(3.3)
+        assert dag_output.verdict.name == "UNSAFE"
+
+    dag_output = cached_simple_dag.run(sample_ctx)
+    assert_output(dag_output)
     assert AlwaysTrueCacheable.run_count == 1
 
-    cached_simple_dag.run(sample_ctx)
+    dag_output = cached_simple_dag.run(sample_ctx)
+    assert_output(dag_output)
     assert AlwaysTrueCacheable.run_count == 1
 
 

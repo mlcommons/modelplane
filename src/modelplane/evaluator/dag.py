@@ -194,7 +194,6 @@ class Composer:
                 if key in self._node_caches[node.name]:
                     output = self._node_caches[node.name][key]
                 else:
-                    # TODO: make sure output is serializable
                     output = node.run(run_ctx)
                     self._node_caches[node.name][key] = output
             else:
