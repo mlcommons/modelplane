@@ -112,6 +112,13 @@ class ComposerNode(ABC):
                 )
 
 
+class CacheableComposerNode(ComposerNode):
+    @staticmethod
+    @abstractmethod
+    def cache_key(ctx: EvalContext) -> tuple:
+        raise NotImplementedError  # pragma: no cover
+
+
 class LLMCostMixin(ComposerNode):
     """Mixin for nodes that involve LLM calls, to simplify cost calculation."""
 
