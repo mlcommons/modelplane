@@ -6,10 +6,12 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
+from modelplane.evaluator.context import EvalContext
 from modelplane.evaluator.dag import Composer
 from modelplane.evaluator.safety import Safety
 
 from .conftest import skip_in_ci
+from .mocks import AlwaysTrueCacheable
 
 
 def test_dag_outputs(simple_dag):
@@ -62,6 +64,100 @@ def test_dag_with_bad_output_route(bad_one_step_dag, sample_ctx):
         match=r"incompatible output",
     ):
         bad_one_step_dag.run(sample_ctx)
+
+
+def test_dag_run_with_cache(cached_minimal_dag, sample_ctx):
+    output = cached_minimal_dag.run(sample_ctx)
+    assert output.verdict.name == "SAFE"
+
+    always_true = cached_minimal_dag._nodes["always_true"]
+    always_true.run = lambda ctx: (_ for _ in ()).throw(
+        ValueError("Should not call run")
+    )
+    output_cached = cached_minimal_dag.run(sample_ctx)
+    assert output_cached.verdict.name == "SAFE"
+
+
+def test_dag_uses_per_node_disk_cache(tmp_path, sample_ctx):
+    """Each cacheable node must use cache_path / node.name, not a shared store."""
+    gate_a = AlwaysTrueCacheable(
+        name="gate_a",
+        routes_true=["gate_b"],
+        routes_false=[Safety(is_safe=False)],
+    )
+    gate_b = AlwaysTrueCacheable(
+        name="gate_b",
+        routes_true=[Safety(is_safe=True)],
+        routes_false=[Safety(is_safe=False)],
+    )
+    dag = (
+        Composer("per_node_cache", verdict_type=Safety, cache_path=tmp_path)
+        .add_node(gate_a)
+        .add_node(gate_b)
+    )
+
+    assert dag._node_caches["gate_a"].cache_path == tmp_path / "gate_a"
+    assert dag._node_caches["gate_b"].cache_path == tmp_path / "gate_b"
+
+    AlwaysTrueCacheable.run_count = 0
+    dag.run(sample_ctx)
+    assert AlwaysTrueCacheable.run_count == 2
+
+    dag._node_caches["gate_b"].raw_cache.clear()
+    gate_a.run = lambda ctx: (_ for _ in ()).throw(ValueError("gate_a cache miss"))
+
+    AlwaysTrueCacheable.run_count = 0
+    dag.run(sample_ctx)
+    # gate_a hits its own cache; gate_b misses after clear and runs once
+    assert AlwaysTrueCacheable.run_count == 1
+
+
+def test_dag_cache_miss_on_different_context(cached_minimal_dag):
+    AlwaysTrueCacheable.run_count = 0
+    ctx_a = EvalContext(prompt="Hello", response="world")
+    ctx_b = EvalContext(prompt="Goodbye", response="world")
+
+    cached_minimal_dag.run(ctx_a)
+    cached_minimal_dag.run(ctx_b)
+    assert AlwaysTrueCacheable.run_count == 2
+
+
+def test_dag_cacheable_node_without_cache_path_runs_each_time(sample_ctx):
+    AlwaysTrueCacheable.run_count = 0
+    dag = (
+        Composer("no_cache", verdict_type=Safety)
+        .add_node(
+            AlwaysTrueCacheable(
+                name="always_true",
+                routes_true=[Safety(is_safe=True)],
+                routes_false=[Safety(is_safe=False)],
+            )
+        )
+    )
+    dag.run(sample_ctx)
+    dag.run(sample_ctx)
+    assert AlwaysTrueCacheable.run_count == 2
+
+
+def test_dag_run_with_cached_simple_dag(cached_simple_dag, sample_ctx):
+    AlwaysTrueCacheable.run_count = 0
+
+    def assert_output(dag_output):
+        assert dag_output.total_cost.input_token_cost == pytest.approx(1.2)
+        assert dag_output.total_cost.output_token_cost == pytest.approx(1.6)
+        assert dag_output.total_cost.fixed_cost == pytest.approx(0.5)
+        assert dag_output.total_cost.latency_seconds == pytest.approx(0.5)
+        assert dag_output.total_cost.total_token_cost == pytest.approx(2.8)
+        assert dag_output.total_cost.total_cost == pytest.approx(3.3)
+        assert dag_output.verdict.name == "UNSAFE"
+
+    dag_output = cached_simple_dag.run(sample_ctx)
+    assert_output(dag_output)
+    assert AlwaysTrueCacheable.run_count == 1
+
+    dag_output = cached_simple_dag.run(sample_ctx)
+    assert_output(dag_output)
+    assert AlwaysTrueCacheable.run_count == 1
 
 
 def test_dag_run(simple_dag, sample_ctx):

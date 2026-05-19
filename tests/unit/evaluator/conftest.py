@@ -15,6 +15,7 @@ from .mocks import (
     AlwaysFalse,
     AlwaysSafe,
     AlwaysTrue,
+    AlwaysTrueCacheable,
     AlwaysUnsafe,
     BadArbiter,
     FixedScorer,
@@ -112,6 +113,48 @@ def one_step_dag():
             )
         )
         .add_node(AlwaysUnsafe(name="always_unsafe"))
+    )
+
+
+@pytest.fixture
+def cached_minimal_dag(tmp_path):
+    return (
+        Composer("cached_minimal", verdict_type=Safety, cache_path=tmp_path)
+        .add_node(
+            AlwaysTrueCacheable(
+                name="always_true",
+                routes_true=[Safety(is_safe=True)],
+                routes_false=[Safety(is_safe=False)],
+            )
+        )
+    )
+
+
+@pytest.fixture
+def cached_simple_dag(tmp_path):
+    return (
+        Composer("simple_cached", verdict_type=Safety, cache_path=tmp_path)
+        .add_node(
+            AlwaysTrueCacheable(
+                name="always_true",
+                routes_true=["lower_caser", "prompt_parity"],
+                routes_false=["always_safe"],
+            )
+        )
+        .add_node(AlwaysSafe(name="always_safe"))
+        .add_node(
+            PromptLengthGate(
+                name="prompt_parity",
+                routes_true=[Safety(is_safe=False)],
+                routes_false=["upper_scorer"],
+            )
+        )
+        .add_node(
+            LowerCaser(name="lower_caser", routes=["lower_scorer", "upper_scorer"])
+        )
+        .add_node(LowerCaseScorer(name="lower_scorer", routes=["threshold_arbiter"]))
+        .add_node(UpperCaseScorer(name="upper_scorer", routes=["threshold_arbiter"]))
+        .add_node(ThresholdArbiter(name="threshold_arbiter", threshold=0.5))
     )
 
 

@@ -2,6 +2,7 @@
 
 import collections
 from dataclasses import dataclass
+from pathlib import Path
 import functools
 import json
 import os
@@ -12,9 +13,10 @@ from typing import Any, Optional
 import pandas as pd
 from tqdm import tqdm
 
+from modelbench.cache import DiskCache, NullCache
 from modelplane.evaluator.context import EvalContext, NodeOutput
 from modelplane.evaluator.cost import CostInfo, RealizedCost
-from modelplane.evaluator.nodes import Arbiter, ComposerNode, Gate
+from modelplane.evaluator.nodes import Arbiter, CacheableComposerNode, ComposerNode, Gate
 from modelplane.evaluator.verdict import Verdict
 
 
@@ -56,7 +58,7 @@ class Composer:
         results_df = dag.run_dataframe(df)
     """
 
-    def __init__(self, name: str, verdict_type: type) -> None:
+    def __init__(self, name: str, verdict_type: type, cache_path: Optional[Path] = None) -> None:
         self.name = name
         self._nodes: dict[str, ComposerNode] = {}
         self._root_nodes: list[str] = []
@@ -66,6 +68,8 @@ class Composer:
         if not issubclass(verdict_type, Verdict):
             raise ValueError("verdict_type must be a subclass of Verdict.")
         self._verdict_type = verdict_type
+        self._cache_path = cache_path
+        self._node_caches = {}
 
     @property
     def verdict_type(self) -> type:
@@ -95,6 +99,8 @@ class Composer:
             )
         self._nodes[node.name] = node
         self._validated = False
+        if isinstance(node, CacheableComposerNode):
+            self._node_caches[node.name] = DiskCache(self._cache_path / node.name) if self._cache_path else NullCache()
         return self
 
     def _validate_and_build(self) -> None:
@@ -183,7 +189,15 @@ class Composer:
                 }
             )
             node = self._nodes[node_name]
-            output = node.run(run_ctx)
+            if isinstance(node, CacheableComposerNode):
+                key = node.cache_key(run_ctx)
+                if key in self._node_caches[node.name]:
+                    output = self._node_caches[node.name][key]
+                else:
+                    output = node.run(run_ctx)
+                    self._node_caches[node.name][key] = output
+            else:
+                output = node.run(run_ctx)
             node_outputs[node_name] = output
             total_cost += output.realized_cost
             if isinstance(output.value, Verdict):
