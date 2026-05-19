@@ -31,8 +31,7 @@ class AlwaysTrueCacheable(AlwaysTrue, CacheableComposerNode):
 
     run_count = 0
 
-    @staticmethod
-    def cache_key(ctx: EvalContext) -> tuple:
+    def cache_key(self, ctx: EvalContext) -> tuple:
         return (ctx.prompt, ctx.response)
 
     def run(self, ctx: EvalContext) -> NodeOutput:

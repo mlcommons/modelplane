@@ -113,9 +113,8 @@ class ComposerNode(ABC):
 
 
 class CacheableComposerNode(ComposerNode):
-    @staticmethod
     @abstractmethod
-    def cache_key(ctx: EvalContext) -> tuple:
+    def cache_key(self, ctx: EvalContext) -> tuple:
         raise NotImplementedError  # pragma: no cover
 
 
