@@ -112,6 +112,13 @@ class ComposerNode(ABC):
                 )
 
 
+class CacheableNodeMixin(ComposerNode, ABC):
+    """Mixin for nodes whose outputs should be cached."""
+
+    def cache_key(self, ctx: EvalContext) -> tuple:
+        return ctx.hash()
+
+
 class LLMCostMixin(ComposerNode):
     """Mixin for nodes that involve LLM calls, to simplify cost calculation."""
 

@@ -1,6 +1,6 @@
 import pytest
 
-from modelplane.evaluator.context import NodeOutput
+from modelplane.evaluator.context import EvalContext, NodeOutput
 
 
 def test_prompt_replacement(sample_ctx):
@@ -63,3 +63,11 @@ def test_with_different_parent_outputs(sample_ctx):
 
 def test_eq_with_non_eval_context(sample_ctx):
     assert sample_ctx != "not an EvalContext"
+
+
+def test_hash(sample_ctx):
+    other_ctx = EvalContext(prompt=sample_ctx.prompt, response=sample_ctx.response)
+    assert sample_ctx.hash() == other_ctx.hash()
+
+    other_ctx = EvalContext(prompt=sample_ctx.prompt, response=sample_ctx.response, metadata={"key": "value"})
+    assert sample_ctx.hash() != other_ctx.hash()

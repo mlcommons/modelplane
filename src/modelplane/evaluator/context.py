@@ -102,6 +102,9 @@ class EvalContext:
             metadata=metadata or self.metadata,
         )
 
+    def hash(self):
+        return hash((self.prompt, self.response, frozenset(self.metadata.items())))
+
     def __eq__(self, value: EvalContext) -> bool:
         if not isinstance(value, EvalContext):
             return False
