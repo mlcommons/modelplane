@@ -16,7 +16,7 @@ from tqdm import tqdm
 from modelbench.cache import DiskCache, NullCache
 from modelplane.evaluator.context import EvalContext, NodeOutput
 from modelplane.evaluator.cost import CostInfo, RealizedCost
-from modelplane.evaluator.nodes import Arbiter, CacheableComposerNode, ComposerNode, Gate
+from modelplane.evaluator.nodes import Arbiter, CacheableNodeMixin, ComposerNode, Gate
 from modelplane.evaluator.verdict import Verdict
 
 
@@ -99,7 +99,7 @@ class Composer:
             )
         self._nodes[node.name] = node
         self._validated = False
-        if isinstance(node, CacheableComposerNode):
+        if isinstance(node, CacheableNodeMixin):
             self._node_caches[node.name] = DiskCache(self._cache_path / node.name) if self._cache_path else NullCache()
         return self
 
@@ -189,7 +189,7 @@ class Composer:
                 }
             )
             node = self._nodes[node_name]
-            if isinstance(node, CacheableComposerNode):
+            if isinstance(node, CacheableNodeMixin):
                 key = node.cache_key(run_ctx)
                 if key in self._node_caches[node.name]:
                     output = self._node_caches[node.name][key]

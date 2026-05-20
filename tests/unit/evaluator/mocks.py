@@ -1,6 +1,6 @@
 from modelplane.evaluator.context import EvalContext, NodeOutput
 from modelplane.evaluator.cost import CostInfo
-from modelplane.evaluator.nodes import Arbiter, CacheableComposerNode, Enricher, Gate, LLMCostMixin
+from modelplane.evaluator.nodes import Arbiter, CacheableNodeMixin, Enricher, Gate, LLMCostMixin
 from modelplane.evaluator.verdict import Verdict
 from modelplane.evaluator.safety import Safety
 
@@ -26,13 +26,10 @@ class AlwaysTrue(PassthroughGate):
     ROUTE_TO_TAKE = True
 
 
-class AlwaysTrueCacheable(AlwaysTrue, CacheableComposerNode):
+class AlwaysTrueCacheable(AlwaysTrue, CacheableNodeMixin):
     """Always-true gate that participates in Composer node-level disk caching."""
 
     run_count = 0
-
-    def cache_key(self, ctx: EvalContext) -> tuple:
-        return (ctx.prompt, ctx.response)
 
     def run(self, ctx: EvalContext) -> NodeOutput:
         type(self).run_count += 1

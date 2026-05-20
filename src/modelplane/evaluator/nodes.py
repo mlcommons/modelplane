@@ -112,10 +112,11 @@ class ComposerNode(ABC):
                 )
 
 
-class CacheableComposerNode(ComposerNode):
-    @abstractmethod
+class CacheableNodeMixin(ComposerNode, ABC):
+    """Mixin for nodes whose outputs should be cached."""
+
     def cache_key(self, ctx: EvalContext) -> tuple:
-        raise NotImplementedError  # pragma: no cover
+        return ctx.hash()
 
 
 class LLMCostMixin(ComposerNode):
