@@ -11,8 +11,15 @@ from modelplane.evaluator.dag import Composer
 from modelplane.evaluator.safety import Safety
 
 from .conftest import skip_in_ci
-from .mocks import AlwaysTrueCacheable
-
+from .mocks import (
+    AlwaysSafe,
+    AlwaysTrue,
+    AlwaysTrueCacheable,
+    LowerCaser,
+    LowerCaseScorer,
+    NoOpEnricher,
+    ThresholdArbiter,
+)
 
 def test_dag_outputs(simple_dag):
     assert simple_dag.verdict_type == Safety
@@ -180,6 +187,29 @@ def test_dag_run(simple_dag, sample_ctx):
     assert dag_output.total_cost.total_cost == pytest.approx(3.3)
 
     assert dag_output.verdict.name == "UNSAFE"
+
+
+def test_dag_passes_updated_context_to_downstream_nodes():
+    ctx = EvalContext(prompt="x", response="HELLO")
+    dag = (
+        Composer("ctx_update", verdict_type=Safety)
+        .add_node(
+            AlwaysTrue(
+                name="always_true",
+                routes_true=["lower_caser"],
+                routes_false=["always_safe"],
+            )
+        )
+        .add_node(AlwaysSafe(name="always_safe"))
+        .add_node(LowerCaser(name="lower_caser", routes=["noop"]))
+        .add_node(NoOpEnricher(name="noop", routes=["lower_scorer"]))
+        .add_node(LowerCaseScorer(name="lower_scorer", routes=["threshold_arbiter"]))
+        .add_node(ThresholdArbiter(name="threshold_arbiter", threshold=0.5))
+    )
+    dag_output = dag.run(ctx)
+    assert dag_output.node_outputs["lower_caser"].updated_ctx.response == "hello"
+    # Scorer reads ctx.response; 1.0 only if it saw the lowercased update from lower_caser.
+    assert dag_output.node_outputs["lower_scorer"].value == pytest.approx(1.0)
 
 
 def test_dag_run_with_dataframe(simple_dag, tmp_path):

@@ -132,6 +132,13 @@ class LLMEnricher(Enricher, LLMCostMixin):
         return context_token_count(ctx)
 
 
+class NoOpEnricher(Enricher):
+    """Passes context through without changing it."""
+
+    def run(self, ctx: EvalContext) -> NodeOutput:
+        return self.build_output(None, ctx)
+
+
 class FixedScorer(Enricher):
     """Returns a fixed float score regardless of context."""
 

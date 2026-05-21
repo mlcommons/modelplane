@@ -181,7 +181,7 @@ class Composer:
         for node_name in self._ordered:
             if node_name not in reachable:
                 continue
-            run_ctx = ctx.with_parent_outputs(
+            ctx = ctx.with_parent_outputs(
                 {
                     pred: node_outputs[pred]
                     for pred in self._predecessors[node_name]
@@ -190,14 +190,14 @@ class Composer:
             )
             node = self._nodes[node_name]
             if isinstance(node, CacheableNodeMixin):
-                key = node.cache_key(run_ctx)
+                key = node.cache_key(ctx)
                 if key in self._node_caches[node.name]:
                     output = self._node_caches[node.name][key]
                 else:
-                    output = node.run(run_ctx)
+                    output = node.run(ctx)
                     self._node_caches[node.name][key] = output
             else:
-                output = node.run(run_ctx)
+                output = node.run(ctx)
             node_outputs[node_name] = output
             total_cost += output.realized_cost
             if isinstance(output.value, Verdict):
