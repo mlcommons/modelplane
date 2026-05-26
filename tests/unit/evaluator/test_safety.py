@@ -4,7 +4,7 @@ from modelgauge.annotators.demo_annotator import DemoYBadAnnotator
 from modelgauge.prompt import TextPrompt
 from modelgauge.sut import SUTResponse
 
-from modelplane.evaluator.dag import Composer, FailedDAGOutput
+from modelplane.evaluator.dag import Composer, FailedDAGOutput, NodeExecutionError
 from modelplane.evaluator.safety import AnnotatorArbiter, Safety, SafetyDAGAnnotator
 from modelplane.evaluator.verdict import Verdict
 
@@ -50,13 +50,14 @@ def test_safety_dag_with_bad_node(sample_ctx, threshold_arbiter):
     )
     dag_output = dag.run(sample_ctx)
     assert isinstance(dag_output, FailedDAGOutput)
-    assert str(dag_output.error) == "I'm afraid I can't do that, Dave."
+    assert str(dag_output.error.original_error) == "I'm afraid I can't do that, Dave."
 
     dag_annotator = SafetyDAGAnnotator("safety_annotator", dag)
     with pytest.raises(
-        type(dag_output.error), match="I'm afraid I can't do that, Dave."
-    ):
+        NodeExecutionError, match="Error while executing node 'failing_node': I'm afraid I can't do that, Dave."
+    ) as e:
         dag_annotator.process(
             prompt=TextPrompt(text=sample_ctx.prompt),
             response=SUTResponse(text=sample_ctx.response),
         )
+        assert type(e.value.original_error) == type(dag_output.error)

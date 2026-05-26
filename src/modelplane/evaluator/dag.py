@@ -45,6 +45,15 @@ class FailedDAGOutput(_DAGOutput):
     error: Exception
 
 
+class NodeExecutionError(Exception):
+    def __init__(self, node_name: str, original_error: Exception):
+        self.node_name = node_name
+        self.original_error = original_error
+        super().__init__(
+            f"Error while executing node '{node_name}': {original_error}"
+        )
+
+
 class Composer:
     """DAG of ComposerNodes.
 
@@ -225,9 +234,10 @@ class Composer:
             try:
                 output = self._run_node(node, ctx)
             except Exception as e:
+                wrapped_error = NodeExecutionError(node.name, e)
                 return (
                     FailedDAGOutput(
-                        node_outputs=node_outputs, total_cost=total_cost, error=e
+                        node_outputs=node_outputs, total_cost=total_cost, error=wrapped_error
                     ),
                     traversed_edges,
                 )
