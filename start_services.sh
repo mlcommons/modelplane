@@ -38,6 +38,11 @@ else
   SSH_FLAG=""
 fi
 
+mkdir -p ../modelplane-flights
+mkdir -p mlruns
+mkdir -p flightpaths/.cache
+
+
 docker compose down "${SERVICES[@]}"
 docker compose build $SSH_FLAG "${SERVICES[@]}"
 docker compose up $DETACHED "${SERVICES[@]}"

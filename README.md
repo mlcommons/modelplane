@@ -107,3 +107,30 @@ MLFLOW_TRACKING_URI=http://localhost:8080 uv run modelplane annotate --annotator
 ```
 MLFLOW_TRACKING_URI=http://localhost:8080 uv run modelplane annotate --annotator_id {annotator_id1} --annotator_id {annotator_id2} --ensemble_strategy {ensemble_strategy} --experiment expname --response_file path/to/response.csv
 ```
+
+### Installation Instructions
+
+#### For MacOS 
+
+Follow the instructions to install Docker-Desktop and start the application:
+
+https://docs.docker.com/desktop/setup/install/mac-install/
+
+
+```
+./start_services -d
+```
+
+_Note: The script will create three folders ../modelplane-flights, /mlflow and /flightpaths/.cache_
+
+Jupyter notebook will be available at port: 8888
+
+MLFlow dashboard will be available at port: 8080
+
+#### For Linux
+
+<TODO>
+
+#### For Windows
+
+<TODO>
