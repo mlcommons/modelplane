@@ -4,7 +4,7 @@ from modelgauge.prompt_formatting import format_chat
 from modelgauge.sut import SUTResponse
 
 from modelplane.evaluator.context import EvalContext
-from modelplane.evaluator.dag import Composer
+from modelplane.evaluator.dag import Composer, SuccessfulDAGOutput
 from modelplane.evaluator.verdict import Verdict
 
 
@@ -29,4 +29,8 @@ class DAGAnnotator(Annotator):
         )
 
     def annotate(self, annotation_request: EvalContext) -> Verdict:
-        return self.dag.run(annotation_request).verdict
+        dag_output = self.dag.run(annotation_request)
+        if isinstance(dag_output, SuccessfulDAGOutput):
+            return dag_output.verdict
+        else:
+            raise dag_output.error

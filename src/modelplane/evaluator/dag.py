@@ -1,19 +1,19 @@
-"""DAGAnnotator and Composer implementation."""
+"""Composer implementation."""
 
 import collections
-from dataclasses import dataclass
-from pathlib import Path
 import functools
 import json
 import os
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from itertools import product
+from pathlib import Path
 from typing import Any, Optional
 
 import pandas as pd
+from modelbench.cache import DiskCache, NullCache
 from tqdm import tqdm
 
-from modelbench.cache import DiskCache, NullCache
 from modelplane.evaluator.context import EvalContext, NodeOutput
 from modelplane.evaluator.cost import CostInfo, RealizedCost
 from modelplane.evaluator.nodes import Arbiter, CacheableNodeMixin, ComposerNode, Gate
@@ -30,10 +30,19 @@ def requires_validate_and_build(method):
 
 
 @dataclass
-class DAGOutput:
-    verdict: Verdict
+class _DAGOutput:
     node_outputs: dict[str, NodeOutput]
     total_cost: RealizedCost
+
+
+@dataclass
+class SuccessfulDAGOutput(_DAGOutput):
+    verdict: Verdict
+
+
+@dataclass
+class FailedDAGOutput(_DAGOutput):
+    error: Exception
 
 
 class Composer:
@@ -58,7 +67,9 @@ class Composer:
         results_df = dag.run_dataframe(df)
     """
 
-    def __init__(self, name: str, verdict_type: type, cache_path: Optional[Path] = None) -> None:
+    def __init__(
+        self, name: str, verdict_type: type, cache_path: Optional[Path] = None
+    ) -> None:
         self.name = name
         self._nodes: dict[str, ComposerNode] = {}
         self._root_nodes: list[str] = []
@@ -78,6 +89,10 @@ class Composer:
     @property
     def df_output_col(self) -> str:
         return f"{self.name}_output"
+
+    @property
+    def df_error_col(self) -> str:
+        return f"{self.name}_error"
 
     @property
     def df_dag_run_col(self) -> str:
@@ -100,7 +115,11 @@ class Composer:
         self._nodes[node.name] = node
         self._validated = False
         if isinstance(node, CacheableNodeMixin):
-            self._node_caches[node.name] = DiskCache(self._cache_path / node.name) if self._cache_path else NullCache()
+            self._node_caches[node.name] = (
+                DiskCache(self._cache_path / node.name)
+                if self._cache_path
+                else NullCache()
+            )
         return self
 
     def _validate_and_build(self) -> None:
@@ -172,7 +191,21 @@ class Composer:
         self._root_nodes = root_nodes
         self._ordered = ordered
 
-    def _run_traced(self, ctx: EvalContext) -> tuple[DAGOutput, set[tuple[str, str]]]:
+    def _run_node(self, node: ComposerNode, ctx: EvalContext) -> NodeOutput:
+        if isinstance(node, CacheableNodeMixin):
+            key = node.cache_key(ctx)
+            if key in self._node_caches[node.name]:
+                return self._node_caches[node.name][key]
+            else:
+                output = node.run(ctx)
+                self._node_caches[node.name][key] = output
+                return output
+        else:
+            return node.run(ctx)
+
+    def _run_traced(
+        self, ctx: EvalContext
+    ) -> tuple[SuccessfulDAGOutput | FailedDAGOutput, set[tuple[str, str]]]:
         """Execute the DAG and return (final verdict, node outputs, realized costs, traversed edges)."""
         node_outputs: dict[str, NodeOutput] = {}
         traversed_edges: set[tuple[str, str]] = set()
@@ -189,20 +222,20 @@ class Composer:
                 }
             )
             node = self._nodes[node_name]
-            if isinstance(node, CacheableNodeMixin):
-                key = node.cache_key(ctx)
-                if key in self._node_caches[node.name]:
-                    output = self._node_caches[node.name][key]
-                else:
-                    output = node.run(ctx)
-                    self._node_caches[node.name][key] = output
-            else:
-                output = node.run(ctx)
+            try:
+                output = self._run_node(node, ctx)
+            except Exception as e:
+                return (
+                    FailedDAGOutput(
+                        node_outputs=node_outputs, total_cost=total_cost, error=e
+                    ),
+                    traversed_edges,
+                )
             node_outputs[node_name] = output
             total_cost += output.realized_cost
             if isinstance(output.value, Verdict):
                 traversed_edges.add((node_name, output.value.name))
-                dag_output = DAGOutput(
+                dag_output = SuccessfulDAGOutput(
                     verdict=output.value,
                     node_outputs=node_outputs,
                     total_cost=total_cost,
@@ -213,7 +246,7 @@ class Composer:
                 traversed_edges.add((node_name, t))
                 if isinstance(target, Verdict):
                     return (
-                        DAGOutput(
+                        SuccessfulDAGOutput(
                             verdict=target,
                             node_outputs=node_outputs,
                             total_cost=total_cost,
@@ -224,7 +257,7 @@ class Composer:
         raise ValueError("DAG execution completed without reaching a Verdict node.")
 
     @requires_validate_and_build
-    def run(self, ctx: EvalContext) -> DAGOutput:
+    def run(self, ctx: EvalContext) -> SuccessfulDAGOutput | FailedDAGOutput:
         """Execute the DAG on a single prompt/response and get the output,
         node outputs, and overall realized cost."""
         dag_output, _ = self._run_traced(ctx)
@@ -241,7 +274,7 @@ class Composer:
     ) -> pd.DataFrame:
         """Run the DAG over every row of a DataFrame."""
 
-        def _run_row(row: Any) -> DAGOutput:
+        def _run_row(row: Any) -> SuccessfulDAGOutput | FailedDAGOutput:
             ctx = EvalContext(
                 prompt=str(row[prompt_col]),
                 response=str(row[response_col]),
@@ -262,7 +295,14 @@ class Composer:
 
         result_df = pd.DataFrame(
             {
-                self.df_output_col: [r.verdict.name for r in records],
+                self.df_output_col: [
+                    r.verdict.name if isinstance(r, SuccessfulDAGOutput) else None
+                    for r in records
+                ],
+                self.df_error_col: [
+                    str(r.error) if isinstance(r, FailedDAGOutput) else None
+                    for r in records
+                ],
                 self.df_dag_run_col: [
                     json.dumps({k: v.to_dict() for k, v in r.node_outputs.items()})
                     for r in records
@@ -587,6 +627,10 @@ class Composer:
         return self._visualize(
             node_outputs=dag_output.node_outputs,
             traversed_edges=traversed_edges,
-            final_output=dag_output.verdict,
+            final_output=(
+                dag_output.verdict
+                if isinstance(dag_output, SuccessfulDAGOutput)
+                else None
+            ),
             ctx=ctx,
         )
