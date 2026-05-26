@@ -48,7 +48,7 @@ class AnnotatorArbiter(SafetyArbiter, CacheableNodeMixin):
         super().__init__(name=name)
         self.annotator = annotator
 
-    def run(self, ctx: EvalContext) -> Safety:
+    def run(self, ctx: EvalContext) -> NodeOutput:
         prompt = TextPrompt(text=ctx.prompt)
         response = SUTResponse(text=ctx.response)
         annotation = self.annotator.process(prompt, response)

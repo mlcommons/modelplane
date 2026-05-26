@@ -1,12 +1,24 @@
 from modelplane.evaluator.context import EvalContext, NodeOutput
 from modelplane.evaluator.cost import CostInfo
-from modelplane.evaluator.nodes import Arbiter, CacheableNodeMixin, Enricher, Gate, LLMCostMixin
-from modelplane.evaluator.verdict import Verdict
+from modelplane.evaluator.nodes import (
+    Arbiter,
+    CacheableNodeMixin,
+    Enricher,
+    Gate,
+    LLMCostMixin,
+)
 from modelplane.evaluator.safety import Safety
+from modelplane.evaluator.verdict import Verdict
 
 
 def context_token_count(ctx: EvalContext) -> int:
     return len(ctx.prompt.split() + ctx.response.split())
+
+
+class FailingNode(Enricher):
+
+    def run(self, ctx: EvalContext) -> NodeOutput:
+        raise RuntimeError("I'm afraid I can't do that, Dave.")
 
 
 class PassthroughGate(Gate, LLMCostMixin):
