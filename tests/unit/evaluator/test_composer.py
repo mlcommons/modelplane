@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from modelplane.evaluator.context import EvalContext
-from modelplane.evaluator.dag import Composer
+from modelplane.evaluator.dag import Composer, ComposerColumnNames
 from modelplane.evaluator.safety import Safety
 
 from .conftest import skip_in_ci
@@ -21,6 +21,7 @@ from .mocks import (
     ThresholdArbiter,
     UpperCaser,
 )
+
 
 def test_dag_outputs(simple_dag):
     assert simple_dag.verdict_type == Safety
@@ -132,14 +133,11 @@ def test_dag_cache_miss_on_different_context(cached_minimal_dag):
 
 def test_dag_cacheable_node_without_cache_path_runs_each_time(sample_ctx):
     AlwaysTrueCacheable.run_count = 0
-    dag = (
-        Composer("no_cache", verdict_type=Safety)
-        .add_node(
-            AlwaysTrueCacheable(
-                name="always_true",
-                routes_true=[Safety(is_safe=True)],
-                routes_false=[Safety(is_safe=False)],
-            )
+    dag = Composer("no_cache", verdict_type=Safety).add_node(
+        AlwaysTrueCacheable(
+            name="always_true",
+            routes_true=[Safety(is_safe=True)],
+            routes_false=[Safety(is_safe=False)],
         )
     )
     dag.run(sample_ctx)
@@ -370,3 +368,30 @@ def test_visualize_raises_when_graphviz_binary_missing(simple_dag):
             match="Graphviz system binaries not found",
         ):
             simple_dag.visualize()
+
+
+def test_composer_names_orig(simple_dag):
+    assert simple_dag.name == "simple"
+    assert simple_dag.df_output_col == "simple_output"
+    assert simple_dag.df_error_col == "simple_error"
+    assert simple_dag.df_dag_run_col == "simple_dag_run"
+    assert simple_dag.df_cost_col == "simple_dag_cost"
+
+
+def test_composer_names_override():
+    dag = Composer(
+        name="dag_name",
+        verdict_type=Safety,
+        col_names=ComposerColumnNames(
+            composer_name="dag_name", output_col_name="my_output"
+        ),
+    )
+    assert dag.df_output_col == "my_output"
+    assert dag.df_error_col == "dag_name_error"
+    assert dag.df_dag_run_col == "dag_name_dag_run"
+    assert dag.df_cost_col == "dag_name_dag_cost"
+
+
+def test_composer_names_partial_override_no_name_raises():
+    with pytest.raises(ValueError, match="composer_name must be provided"):
+        ComposerColumnNames(output_col_name="my_output")
