@@ -49,9 +49,38 @@ class NodeExecutionError(Exception):
     def __init__(self, node_name: str, original_error: Exception):
         self.node_name = node_name
         self.original_error = original_error
-        super().__init__(
-            f"Error while executing node '{node_name}': {original_error}"
-        )
+        super().__init__(f"Error while executing node '{node_name}': {original_error}")
+
+
+class ComposerColumnNames:
+    def __init__(
+        self,
+        composer_name: Optional[str] = None,
+        output_col_name: Optional[str] = None,
+        error_col_name: Optional[str] = None,
+        dag_run_col_name: Optional[str] = None,
+        cost_col_name: Optional[str] = None,
+    ):
+        if (
+            any(
+                not name
+                for name in [
+                    output_col_name,
+                    error_col_name,
+                    dag_run_col_name,
+                    cost_col_name,
+                ]
+            )
+            and composer_name is None
+        ):
+            raise ValueError(
+                "If any of the column names are not provided, composer_name must be provided to generate default column names."
+            )
+
+        self.output_col = output_col_name or f"{composer_name}_output"
+        self.error_col = error_col_name or f"{composer_name}_error"
+        self.dag_run_col = dag_run_col_name or f"{composer_name}_dag_run"
+        self.cost_col = cost_col_name or f"{composer_name}_dag_cost"
 
 
 class Composer:
@@ -77,7 +106,11 @@ class Composer:
     """
 
     def __init__(
-        self, name: str, verdict_type: type, cache_path: Optional[Path] = None
+        self,
+        name: str,
+        verdict_type: type,
+        cache_path: Optional[Path] = None,
+        col_names: Optional[ComposerColumnNames] = None,
     ) -> None:
         self.name = name
         self._nodes: dict[str, ComposerNode] = {}
@@ -90,6 +123,7 @@ class Composer:
         self._verdict_type = verdict_type
         self._cache_path = cache_path
         self._node_caches = {}
+        self._col_names = col_names or ComposerColumnNames(composer_name=name)
 
     @property
     def verdict_type(self) -> type:
@@ -97,19 +131,19 @@ class Composer:
 
     @property
     def df_output_col(self) -> str:
-        return f"{self.name}_output"
+        return self._col_names.output_col
 
     @property
     def df_error_col(self) -> str:
-        return f"{self.name}_error"
+        return self._col_names.error_col
 
     @property
     def df_dag_run_col(self) -> str:
-        return f"{self.name}_dag_run"
+        return self._col_names.dag_run_col
 
     @property
     def df_cost_col(self) -> str:
-        return f"{self.name}_dag_cost"
+        return self._col_names.cost_col
 
     def add_node(
         self,
@@ -237,7 +271,9 @@ class Composer:
                 wrapped_error = NodeExecutionError(node.name, e)
                 return (
                     FailedDAGOutput(
-                        node_outputs=node_outputs, total_cost=total_cost, error=wrapped_error
+                        node_outputs=node_outputs,
+                        total_cost=total_cost,
+                        error=wrapped_error,
                     ),
                     traversed_edges,
                 )
@@ -368,7 +404,7 @@ class Composer:
         traversed_edges: Optional[set[tuple[str, str]]] = None,
         final_output: Optional[Verdict] = None,
         ctx: Optional[EvalContext] = None,
-    ):
+    ):  # pragma: no cover
         """Render the DAG as a PNG image. In a Jupyter notebook the image is displayed inline.
 
         When node_outputs/traversed_edges/final_output are provided (via visualize_run),
@@ -606,7 +642,7 @@ class Composer:
             ) from e
 
     @requires_validate_and_build
-    def visualize(self):
+    def visualize(self):  # pragma: no cover
         """Render the DAG structure as a PNG image (inline in Jupyter notebooks).
 
         The graph flows left to right. Node shapes and colors:
@@ -626,7 +662,7 @@ class Composer:
         return self._visualize()
 
     @requires_validate_and_build
-    def visualize_run(self, ctx: EvalContext):
+    def visualize_run(self, ctx: EvalContext):  # pragma: no cover
         """Run the DAG on ctx and return a visualization with the executed path highlighted.
 
         Identical layout to visualize(), with the following additions:
