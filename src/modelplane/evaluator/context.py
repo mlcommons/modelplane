@@ -26,7 +26,10 @@ class EvalContext:
     """Context state passed around during DAG execution."""
 
     def __init__(
-        self, prompt: str, response: str, metadata: Optional[dict[str, Any]] = None
+        self,
+        prompt: str,
+        response: str,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> None:
         self.prompt = prompt
         self.response = response

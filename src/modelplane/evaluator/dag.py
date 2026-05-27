@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import pandas as pd
+from airrlogger.log_config import get_logger
 from modelbench.cache import DiskCache, NullCache
 from tqdm import tqdm
 
@@ -18,6 +19,8 @@ from modelplane.evaluator.context import EvalContext, NodeOutput
 from modelplane.evaluator.cost import CostInfo, RealizedCost
 from modelplane.evaluator.nodes import Arbiter, CacheableNodeMixin, ComposerNode, Gate
 from modelplane.evaluator.verdict import Verdict
+
+logger = get_logger(__name__)
 
 
 def requires_validate_and_build(method):
@@ -321,10 +324,21 @@ class Composer:
         """Run the DAG over every row of a DataFrame."""
 
         def _run_row(row: Any) -> SuccessfulDAGOutput | FailedDAGOutput:
+            metadata = None
+            if metadata_col:
+                row_val = row[metadata_col]
+                if row_val:
+                    try:
+                        metadata = json.loads(row_val)
+                    except Exception as e:
+                        logger.warning(
+                            "Failed to parse json metadata in row. Proceeding with no metadata."
+                        )
+                        logger.debug(f"Metadata parsing error: {e}")
             ctx = EvalContext(
                 prompt=str(row[prompt_col]),
                 response=str(row[response_col]),
-                metadata=json.loads(row[metadata_col]) if metadata_col else None,
+                metadata=metadata,
             )
             return self.run(ctx)
 
