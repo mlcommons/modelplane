@@ -206,6 +206,7 @@ def test_dag_passes_updated_context_to_downstream_nodes():
         .add_node(ThresholdArbiter(name="threshold_arbiter", threshold=0.5))
     )
     dag_output = dag.run(ctx)
+    assert dag_output.node_outputs["lower_caser"].updated_ctx is not None
     assert dag_output.node_outputs["lower_caser"].updated_ctx.response == "hello"
     # Scorer reads ctx.response; 1.0 only if it saw the lowercased update from lower_caser.
     assert dag_output.node_outputs["lower_scorer"].value == pytest.approx(1.0)
@@ -232,6 +233,7 @@ def test_dag_updated_context_not_passed_to_parallel_nodes():
     dag_output = dag.run(ctx)
 
     assert dag_output.node_outputs["lower_caser"].original_ctx.response == "HELLO"
+    assert dag_output.node_outputs["lower_caser"].updated_ctx is not None
     assert dag_output.node_outputs["lower_caser"].updated_ctx.response == "hello"
 
     assert dag_output.node_outputs["noop"].original_ctx.response == "HELLO"
@@ -275,9 +277,15 @@ def test_dag_run_with_dataframe(simple_dag, tmp_path):
         {
             "prompt": ["a", "ab", "abc", "abcd"],  # odd, even, odd, even
             "response": ["Hello world", "Helloworld", "Hello world", "Helloworld"],
+            "metadata": [
+                json.dumps({"key": "value1"}),
+                json.dumps({"key": "value2"}),
+                "notvalidjson",
+                None,
+            ],
         }
     )
-    result_df = simple_dag.run_dataframe(df)
+    result_df = simple_dag.run_dataframe(df, metadata_col="metadata")
 
     assert len(result_df) == len(df)
     assert "prompt" in result_df.columns
