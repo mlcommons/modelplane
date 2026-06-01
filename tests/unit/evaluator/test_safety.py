@@ -54,10 +54,11 @@ def test_safety_dag_with_bad_node(sample_ctx, threshold_arbiter):
 
     dag_annotator = SafetyDAGAnnotator("safety_annotator", dag)
     with pytest.raises(
-        NodeExecutionError, match="Error while executing node 'failing_node': I'm afraid I can't do that, Dave."
+        NodeExecutionError, match=r"Error executing node 'failing_node'"
     ) as e:
         dag_annotator.process(
             prompt=TextPrompt(text=sample_ctx.prompt),
             response=SUTResponse(text=sample_ctx.response),
         )
         assert type(e.value.original_error) == type(dag_output.error)
+        assert "Traceback" in str(e.value)
