@@ -4,6 +4,7 @@ import collections
 import functools
 import json
 import os
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from itertools import product
@@ -50,9 +51,10 @@ class FailedDAGOutput(_DAGOutput):
 
 class NodeExecutionError(Exception):
     def __init__(self, node_name: str, original_error: Exception):
+        formatted = traceback.format_exception(original_error)
         self.node_name = node_name
         self.original_error = original_error
-        super().__init__(f"Error while executing node '{node_name}': {original_error}")
+        super().__init__(f"Error executing node '{node_name}': {''.join(formatted)}")
 
 
 class ComposerColumnNames:
