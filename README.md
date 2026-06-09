@@ -72,6 +72,9 @@ scratch.
     * You can manage branches and commits for 
     `modelplane-flights` directly from jupyter.
 
+For a compact example of passing benchmark metadata through a security DAG, see
+[`flightpaths/Security DAG Metadata Example.md`](flightpaths/Security%20DAG%20Metadata%20Example.md).
+
 ## Caching
 
 Annotator and SUT responses will be cached (locally) unless you pass the
