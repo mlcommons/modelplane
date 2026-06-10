@@ -27,6 +27,18 @@ def test_metadata_replacement(sample_ctx):
     assert new_ctx.metadata == new_metadata
 
 
+def test_metadata_updates():
+    original_metadata = {"key1": "value1"}
+    sample_ctx = EvalContext(
+        prompt="Prompt", response="Response", metadata=original_metadata
+    )
+    additional_metadata = {"key2": "value2"}
+    new_ctx = sample_ctx.with_metadata_updates(additional_metadata)
+    assert new_ctx.prompt == sample_ctx.prompt
+    assert new_ctx.response == sample_ctx.response
+    assert new_ctx.metadata == {**sample_ctx.metadata, **additional_metadata}
+
+
 def test_with_updates(sample_ctx):
     new_prompt = "Updated prompt"
     new_response = "Updated response"
@@ -69,5 +81,9 @@ def test_hash(sample_ctx):
     other_ctx = EvalContext(prompt=sample_ctx.prompt, response=sample_ctx.response)
     assert sample_ctx.hash() == other_ctx.hash()
 
-    other_ctx = EvalContext(prompt=sample_ctx.prompt, response=sample_ctx.response, metadata={"key": "value"})
+    other_ctx = EvalContext(
+        prompt=sample_ctx.prompt,
+        response=sample_ctx.response,
+        metadata={"key": "value"},
+    )
     assert sample_ctx.hash() != other_ctx.hash()
