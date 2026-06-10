@@ -87,6 +87,23 @@ class EvalContext:
         )
 
     def with_metadata(self, new_metadata: dict[str, Any]) -> EvalContext:
+        """
+        Return a new EvalContext with the provided metadata replacing the
+        original metadata.
+        """
+        return EvalContext(
+            prompt=self.prompt,
+            response=self.response,
+            metadata=new_metadata,
+        )
+
+    def with_metadata_updates(self, updates: dict[str, Any]) -> EvalContext:
+        """
+        Return a new EvalContext with the original metadata updated with the
+        provided updates.
+        """
+        new_metadata = self.metadata.copy()
+        new_metadata.update(updates)
         return EvalContext(
             prompt=self.prompt,
             response=self.response,
