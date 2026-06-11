@@ -21,7 +21,7 @@ dependencies = [
     "jupyterlab-git",
     "scikit-learn>=1.5.0,<2.0.0",
     "pandas>=2.2.2,<4",
-    "modelbench[composer]",
+    "modelbench[composer] @ git+https://github.com/mlcommons/modelbench.git",
     "graphviz>=0.20,<1",
     # the below 4 are tied to the Dockerfile.mlflow versions; need to be upgraded together
     "mlflow[auth]==3.7.0",
@@ -29,10 +29,6 @@ dependencies = [
     "boto3==1.43.21",
     "google-cloud-storage==3.10.1",
 ]
-
-[tool.uv.sources]
-# TODO: remove this
-modelbench = { git = "https://github.com/mlcommons/modelbench.git", rev = "dag-evaluator-migration" }
 
 [project.scripts]
 modelplane = "modelplane.cli:cli"
