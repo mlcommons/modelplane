@@ -6,7 +6,7 @@ updates:
       interval: "monthly"
     ignore:
       - dependency-name: "mlflow"
-        versions: [">= 3.8"]
+        versions: [">= 3.13"]
     groups:
       all-dependencies:
         patterns:
