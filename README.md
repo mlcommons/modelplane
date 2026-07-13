@@ -72,6 +72,15 @@ scratch.
     * You can manage branches and commits for 
     `modelplane-flights` directly from jupyter.
 
+## Deploying the MLCommons MLflow server
+
+The shared MLflow tracking server is deployed from the (private)
+[mlcommons/sugar](https://github.com/mlcommons/sugar) repository; see
+[`infra/modelplane/README.md`](https://github.com/mlcommons/sugar/blob/main/infra/modelplane/README.md)
+there for the full deployment guide. The server image is built from
+[`Dockerfile.mlflow`](Dockerfile.mlflow) in this repo, so MLflow version
+upgrades start here and are rolled out via the sugar deployment.
+
 ## Caching
 
 Annotator and SUT responses will be cached (locally) unless you pass the
