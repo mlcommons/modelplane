@@ -24,9 +24,9 @@ dependencies = [
     "modelbench[composer] @ git+https://github.com/mlcommons/modelbench.git",
     # the below 4 are tied to the Dockerfile.mlflow versions; need to be upgraded together
     "mlflow[auth]==3.7.0",
-    "psycopg2-binary==2.9.11",
-    "boto3==1.42.51",
-    "google-cloud-storage==3.9.0",
+    "psycopg2-binary==2.9.12",
+    "boto3==1.43.21",
+    "google-cloud-storage==3.10.1",
 ]
 
 [project.scripts]
