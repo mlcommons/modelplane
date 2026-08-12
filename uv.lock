@@ -3339,7 +3339,7 @@ wheels = [
 [[package]]
 name = "modelbench"
 version = "1.0.0"
-source = { git = "https://github.com/mlcommons/modelbench.git#8b881a6fdcd3a19096d01b1c13a4a8c3371aa306" }
+source = { git = "https://github.com/mlcommons/modelbench.git#873e6303d3f042dabdfa98fe30d6c4d8806102fc" }
 dependencies = [
     { name = "airrlogger" },
     { name = "anthropic" },
