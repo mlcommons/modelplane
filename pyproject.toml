@@ -25,8 +25,8 @@ dependencies = [
     # the below 4 are tied to the Dockerfile.mlflow versions; need to be upgraded together
     "mlflow[auth]==3.7.0",
     "psycopg2-binary==2.9.12",
-    "boto3==1.43.21",
-    "google-cloud-storage==3.10.1",
+    "boto3==1.43.83",
+    "google-cloud-storage==3.13.1",
     "sentence-transformers>=4",
 ]
 
