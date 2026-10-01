@@ -2,12 +2,10 @@ from typing import List
 
 import click
 from modelgauge.data_schema import AnnotationSchema
-from modelgauge.ensemble_strategies import ENSEMBLE_STRATEGIES
 
 from modelplane.runways.annotator import annotate
 from modelplane.runways.lister import (
     list_annotators,
-    list_ensemble_strategies,
     list_suts,
 )
 from modelplane.runways.responder import respond
@@ -25,11 +23,6 @@ def cli():
 @cli.command(name="list-annotators", help="List known annotators.")
 def list_annotators_cli():
     list_annotators()
-
-
-@cli.command(name="list-ensemble-strategies", help="List known ensemble strategies.")
-def list_ensemble_strategies_cli():
-    list_ensemble_strategies()
 
 
 @cli.command(name="list-suts", help="List known suts.")
@@ -147,13 +140,6 @@ def get_sut_responses(
     help="The annotator UID(s) to use. Multiple annotators can be specified.",
 )
 @click.option(
-    "--ensemble_strategy",
-    type=str,
-    default=None,
-    help="The ensemble strategy to use. If set, individual annotator results will be combined using the given strategy. "
-    "Available strategies: " + ", ".join(list(ENSEMBLE_STRATEGIES.keys())),
-)
-@click.option(
     "--overwrite",
     is_flag=True,
     default=False,
@@ -202,7 +188,6 @@ def get_annotations(
     dvc_repo: str | None = None,
     response_file: str | None = None,
     response_run_id: str | None = None,
-    ensemble_strategy: str | None = None,
     overwrite: bool = False,
     disable_cache: bool = False,
     num_workers: int = 1,
@@ -217,7 +202,6 @@ def get_annotations(
         response_file=response_file,
         response_run_id=response_run_id,
         annotator_ids=annotator_id,
-        ensemble_strategy=ensemble_strategy,
         overwrite=overwrite,
         disable_cache=disable_cache,
         num_workers=num_workers,
