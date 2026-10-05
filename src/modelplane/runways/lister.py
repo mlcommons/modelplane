@@ -1,5 +1,4 @@
 from modelgauge.annotator_registry import ANNOTATORS
-from modelgauge.ensemble_strategies import ENSEMBLE_STRATEGIES
 from modelgauge.sut_registry import SUTS
 
 
@@ -9,7 +8,3 @@ def list_annotators():
 
 def list_suts():
     print(SUTS.compact_uid_list())
-
-
-def list_ensemble_strategies():
-    print(sorted(ENSEMBLE_STRATEGIES))

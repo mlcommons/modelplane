@@ -25,7 +25,6 @@ def test_main_help():
         "score",
         "list-suts",
         "list-annotators",
-        "list-ensemble-strategies",
     ],
 )
 def test_command_help(command):

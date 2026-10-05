@@ -13,8 +13,6 @@ from matplotlib import pyplot as plt
 from modelgauge.annotator import Annotator
 from modelgauge.annotator_registry import ANNOTATORS
 from modelgauge.dataset import AnnotationDataset
-from modelgauge.ensemble_annotator import EnsembleAnnotator
-from modelgauge.ensemble_strategies import ENSEMBLE_STRATEGIES
 from modelgauge.pipeline_runner import build_runner
 
 from modelplane.mlflow.loghelpers import log_tags
@@ -36,9 +34,6 @@ from modelplane.runways.utils import (
 )
 
 
-DEFAULT_ENSEMBLE_ANNOTATOR_UID = "ensemble"
-
-
 def annotate(
     experiment: str,
     annotator_ids: List[str],
@@ -46,7 +41,6 @@ def annotate(
     dvc_repo: str | None = None,
     response_file: str | None = None,
     response_run_id: str | None = None,
-    ensemble_strategy: str | None = None,
     overwrite: bool = False,
     disable_cache: bool = False,
     num_workers: int = 1,
@@ -58,8 +52,7 @@ def annotate(
     """
     Run annotations and record measurements.
     """
-    # this will set annotator_ids and optionally ensemble
-    pipeline_kwargs = _get_annotator_settings(annotator_ids, ensemble_strategy)
+    pipeline_kwargs = _get_annotator_settings(annotator_ids)
     if not disable_cache:
         pipeline_kwargs["cache_dir"] = CACHE_DIR
     pipeline_kwargs["num_workers"] = num_workers
@@ -73,8 +66,6 @@ def annotate(
             for annotator_id in pipeline_kwargs["annotators"]
         }
     )
-    if ensemble_strategy is not None:
-        tags["ensemble_strategy"] = ensemble_strategy
 
     experiment_id = get_experiment_id(experiment)
     if overwrite and response_run_id:
@@ -124,11 +115,7 @@ def annotate(
             # log summary statistics
             annotator_uids = sorted(pipeline_kwargs["annotators"].keys())
             log_safety_summary(
-                annotator_uids=(
-                    annotator_uids
-                    if ensemble_strategy is None
-                    else annotator_uids + [DEFAULT_ENSEMBLE_ANNOTATOR_UID]
-                ),
+                annotator_uids=annotator_uids,
                 data_path=pipeline_runner.output_dir()
                 / pipeline_runner.output_file_name,
                 dir=tmp,
@@ -144,28 +131,8 @@ def annotate(
         return RunArtifacts(run_id=run.info.run_id, artifacts=artifacts)
 
 
-def _get_annotator_settings(
-    annotator_ids: List[str],
-    ensemble_strategy: str | None,
-) -> Dict[str, Any]:
-
-    kwargs = {}
-
-    kwargs["annotators"] = _get_annotators(annotator_ids)
-
-    if ensemble_strategy is not None:
-        if ensemble_strategy not in ENSEMBLE_STRATEGIES:
-            raise ValueError(
-                f"Unknown ensemble strategy: {ensemble_strategy}. "
-                f"Available strategies: {list(ENSEMBLE_STRATEGIES.keys())}"
-            )
-        annotator = EnsembleAnnotator(
-            uid=DEFAULT_ENSEMBLE_ANNOTATOR_UID,
-            annotators=annotator_ids,
-            ensemble_strategy=ensemble_strategy,
-        )
-        kwargs["annotators"][DEFAULT_ENSEMBLE_ANNOTATOR_UID] = annotator
-    return kwargs
+def _get_annotator_settings(annotator_ids: List[str]) -> Dict[str, Any]:
+    return {"annotators": _get_annotators(annotator_ids)}
 
 
 def _get_annotators(annotator_ids: List[str]) -> Dict[str, Annotator]:
@@ -202,7 +169,7 @@ def log_safety_summary(
         mlflow.log_metric(f"{annotator_uid}_total_safe", total_safe[annotator_uid])
         mlflow.log_metric(f"{annotator_uid}_total_count", total[annotator_uid])
         # TODO: the format for the log probs isn't always the same
-        # in particular, the private ensemble uses a different format
+        # in particular, the private annotator uses a different format
         try:
             log_stats(f"{annotator_uid}_logprobs_", all_log_probs[annotator_uid])
             log_hist(dir, f"{annotator_uid}", all_log_probs[annotator_uid])

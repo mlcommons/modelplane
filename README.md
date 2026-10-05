@@ -105,14 +105,8 @@ or you can get the `run_id` via the MLFlow UI.
 MLFLOW_TRACKING_URI=http://localhost:8080 uv run modelplane annotate --annotator_id {annotator_id} --experiment expname --response_run_id {run_id}
 ```
 
-#### Private Ensemble
+#### Private annotator
 If you have access to the private annotator, you can run directly with:
 ```
-MLFLOW_TRACKING_URI=http://localhost:8080 uv run modelplane annotate --annotator_id safety-v1.1 --experiment expname --response_run_id {run_id}
-```
-
-
-### Custom Ensembles
-```
-MLFLOW_TRACKING_URI=http://localhost:8080 uv run modelplane annotate --annotator_id {annotator_id1} --annotator_id {annotator_id2} --ensemble_strategy {ensemble_strategy} --experiment expname --response_file path/to/response.csv
+MLFLOW_TRACKING_URI=http://localhost:8080 uv run modelplane annotate --annotator_id safety-v1.2 --experiment expname --response_run_id {run_id}
 ```
